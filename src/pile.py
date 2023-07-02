@@ -94,10 +94,8 @@ def declare_libc_printf(module: ir.Module) -> ir.Function:
 
 
 def static_str(module: ir.Module, value: str, cstr: bool = True) -> ir.GlobalVariable:
-    string = f"{value}\0"
-    if not cstr:
-        string = value
-    format_const = ir.Constant(ir.ArrayType(ir.IntType(8), len(string)), bytearray(string.encode("utf8")))
+    str = f"{value}\0" if cstr else value
+    format_const = ir.Constant(ir.ArrayType(ir.IntType(8), len(str)), bytearray(str.encode("utf8")))
     string = ir.GlobalVariable(module, format_const.type, name=f"{hex(id(value))}")
     string.linkage = "internal"
     string.global_constant = True
