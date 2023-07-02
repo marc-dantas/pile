@@ -31,6 +31,6 @@ $ python3 src/main.py
 
 ---
 
-Powered by [LLVM Compiler Infrastructure](https://llvm.org/).
+Powered by [LLVM Compiler Infrastructure](https://llvm.org/) and [llvmlite](https://github.com/numba/llvmlite/). 
 
 > By Marcio Dantas
