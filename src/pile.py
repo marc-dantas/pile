@@ -1,35 +1,45 @@
-from io import BufferedReader
-from typing import Callable
 from llvmlite import ir, binding
-from os import SEEK_END
+from typing import Callable, TextIO, Generator, Tuple
+from enum import Enum, auto
+from dataclasses import dataclass
+
+DEFAULT_INT: ir.IntType = ir.IntType(32)
 
 
-# NOTE: For now it's unused, because we don't have a proper parser for this
-# I know this lexer is shit. It's here just to save this very good code.
+class TokenKind(Enum):
+    Int = auto()
+    Symbol = auto()
+
+
+@dataclass
+class Token:
+    value: str
+    kind: TokenKind
+
+
 class Lexer:
-    
-    source: BufferedReader
-    
-    def __init__(self, input: BufferedReader):
-        self.source = input
-    
+    source: TextIO
+
+    def __init__(self, input_file: TextIO):
+        self.source = input_file
+
     @property
     def index(self) -> int:
         return self.source.tell()
-    
+
     def advance(self) -> int:
         current = self.source.read(1)
-        while current and not current.isspace():
+        while current and current.isspace():
             current = self.source.read(1)
         return self.index
-    
+
     def tell(self) -> int:
         ptr = self.source.tell()
-        x = self.source.seek(0, SEEK_END)
+        x = self.source.seek(0, 2)
         self.source.seek(0, ptr)
         return x
-    
-    def lex(self):
+
+    def lex(self) -> Generator[Token, None, None]:
         buflen = self.tell()
         while self.index < buflen:
             start = self.index
@@ -38,10 +48,15 @@ class Lexer:
                 end -= 1
             if start != end:
                 self.source.seek(start)
-                yield self.__source.read(end - start)
+                value = self.source.read(end - start)
+                kind = self.classify_token(value)
+                yield Token(value, kind)
+
+    def classify_token(self, token: str) -> TokenKind:
+        # TODO: We'll have more types, I promise.
+        return TokenKind.Int if token.isdigit() else TokenKind.Symbol
 
 
-# Pretty good. Isn't it?
 class LLVMCompiler:
     
     builder: ir.IRBuilder
@@ -62,18 +77,17 @@ class LLVMCompiler:
         self.builder = ir.IRBuilder(main.append_basic_block(name="entry"))
         self.stack = []
     
-    
     # Op hardcoded functions
     
     def push(self, value):
-        self.stack.append(self.builder.alloca(ir.IntType(32)))
-        self.builder.store(ir.Constant(ir.IntType(32), value), self.stack[-1])
+        self.stack.append(self.builder.alloca(DEFAULT_INT))
+        self.builder.store(ir.Constant(DEFAULT_INT, value), self.stack[-1])
 
     def binop(self, fn: Callable):
         b = self.builder.load(self.stack.pop())
         a = self.builder.load(self.stack.pop())
         result = fn(a, b)
-        self.stack.append(self.builder.alloca(ir.IntType(32)))
+        self.stack.append(self.builder.alloca(DEFAULT_INT))
         self.builder.store(result, self.stack[-1])
     
     def dump(self):
