@@ -1,5 +1,5 @@
 from llvmlite import ir, binding
-from typing import Callable, TextIO, Generator, Tuple
+from typing import Callable, TextIO, Generator, NewType
 from enum import Enum, auto
 from dataclasses import dataclass
 
@@ -20,8 +20,8 @@ class Token:
 class Lexer:
     source: TextIO
 
-    def __init__(self, input_file: TextIO):
-        self.source = input_file
+    def __init__(self, source: TextIO):
+        self.source = source
 
     @property
     def index(self) -> int:
@@ -29,7 +29,7 @@ class Lexer:
 
     def advance(self) -> int:
         current = self.source.read(1)
-        while current and current.isspace():
+        while current and not current.isspace():
             current = self.source.read(1)
         return self.index
 
@@ -57,13 +57,57 @@ class Lexer:
         return TokenKind.Int if token.isdigit() else TokenKind.Symbol
 
 
+class NodeKind(Enum):
+    Symbol = auto()
+    OpPush = auto()
+    OpPlus = auto()
+    OpDump = auto()
+
+
+@dataclass
+class Node:
+    token: Token
+    kind: NodeKind
+
+
+Program = NewType("Program", Generator[Node, None, None])
+
+
+class Parser:
+    
+    tokens: Generator[Token, None, None]
+    
+    def __init__(self, tokens: Generator[Token, None, None]) -> None:
+        self.tokens = tokens
+    
+    def match_kind(self, token: Token) -> NodeKind:
+        if token.kind == TokenKind.Symbol:
+            table = {
+                "+": NodeKind.OpPlus,
+                "dump": NodeKind.OpDump,
+            }
+            return (NodeKind.Symbol if token.value not in table
+                    else table[token.value])
+        elif token.kind == TokenKind.Int:
+            return NodeKind.OpPush
+        else:
+            assert False, "Unreachable at Parser.match_kind"
+    
+    def parse(self) -> Program:
+        # TODO: Make the parser recognize Symbols in wrong places.
+        # TODO: Make the parser be able to parse code blocks (if, while, etc.).
+        for token in self.tokens:
+            yield Node(token, self.match_kind(token))
+
+
 class LLVMCompiler:
     
     builder: ir.IRBuilder
     module: ir.Module
     stack: list
+    prog: Program
     
-    def __init__(self, _: object) -> None:
+    def __init__(self, program: Program) -> None:
         binding.initialize()
         binding.initialize_native_target()
         binding.initialize_native_asmprinter()
@@ -76,27 +120,41 @@ class LLVMCompiler:
         )
         self.builder = ir.IRBuilder(main.append_basic_block(name="entry"))
         self.stack = []
+        self.prog = program
+    
+    def compile(self) -> ir.Module:
+        for node in self.prog:
+            if node.kind == NodeKind.OpPush:
+                self.push(int(node.token.value))
+            elif node.kind == NodeKind.OpPlus:
+                self.binop(self.builder.add)
+            elif node.kind == NodeKind.OpDump:
+                self.dump()
+            elif node.kind == NodeKind.Symbol:
+                raise NotImplementedError(f"{node.token.value}")
+        self.ret(0)
+        return self.module
     
     # Op hardcoded functions
     
-    def push(self, value):
+    def push(self, value: int) -> None:
         self.stack.append(self.builder.alloca(DEFAULT_INT))
         self.builder.store(ir.Constant(DEFAULT_INT, value), self.stack[-1])
 
-    def binop(self, fn: Callable):
+    def binop(self, fn: Callable) -> None:
         b = self.builder.load(self.stack.pop())
         a = self.builder.load(self.stack.pop())
         result = fn(a, b)
         self.stack.append(self.builder.alloca(DEFAULT_INT))
         self.builder.store(result, self.stack[-1])
     
-    def dump(self):
+    def dump(self) -> None:
         printf = declare_libc_printf(self.module)
         result = self.builder.load(self.stack.pop())
         format_str = static_str(self.module, "%d\n")
         self.builder.call(printf, [self.builder.bitcast(format_str, ir.PointerType(ir.IntType(8))), result])
 
-    def ret(self, code: int):
+    def ret(self, code: int) -> None:
         self.builder.ret(ir.Constant(ir.IntType(32), code))
 
 

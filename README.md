@@ -6,7 +6,7 @@
 > It isn't even usable yet. Keep eyes on the next commits if you want to contribute.
 
 ## Development milestones
-- [ ] Make it (at least) an usable language
+- [X] Make it (at least) an usable language
 - [ ] Implement all major operations
 - [ ] Control flow
 - [ ] Make it [turing complete](https://en.wikipedia.org/wiki/Turing_completeness)
@@ -15,10 +15,10 @@
 ## Quick start
 This language is not usable as a language yet, but you can experiment with some stuff:
 
-Compile and run the hardcoded program at `src/main.py`:
+Compile and run the program at file `main.pl`:
 ```console
 $ cd path/to/pile
-$ python3 src/main.py > output.ll
+$ python3 src/main.py main.pl > output.ll
 $ clang output.ll -o output
 $ ./output
 ```
@@ -26,7 +26,7 @@ $ ./output
 If you want to **see** the LLVM IR output:
 ```console
 $ cd path/to/pile
-$ python3 src/main.py
+$ python3 src/main.py main.pl
 ```
 
 ---
