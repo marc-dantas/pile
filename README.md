@@ -3,7 +3,7 @@
 
 
 > **WARNING**: this is a project in VERY early stages of development. USE THIS LANGUAGE AT YOUR OWN RISK!
-> It isn't even usable yet. Keep eyes on the next commits if you want to contribute.
+> Keep eyes on the next commits if you want to contribute.
 
 ## Development milestones
 - [X] Make it (at least) an usable language
