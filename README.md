@@ -7,9 +7,9 @@
 
 ## Development milestones
 - [X] Make it (at least) an usable language
+- [X] (maybe) JIT Compiler
 - [ ] Implement all major operations
 - [ ] Control flow
-- [ ] (maybe) JIT Compiler
 - [ ] Make it [turing complete](https://en.wikipedia.org/wiki/Turing_completeness)
 - [ ] Statically typed
 
