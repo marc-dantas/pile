@@ -9,25 +9,32 @@
 - [X] Make it (at least) an usable language
 - [ ] Implement all major operations
 - [ ] Control flow
+- [ ] (maybe) JIT Compiler
 - [ ] Make it [turing complete](https://en.wikipedia.org/wiki/Turing_completeness)
 - [ ] Statically typed
 
 ## Quick start
-This language is not usable as a language yet, but you can experiment with some stuff:
+This language is not usable as a proper language yet, but you can experiment with some stuff:
 
-Compile and run the program at file `main.pl`:
+Compile to executable and run the program `prog.pl` using clang(linux/osx):
 ```console
 $ cd path/to/pile
-$ python3 src/main.py main.pl > output.ll
-$ clang output.ll -o output
-$ ./output
+$ python3 src/main.py --compile prog.pl
+$ ./prog.out
 ```
 
-If you want to **see** the LLVM IR output:
+Execute the code directly by the JIT compiler:
 ```console
 $ cd path/to/pile
-$ python3 src/main.py main.pl
+$ python3 src/main.py prog.pl
 ```
+
+Get the LLVM representation of `prog.pl`:
+```console
+$ cd path/to/pile
+$ python3 src/main.py prog.pl -e
+```
+
 
 ---
 

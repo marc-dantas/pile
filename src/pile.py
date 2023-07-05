@@ -1,7 +1,9 @@
 from llvmlite import ir, binding
-from typing import Callable, TextIO, Generator, NewType
+from typing import Callable, TextIO, Generator
+from typing import NewType, Dict, List
 from enum import Enum, auto
 from dataclasses import dataclass
+from sys import stderr
 
 DEFAULT_INT: ir.IntType = ir.IntType(32)
 
@@ -58,9 +60,10 @@ class Lexer:
 
 
 class NodeKind(Enum):
-    Symbol = auto()
     OpPush = auto()
     OpPlus = auto()
+    OpMinus = auto()
+    OpMul = auto()
     OpDump = auto()
 
 
@@ -82,12 +85,15 @@ class Parser:
     
     def match_kind(self, token: Token) -> NodeKind:
         if token.kind == TokenKind.Symbol:
-            table = {
+            match_table = {
                 "+": NodeKind.OpPlus,
+                "-": NodeKind.OpMinus,
+                "*": NodeKind.OpMul,
                 "dump": NodeKind.OpDump,
             }
-            return (NodeKind.Symbol if token.value not in table
-                    else table[token.value])
+            if token.value in match_table:
+                return match_table[token.value]
+            
         elif token.kind == TokenKind.Int:
             return NodeKind.OpPush
         else:
@@ -100,12 +106,16 @@ class Parser:
             yield Node(token, self.match_kind(token))
 
 
+
+
 class LLVMCompiler:
     
     builder: ir.IRBuilder
     module: ir.Module
     stack: list
     prog: Program
+    functions: Dict[str, ir.Function]
+    consts: Dict[str, ir.GlobalVariable]
     
     def __init__(self, program: Program) -> None:
         binding.initialize()
@@ -121,55 +131,80 @@ class LLVMCompiler:
         self.builder = ir.IRBuilder(main.append_basic_block(name="entry"))
         self.stack = []
         self.prog = program
+        self.functions = {
+            "printf": ir.Function(
+                self.module,
+                ir.FunctionType(ir.IntType(32), [ir.PointerType(ir.IntType(8))], var_arg=True),
+                name="printf"
+            ),
+        }
+        self.consts = {
+            "digit_fmt": global_str(self.module, "%d\n", "digit_fmt")
+        }
     
     def compile(self) -> ir.Module:
+        errors = []
         for node in self.prog:
             if node.kind == NodeKind.OpPush:
                 self.push(int(node.token.value))
             elif node.kind == NodeKind.OpPlus:
                 self.binop(self.builder.add)
+            elif node.kind == NodeKind.OpMinus:
+                self.binop(self.builder.sub)
+            elif node.kind == NodeKind.OpMul:
+                self.binop(self.builder.mul)
             elif node.kind == NodeKind.OpDump:
                 self.dump()
-            elif node.kind == NodeKind.Symbol:
-                raise NotImplementedError(f"{node.token.value}")
+            else:
+                error(f"invalid op or identifier {node.token.value}")
         self.ret(0)
         return self.module
     
     # Op hardcoded functions
     
     def push(self, value: int) -> None:
-        self.stack.append(self.builder.alloca(DEFAULT_INT))
+        self.stack.append(self.builder.alloca(DEFAULT_INT, name="push"))
         self.builder.store(ir.Constant(DEFAULT_INT, value), self.stack[-1])
 
-    def binop(self, fn: Callable) -> None:
+    def binop(self, fn: Callable, typ: ir.Type = None) -> None:
         b = self.builder.load(self.stack.pop())
         a = self.builder.load(self.stack.pop())
-        result = fn(a, b)
-        self.stack.append(self.builder.alloca(DEFAULT_INT))
+        result = fn(a, b, name="binop")
+        if typ is None:
+            typ = DEFAULT_INT
+        self.stack.append(self.builder.alloca(typ))
         self.builder.store(result, self.stack[-1])
     
     def dump(self) -> None:
-        printf = declare_libc_printf(self.module)
         result = self.builder.load(self.stack.pop())
-        format_str = static_str(self.module, "%d\n")
-        self.builder.call(printf, [self.builder.bitcast(format_str, ir.PointerType(ir.IntType(8))), result])
+        format_str = self.builder.bitcast(
+            self.consts["digit_fmt"],
+            ir.PointerType(ir.IntType(8)),
+        )
+        self.builder.call(
+            self.functions["printf"],
+            [format_str, result],
+            name="dump"
+        )
 
     def ret(self, code: int) -> None:
         self.builder.ret(ir.Constant(ir.IntType(32), code))
 
 
-# useful functions...
+def global_str(module: ir.Module,
+               value: str,
+               name: str,
+               cstr: bool = True) -> ir.GlobalVariable:
+    
+    x = f"{value}\0" if cstr else value
+    x = ir.Constant(ir.ArrayType(ir.IntType(8), len(x)), bytearray(x.encode("utf8")))
+    v = ir.GlobalVariable(module, x.type, name)
+    v.linkage = "private"
+    v.global_constant = True
+    v.initializer = x
+    return v
 
-def declare_libc_printf(module: ir.Module) -> ir.Function:
-    printf = ir.FunctionType(ir.IntType(32), [ir.PointerType(ir.IntType(8))], var_arg=True)
-    return ir.Function(module, printf, name="printf")
 
-
-def static_str(module: ir.Module, value: str, cstr: bool = True) -> ir.GlobalVariable:
-    str = f"{value}\0" if cstr else value
-    format_const = ir.Constant(ir.ArrayType(ir.IntType(8), len(str)), bytearray(str.encode("utf8")))
-    string = ir.GlobalVariable(module, format_const.type, name=f"{hex(id(value))}")
-    string.linkage = "internal"
-    string.global_constant = True
-    string.initializer = format_const
-    return string
+def error(msg: str) -> None:
+    print(f"pile: error:\n  -> {msg}", file=stderr)
+    exit(1)
