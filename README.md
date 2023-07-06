@@ -1,37 +1,53 @@
 # Pile
 [Concatenative](https://en.wikipedia.org/wiki/Concatenative_programming_language), [stack-based](https://en.wikipedia.org/wiki/Stack-oriented_programming), [statically typed](https://en.wikipedia.org/wiki/Type_system#STATIC) and [compiled](https://en.wikipedia.org/wiki/Compiled_language) programming language for computers.
 
+![Python](https://img.shields.io/badge/Python-3.8+-3670A0?style=plastic&logo=python&logoColor=white)
 
-> **WARNING**: this is a project in VERY early stages of development. USE THIS LANGUAGE AT YOUR OWN RISK!
-> Keep eyes on the next commits if you want to contribute.
+---
 
 ## Development milestones
+
 - [X] Make it (at least) an usable language
-- [X] (maybe) JIT Compiler
+- [X] JIT Compiler
 - [ ] Implement all major operations
 - [ ] Control flow
 - [ ] Make it [turing complete](https://en.wikipedia.org/wiki/Turing_completeness)
 - [ ] Statically typed
 
 ## Quick start
-This language is not usable as a proper language yet, but you can experiment with some stuff:
+> **WARNING**: This is a project in VERY early stages of development. USE THIS LANGUAGE AT YOUR OWN RISK!
+> Keep eyes on the next commits if you want to contribute.
 
-Compile to executable and run the program `prog.pl` using clang(linux/osx):
+> **DISCLAIMER**: I don't know if this project works on Windows yet because I don't have an Windows machine to test it. So, you can test it on your machine and create an issue if it doesn't work properly.
+
+#### Dependencies
+
+To use this software, you need to install the dependencies by doing:
 ```console
 $ cd path/to/pile
-$ python3 src/main.py --compile prog.pl
-$ ./prog.out
+$ python3 -m pip install -r requirements.txt
 ```
+
+#### How to use
+
+This language is not a proper language yet, but you already do some stuff with it:
 
 Execute the code directly by the JIT compiler:
 ```console
-$ cd path/to/pile
-$ python3 src/main.py prog.pl
+$ # To run main.py this way, do `chmod +x src/main.py`
+$ src/main.py prog.pl
 ```
+
+Compile to executable and run the program `prog.pl` (using clang):
+```console
+$ python3 src/main.py prog.pl -c
+... clang stuff ...
+$ ./prog.out
+```
+
 
 Get the LLVM representation of `prog.pl`:
 ```console
-$ cd path/to/pile
 $ python3 src/main.py prog.pl -e
 ```
 

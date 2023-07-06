@@ -1,65 +1,61 @@
-from llvmlite import ir, binding
-from typing import Callable, TextIO, Generator
-from typing import NewType, Dict, List
-from enum import Enum, auto
 from dataclasses import dataclass
+from enum import Enum, auto
+from llvmlite import ir, binding
 from sys import stderr
+from typing import Callable
+from typing import Dict, Iterable, Tuple
 
 DEFAULT_INT: ir.IntType = ir.IntType(32)
 
 
 class TokenKind(Enum):
     Int = auto()
-    Symbol = auto()
+    Word = auto()
 
 
 @dataclass
 class Token:
     value: str
     kind: TokenKind
+    position: Tuple[str, int, int]
 
 
-class Lexer:
-    source: TextIO
+# I stole this lexer from Tsoding Daily:
+# https://youtube.com/clip/Ugkx0EDLNMP4aS5yHNxqmHehqQ6iYG3OCOSC
 
-    def __init__(self, source: TextIO):
-        self.source = source
 
-    @property
-    def index(self) -> int:
-        return self.source.tell()
+def find_col(string: str, col: int, pred: Callable) -> int:
+    while col < len(string) and not pred(string[col]):
+        col += 1
+    return col
 
-    def advance(self) -> int:
-        current = self.source.read(1)
-        while current and not current.isspace():
-            current = self.source.read(1)
-        return self.index
 
-    def tell(self) -> int:
-        ptr = self.source.tell()
-        x = self.source.seek(0, 2)
-        self.source.seek(0, ptr)
-        return x
+def lex_line(line: str) -> Iterable[Tuple[int, str]]:
+    col = find_col(line, 0, lambda x: not x.isspace())
+    while col < len(line):
+        end = find_col(line, col, lambda x: x.isspace())
+        yield (col, line[col:end])
+        col = find_col(line, end, lambda x: not x.isspace())
 
-    def lex(self) -> Generator[Token, None, None]:
-        buflen = self.tell()
-        while self.index < buflen:
-            start = self.index
-            end = self.advance()
-            if self.index < buflen:
-                end -= 1
-            if start != end:
-                self.source.seek(start)
-                value = self.source.read(end - start)
-                kind = self.classify_token(value)
-                yield Token(value, kind)
 
-    def classify_token(self, token: str) -> TokenKind:
-        # TODO: We'll have more types, I promise.
-        return TokenKind.Int if token.isdigit() else TokenKind.Symbol
+def lex_file(path: str) -> Iterable[Token]:
+    with open(path, "r") as f:
+        yield from (
+            Token(val, classify_token(val), (path, row+1, col))
+            for row, x in enumerate(f.readlines())
+            for col, val in lex_line(x) 
+        )
+
+
+def classify_token(token: str) -> TokenKind:
+    # TODO: We'll have more types, I promise.
+    return (TokenKind.Int
+            if token.isdigit()
+            else TokenKind.Word)
 
 
 class NodeKind(Enum):
+    Symbol = auto()
     OpPush = auto()
     OpPlus = auto()
     OpMinus = auto()
@@ -73,122 +69,29 @@ class Node:
     kind: NodeKind
 
 
-Program = NewType("Program", Generator[Node, None, None])
+Program = Iterable[Node]
+class UnreachableError(Exception): ...
 
 
-class Parser:
-    
-    tokens: Generator[Token, None, None]
-    
-    def __init__(self, tokens: Generator[Token, None, None]) -> None:
-        self.tokens = tokens
-    
-    def match_kind(self, token: Token) -> NodeKind:
-        if token.kind == TokenKind.Symbol:
-            match_table = {
-                "+": NodeKind.OpPlus,
-                "-": NodeKind.OpMinus,
-                "*": NodeKind.OpMul,
-                "dump": NodeKind.OpDump,
-            }
-            if token.value in match_table:
-                return match_table[token.value]
-            
-        elif token.kind == TokenKind.Int:
-            return NodeKind.OpPush
-        else:
-            assert False, "Unreachable at Parser.match_kind"
-    
-    def parse(self) -> Program:
-        # TODO: Make the parser recognize Symbols in wrong places.
-        # TODO: Make the parser be able to parse code blocks (if, while, etc.).
-        for token in self.tokens:
-            yield Node(token, self.match_kind(token))
+def match_kind(token: Token) -> NodeKind:
+    if token.kind == TokenKind.Word:
+        return {
+            "+": NodeKind.OpPlus,
+            "-": NodeKind.OpMinus,
+            "*": NodeKind.OpMul,
+            "dump": NodeKind.OpDump,
+        }.get(token.value, NodeKind.Symbol)
+    elif token.kind == TokenKind.Int:
+        return NodeKind.OpPush
+    else:
+        raise UnreachableError("match_kind isn't handling all TokenKind variants")
 
 
-
-
-class LLVMCompiler:
-    
-    builder: ir.IRBuilder
-    module: ir.Module
-    stack: list
-    prog: Program
-    functions: Dict[str, ir.Function]
-    consts: Dict[str, ir.GlobalVariable]
-    
-    def __init__(self, program: Program) -> None:
-        binding.initialize()
-        binding.initialize_native_target()
-        binding.initialize_native_asmprinter()
-        self.module = ir.Module(name="pile")
-        self.module.triple = binding.get_default_triple()
-        main = ir.Function(
-            self.module,
-            ir.FunctionType(ir.IntType(32), []),
-            name="main"
-        )
-        self.builder = ir.IRBuilder(main.append_basic_block(name="entry"))
-        self.stack = []
-        self.prog = program
-        self.functions = {
-            "printf": ir.Function(
-                self.module,
-                ir.FunctionType(ir.IntType(32), [ir.PointerType(ir.IntType(8))], var_arg=True),
-                name="printf"
-            ),
-        }
-        self.consts = {
-            "digit_fmt": global_str(self.module, "%d\n", "digit_fmt")
-        }
-    
-    def compile(self) -> ir.Module:
-        errors = []
-        for node in self.prog:
-            if node.kind == NodeKind.OpPush:
-                self.push(int(node.token.value))
-            elif node.kind == NodeKind.OpPlus:
-                self.binop(self.builder.add)
-            elif node.kind == NodeKind.OpMinus:
-                self.binop(self.builder.sub)
-            elif node.kind == NodeKind.OpMul:
-                self.binop(self.builder.mul)
-            elif node.kind == NodeKind.OpDump:
-                self.dump()
-            else:
-                error(f"invalid op or identifier {node.token.value}")
-        self.ret(0)
-        return self.module
-    
-    # Op hardcoded functions
-    
-    def push(self, value: int) -> None:
-        self.stack.append(self.builder.alloca(DEFAULT_INT, name="push"))
-        self.builder.store(ir.Constant(DEFAULT_INT, value), self.stack[-1])
-
-    def binop(self, fn: Callable, typ: ir.Type = None) -> None:
-        b = self.builder.load(self.stack.pop())
-        a = self.builder.load(self.stack.pop())
-        result = fn(a, b, name="binop")
-        if typ is None:
-            typ = DEFAULT_INT
-        self.stack.append(self.builder.alloca(typ))
-        self.builder.store(result, self.stack[-1])
-    
-    def dump(self) -> None:
-        result = self.builder.load(self.stack.pop())
-        format_str = self.builder.bitcast(
-            self.consts["digit_fmt"],
-            ir.PointerType(ir.IntType(8)),
-        )
-        self.builder.call(
-            self.functions["printf"],
-            [format_str, result],
-            name="dump"
-        )
-
-    def ret(self, code: int) -> None:
-        self.builder.ret(ir.Constant(ir.IntType(32), code))
+def parse(tokens: Iterable[Token]) -> Program:
+    # TODO: Make the parser recognize Symbols in wrong places.
+    # TODO: Make the parser be able to parse code blocks (if, while, etc.).
+    for token in tokens:
+        yield Node(token, match_kind(token))
 
 
 def global_str(module: ir.Module,
@@ -197,14 +100,86 @@ def global_str(module: ir.Module,
                cstr: bool = True) -> ir.GlobalVariable:
     
     x = f"{value}\0" if cstr else value
-    x = ir.Constant(ir.ArrayType(ir.IntType(8), len(x)), bytearray(x.encode("utf8")))
-    v = ir.GlobalVariable(module, x.type, name)
+    const = ir.Constant(ir.ArrayType(ir.IntType(8), len(x)), bytearray(x.encode("utf8")))
+    v = ir.GlobalVariable(module, const.type, name)
     v.linkage = "private"
     v.global_constant = True
-    v.initializer = x
+    v.initializer = const
     return v
 
 
-def error(msg: str) -> None:
-    print(f"pile: error:\n  -> {msg}", file=stderr)
+def error(msg: str, pos: Tuple[str, int, int]) -> None:
+    print(f"pile: error at {pos[0]}:{pos[1]}:{pos[2]}:", file=stderr)
+    print(f"  -> {msg}", file=stderr)
     exit(1)
+
+
+binding.initialize()
+binding.initialize_native_target()
+binding.initialize_native_asmprinter()
+module = ir.Module(name="pile")
+module.triple = binding.get_default_triple()
+main_fn = ir.Function(
+    module,
+    ir.FunctionType(ir.IntType(32), []),
+    name="main"
+)
+builder = ir.IRBuilder(main_fn.append_basic_block(name="entry"))
+stack: list = []
+FUNCTIONS: Dict[str, ir.Function] = {}
+CONSTS: Dict[str, ir.GlobalVariable] = {}
+
+
+def compile(prog: Program) -> ir.Module:
+    for node in prog:
+        if node.kind == NodeKind.OpPush:
+            push(int(node.token.value))
+        elif node.kind == NodeKind.OpPlus:
+            binop(builder.add)
+        elif node.kind == NodeKind.OpMinus:
+            binop(builder.sub)
+        elif node.kind == NodeKind.OpMul:
+            binop(builder.mul)
+        elif node.kind == NodeKind.OpDump:
+            dump()
+        else:
+            error(f"invalid op or identifier `{node.token.value}`",
+                  node.token.position)
+    ret(0)
+    return module
+
+
+def push(value: int) -> None:
+    stack.append(builder.alloca(DEFAULT_INT))
+    builder.store(ir.Constant(DEFAULT_INT, value), stack[-1])
+
+
+def binop(fn: Callable, typ: ir.Type = None) -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack.pop())
+    result = fn(a, b)
+    if typ is None:
+        typ = DEFAULT_INT
+    stack.append(builder.alloca(typ))
+    builder.store(result, stack[-1])
+
+
+def dump() -> None:
+    result = builder.load(stack.pop())
+
+    if "digit_fmt" not in CONSTS:
+        CONSTS["digit_fmt"] = global_str(module, "%d\n", "digit_fmt")
+    
+    if "printf" not in FUNCTIONS:
+        typ = ir.FunctionType(ir.IntType(32),
+                             [ir.PointerType(ir.IntType(8))],
+                             var_arg=True)
+        FUNCTIONS["printf"] = ir.Function(module, typ, name="printf")
+    
+    format_str = builder.bitcast(CONSTS["digit_fmt"],
+                                 ir.PointerType(ir.IntType(8)))
+    builder.call(FUNCTIONS["printf"], [format_str, result])
+
+
+def ret(code: int) -> None:
+    builder.ret(ir.Constant(ir.IntType(32), code))

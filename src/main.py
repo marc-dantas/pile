@@ -1,16 +1,20 @@
 #!/usr/bin/python3
-from pile import *
 from argparse import *
-from os.path import splitext
+from ctypes import CFUNCTYPE, c_int
 from os import remove
-from ctypes import CFUNCTYPE
+from os.path import splitext
+from pile import *
 import subprocess
 
+# VERSION = (0, 0, 0)
+# STR_VERSION = '.'.join(str(i) for i in VERSION)
 
-def parse_args() -> None:
+
+def parse_args() -> Namespace:
     p = ArgumentParser("pile",
-                       description="Concatenative, stack-based, statically"
-                       " typed and compiled programming language for computers. ")
+                       description="Pile Programming Language",
+                       epilog="Copyright © 2023 Marcio Dantas. "
+                       "This software is under MIT License")
     p.add_argument("filename")
     p.add_argument(
         "-e", "--emit-llvm",
@@ -20,16 +24,21 @@ def parse_args() -> None:
     p.add_argument("-o", "--output", help="sets the output file to be written on.")
     p.add_argument(
         "-c", "--compile",
-        help="compiles to an executable instead"
-             "of running by the JIT compiler.",
-        action="store_true")
+        help="compiles to an executable (using clang) instead "
+        "of running by the JIT compiler.",
+        action="store_true"
+    )
     return p.parse_args()
 
 
-def compile(path: str) -> ir.Module:
-    with open(path, "r") as f:
-        prog = Parser(Lexer(f).lex()).parse()
-        return LLVMCompiler(prog).compile()
+def pile2llvm(path: str) -> ir.Module:
+    prog = parse(lex_file(path))
+    return compile(prog)
+
+
+def dump_tokens(path: str) -> None:
+    for i in lex_file(path):
+        print(i)
 
 
 def err(msg: str) -> None:
@@ -42,35 +51,37 @@ def compile_to_executable(filename: str, output: str) -> None:
             output = f"{splitext(filename)[0]}"
     llvm_path = f"{splitext(output)[0]}.ll"
     with open(llvm_path, "w") as llvm_f:
-        llvm_f.write(str(compile(filename)))
+        llvm_f.write(str(pile2llvm(filename)))
     subprocess.call(["clang", llvm_path, "-o", f"{splitext(llvm_path)[0]}.out"])
     remove(llvm_path)
 
 
-def compile_mcjit(mod: ir.Module) -> Callable:
+def compile_mcjit(mod: ir.Module) -> binding.ExecutionEngine:
     target = binding.Target.from_default_triple()
     target = target.create_target_machine()
     module = binding.parse_assembly(str(mod))
     engine = binding.create_mcjit_compiler(module, target)
     engine.finalize_object()
-    fnptr = engine.get_function_address("main")
-    main = CFUNCTYPE(None)(fnptr)
-    main()
+    return engine
 
 
 def main() -> None:
     args = parse_args()
     if args.emit_llvm:
         if args.output is None:
-            print(compile(args.filename))
+            print(pile2llvm(args.filename))
         else:
             with open(args.output, "w") as f:
-                f.write(str(compile(args.filename)))
+                f.write(str(pile2llvm(args.filename)))
     elif args.compile:
         compile_to_executable(args.filename, args.output)
     else:
-        compile_mcjit(compile(args.filename))
+        engine = compile_mcjit(pile2llvm(args.filename))
+        main_addr = engine.get_function_address("main")
+        CFUNCTYPE(c_int)(main_addr)()
 
 
 if __name__ == "__main__":
+    #dump_tokens("prog.pl")
+    #print(pile2llvm("prog.pl"))
     main()
