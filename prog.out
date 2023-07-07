@@ -1,0 +1,45 @@
+; ModuleID = "pile"
+target triple = "x86_64-unknown-linux-gnu"
+target datalayout = ""
+
+define i32 @"main"()
+{
+entry:
+  %".2" = alloca i32
+  store i32 1, i32* %".2"
+  %".4" = alloca i32
+  store i32 2, i32* %".4"
+  %".6" = alloca i32
+  store i32 3, i32* %".6"
+  %".8" = load i32, i32* %".6"
+  %".9" = bitcast [4 x i8]* @"digit_fmt" to i8*
+  %".10" = call i32 (i8*, ...) @"printf"(i8* %".9", i32 %".8")
+  %".11" = load i32, i32* %".4"
+  %".12" = bitcast [4 x i8]* @"digit_fmt" to i8*
+  %".13" = call i32 (i8*, ...) @"printf"(i8* %".12", i32 %".11")
+  %".14" = load i32, i32* %".2"
+  %".15" = bitcast [4 x i8]* @"digit_fmt" to i8*
+  %".16" = call i32 (i8*, ...) @"printf"(i8* %".15", i32 %".14")
+  %".17" = alloca i32
+  store i32 1, i32* %".17"
+  %".19" = alloca i32
+  store i32 2, i32* %".19"
+  %".21" = alloca i32
+  store i32 3, i32* %".21"
+  %".23" = load i32, i32* %".17"
+  %".24" = alloca i32
+  store i32 %".23", i32* %".24"
+  %".26" = load i32, i32* %".24"
+  %".27" = bitcast [4 x i8]* @"digit_fmt" to i8*
+  %".28" = call i32 (i8*, ...) @"printf"(i8* %".27", i32 %".26")
+  %".29" = load i32, i32* %".21"
+  %".30" = bitcast [4 x i8]* @"digit_fmt" to i8*
+  %".31" = call i32 (i8*, ...) @"printf"(i8* %".30", i32 %".29")
+  %".32" = load i32, i32* %".19"
+  %".33" = bitcast [4 x i8]* @"digit_fmt" to i8*
+  %".34" = call i32 (i8*, ...) @"printf"(i8* %".33", i32 %".32")
+  ret i32 0
+}
+
+@"digit_fmt" = private constant [4 x i8] c"%d\0a\00"
+declare i32 @"printf"(i8* %".1", ...)

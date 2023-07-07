@@ -56,11 +56,7 @@ def classify_token(token: str) -> TokenKind:
 
 class NodeKind(Enum):
     Symbol = auto()
-    OpPush = auto()
-    OpPlus = auto()
-    OpMinus = auto()
-    OpMul = auto()
-    OpDump = auto()
+    Int = auto()
 
 
 @dataclass
@@ -75,14 +71,9 @@ class UnreachableError(Exception): ...
 
 def match_kind(token: Token) -> NodeKind:
     if token.kind == TokenKind.Word:
-        return {
-            "+": NodeKind.OpPlus,
-            "-": NodeKind.OpMinus,
-            "*": NodeKind.OpMul,
-            "dump": NodeKind.OpDump,
-        }.get(token.value, NodeKind.Symbol)
+        return NodeKind.Symbol
     elif token.kind == TokenKind.Int:
-        return NodeKind.OpPush
+        return NodeKind.Int
     else:
         raise UnreachableError("match_kind isn't handling all TokenKind variants")
 
@@ -131,17 +122,23 @@ CONSTS: Dict[str, ir.GlobalVariable] = {}
 
 
 def compile(prog: Program) -> ir.Module:
+    table: Dict[str, Callable] = {
+        "+": lambda: binop(builder.add),
+        "-": lambda: binop(builder.sub),
+        "*": lambda: binop(builder.mul),
+        "dup": lambda: dup(),
+        "drop": lambda: drop(),
+        "over": lambda: over(),
+        "rot": lambda: rot(),
+        "swap": lambda: swap(),
+        "dump": lambda: dump(),
+    }
     for node in prog:
-        if node.kind == NodeKind.OpPush:
-            push(int(node.token.value))
-        elif node.kind == NodeKind.OpPlus:
-            binop(builder.add)
-        elif node.kind == NodeKind.OpMinus:
-            binop(builder.sub)
-        elif node.kind == NodeKind.OpMul:
-            binop(builder.mul)
-        elif node.kind == NodeKind.OpDump:
-            dump()
+        if node.kind == NodeKind.Int:
+            ipush(int(node.token.value))
+        elif node.token.value in table:
+            action = table[node.token.value]
+            action()
         else:
             error(f"invalid op or identifier `{node.token.value}`",
                   node.token.position)
@@ -149,9 +146,39 @@ def compile(prog: Program) -> ir.Module:
     return module
 
 
-def push(value: int) -> None:
+def ipush(value: int) -> None:
     stack.append(builder.alloca(DEFAULT_INT))
     builder.store(ir.Constant(DEFAULT_INT, value), stack[-1])
+
+
+def dup() -> None:
+    a = builder.load(stack[-1])
+    stack.append(builder.alloca(DEFAULT_INT))
+    builder.store(a, stack[-1])
+
+
+def drop() -> None:
+    # Just ignore value. I didn't find
+    # any way to undo the alloca intruction :(
+    stack.pop()
+
+
+def over() -> None:
+    a = builder.load(stack[-2])
+    stack.append(builder.alloca(DEFAULT_INT))
+    builder.store(a, stack[-1])
+
+
+def swap() -> None:
+    a = builder.load(stack.pop(-2))
+    stack.append(builder.alloca(DEFAULT_INT))
+    builder.store(a, stack[-1])
+
+
+def rot() -> None:
+    a = builder.load(stack.pop(-3))
+    stack.append(builder.alloca(DEFAULT_INT))
+    builder.store(a, stack[-1])
 
 
 def binop(fn: Callable, typ: ir.Type = None) -> None:

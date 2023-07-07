@@ -3,6 +3,9 @@
 
 ![Python](https://img.shields.io/badge/Python-3.8+-3670A0?style=plastic&logo=python&logoColor=white)
 
+> NOTE: This language is not designed to be used in production.
+> This project has educational purposes to teach stack-based architectures to students.
+
 ---
 
 ## Development milestones
