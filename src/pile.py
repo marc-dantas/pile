@@ -7,7 +7,8 @@ from typing import Dict, Iterable, Tuple
 
 I32: ir.IntType = ir.IntType(32)
 BOOL: ir.IntType = ir.IntType(1)
-F32: ir.IntType = ir.FloatType()
+FLOAT: ir.FloatType = ir.FloatType()
+DOUBLE: ir.DoubleType = ir.DoubleType()
 
 
 class TokenKind(Enum):
@@ -57,6 +58,7 @@ def is_cls(cls: type, text: str) -> bool:
         return False
     else:
         return True
+
 
 def classify_token(token: str) -> TokenKind:
     if is_cls(int, token):
@@ -138,15 +140,16 @@ CONSTS: Dict[str, ir.GlobalVariable] = {}
 
 def compile(prog: Program) -> ir.Module:
     table: Dict[str, Callable] = {
-        "+": lambda: binop(builder.add),
-        "-": lambda: binop(builder.sub),
-        "*": lambda: binop(builder.mul),
+        "+": lambda: add(),
+        "-": lambda: sub(),
+        "*": lambda: mul(),
         "dup": lambda: dup(),
         "drop": lambda: drop(),
         "over": lambda: over(),
         "rot": lambda: rot(),
         "swap": lambda: swap(),
         "dump": lambda: dump(),
+        "fdump": lambda: fdump(),
     }
     for node in prog:
         if node.kind == NodeKind.Int:
@@ -169,8 +172,8 @@ def ipush(value: int) -> None:
 
 
 def fpush(value: float) -> None:
-    stack.append(builder.alloca(F32))
-    builder.store(ir.Constant(F32, value), stack[-1])
+    stack.append(builder.alloca(FLOAT))
+    builder.store(ir.Constant(FLOAT, value), stack[-1])
 
 
 def dup() -> None:
@@ -203,10 +206,32 @@ def rot() -> None:
     builder.store(a, stack[-1])
 
 
-def binop(fn: Callable) -> None:
+def add() -> None:
     b = builder.load(stack.pop())
     a = builder.load(stack.pop())
-    result = fn(a, b)
+    result = (builder.fadd(a, b)
+              if a.type in (FLOAT, DOUBLE)
+              else builder.add(a, b))
+    stack.append(builder.alloca(a.type))
+    builder.store(result, stack[-1])
+
+
+def sub() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack.pop())
+    result = (builder.fsub(a, b)
+              if a.type in (FLOAT, DOUBLE)
+              else builder.sub(a, b))
+    stack.append(builder.alloca(a.type))
+    builder.store(result, stack[-1])
+
+
+def mul() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack.pop())
+    result = (builder.fmul(a, b)
+              if a.type in (FLOAT, DOUBLE)
+              else builder.mul(a, b))
     stack.append(builder.alloca(a.type))
     builder.store(result, stack[-1])
 
@@ -224,6 +249,24 @@ def dump() -> None:
         FUNCTIONS["printf"] = ir.Function(module, typ, name="printf")
     
     format_str = builder.bitcast(CONSTS["digit_fmt"],
+                                 ir.PointerType(ir.IntType(8)))
+    builder.call(FUNCTIONS["printf"], [format_str, result])
+
+
+def fdump() -> None:
+    result = builder.load(stack.pop())
+
+    if "float_fmt" not in CONSTS:
+        CONSTS["float_fmt"] = global_str(module, "%f\n", "float_fmt")
+    
+    if "printf" not in FUNCTIONS:
+        typ = ir.FunctionType(ir.IntType(32),
+                             [ir.PointerType(ir.IntType(8))],
+                             var_arg=True)
+        FUNCTIONS["printf"] = ir.Function(module, typ, name="printf")
+    
+    result = builder.fpext(result, ir.DoubleType())
+    format_str = builder.bitcast(CONSTS["float_fmt"],
                                  ir.PointerType(ir.IntType(8)))
     builder.call(FUNCTIONS["printf"], [format_str, result])
 
