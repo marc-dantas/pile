@@ -5,11 +5,14 @@ from sys import stderr
 from typing import Callable
 from typing import Dict, Iterable, Tuple
 
-DEFAULT_INT: ir.IntType = ir.IntType(32)
+I32: ir.IntType = ir.IntType(32)
+BOOL: ir.IntType = ir.IntType(1)
+F32: ir.IntType = ir.FloatType()
 
 
 class TokenKind(Enum):
     Int = auto()
+    Float = auto()
     Word = auto()
 
 
@@ -47,16 +50,26 @@ def lex_file(path: str) -> Iterable[Token]:
         )
 
 
+def is_cls(cls: type, text: str) -> bool:
+    try:
+        cls(text)
+    except ValueError:
+        return False
+    else:
+        return True
+
 def classify_token(token: str) -> TokenKind:
-    # TODO: We'll have more types, I promise.
-    return (TokenKind.Int
-            if token.isdigit()
-            else TokenKind.Word)
+    if is_cls(int, token):
+        return TokenKind.Int
+    elif is_cls(float, token):
+        return TokenKind.Float
+    return TokenKind.Word
 
 
 class NodeKind(Enum):
     Symbol = auto()
     Int = auto()
+    Float = auto()
 
 
 @dataclass
@@ -74,6 +87,8 @@ def match_kind(token: Token) -> NodeKind:
         return NodeKind.Symbol
     elif token.kind == TokenKind.Int:
         return NodeKind.Int
+    elif token.kind == TokenKind.Float:
+        return NodeKind.Float
     else:
         raise UnreachableError("match_kind isn't handling all TokenKind variants")
 
@@ -136,6 +151,8 @@ def compile(prog: Program) -> ir.Module:
     for node in prog:
         if node.kind == NodeKind.Int:
             ipush(int(node.token.value))
+        elif node.kind == NodeKind.Float:
+            fpush(float(node.token.value))
         elif node.token.value in table:
             action = table[node.token.value]
             action()
@@ -147,13 +164,18 @@ def compile(prog: Program) -> ir.Module:
 
 
 def ipush(value: int) -> None:
-    stack.append(builder.alloca(DEFAULT_INT))
-    builder.store(ir.Constant(DEFAULT_INT, value), stack[-1])
+    stack.append(builder.alloca(I32))
+    builder.store(ir.Constant(I32, value), stack[-1])
+
+
+def fpush(value: float) -> None:
+    stack.append(builder.alloca(F32))
+    builder.store(ir.Constant(F32, value), stack[-1])
 
 
 def dup() -> None:
     a = builder.load(stack[-1])
-    stack.append(builder.alloca(DEFAULT_INT))
+    stack.append(builder.alloca(a.type))
     builder.store(a, stack[-1])
 
 
@@ -165,29 +187,27 @@ def drop() -> None:
 
 def over() -> None:
     a = builder.load(stack[-2])
-    stack.append(builder.alloca(DEFAULT_INT))
+    stack.append(builder.alloca(a.type))
     builder.store(a, stack[-1])
 
 
 def swap() -> None:
     a = builder.load(stack.pop(-2))
-    stack.append(builder.alloca(DEFAULT_INT))
+    stack.append(builder.alloca(a.type))
     builder.store(a, stack[-1])
 
 
 def rot() -> None:
     a = builder.load(stack.pop(-3))
-    stack.append(builder.alloca(DEFAULT_INT))
+    stack.append(builder.alloca(a.type))
     builder.store(a, stack[-1])
 
 
-def binop(fn: Callable, typ: ir.Type = None) -> None:
+def binop(fn: Callable) -> None:
     b = builder.load(stack.pop())
     a = builder.load(stack.pop())
     result = fn(a, b)
-    if typ is None:
-        typ = DEFAULT_INT
-    stack.append(builder.alloca(typ))
+    stack.append(builder.alloca(a.type))
     builder.store(result, stack[-1])
 
 
