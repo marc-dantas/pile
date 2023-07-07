@@ -143,6 +143,12 @@ def compile(prog: Program) -> ir.Module:
         "+": lambda: add(),
         "-": lambda: sub(),
         "*": lambda: mul(),
+        ">": lambda: gt(),
+        "<": lambda: lt(),
+        ">=": lambda: ge(),
+        "<=": lambda: le(),
+        "!=": lambda: ne(),
+        "=": lambda: eq(),
         "dup": lambda: dup(),
         "drop": lambda: drop(),
         "over": lambda: over(),
@@ -233,6 +239,66 @@ def mul() -> None:
               if a.type in (FLOAT, DOUBLE)
               else builder.mul(a, b))
     stack.append(builder.alloca(a.type))
+    builder.store(result, stack[-1])
+
+
+def gt() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack.pop())
+    result = (builder.fcmp_ordered(">", a, b)
+              if a.type in (FLOAT, DOUBLE)
+              else builder.icmp_signed(">", a, b))
+    stack.append(builder.alloca(BOOL))
+    builder.store(result, stack[-1])
+
+
+def lt() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack.pop())
+    result = (builder.fcmp_ordered("<", a, b)
+              if a.type in (FLOAT, DOUBLE)
+              else builder.icmp_signed("<", a, b))
+    stack.append(builder.alloca(BOOL))
+    builder.store(result, stack[-1])
+
+
+def ge() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack.pop())
+    result = (builder.fcmp_ordered(">=", a, b)
+              if a.type in (FLOAT, DOUBLE)
+              else builder.icmp_signed(">=", a, b))
+    stack.append(builder.alloca(BOOL))
+    builder.store(result, stack[-1])
+
+
+def le() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack.pop())
+    result = (builder.fcmp_ordered("<=", a, b)
+              if a.type in (FLOAT, DOUBLE)
+              else builder.icmp_signed("<=", a, b))
+    stack.append(builder.alloca(BOOL))
+    builder.store(result, stack[-1])
+
+
+def ne() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack.pop())
+    result = (builder.fcmp_ordered("!=", a, b)
+              if a.type in (FLOAT, DOUBLE)
+              else builder.icmp_signed("!=", a, b))
+    stack.append(builder.alloca(BOOL))
+    builder.store(result, stack[-1])
+
+
+def eq() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack.pop())
+    result = (builder.fcmp_ordered("==", a, b)
+              if a.type in (FLOAT, DOUBLE)
+              else builder.icmp_signed("==", a, b))
+    stack.append(builder.alloca(BOOL))
     builder.store(result, stack[-1])
 
 
