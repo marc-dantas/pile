@@ -12,10 +12,10 @@
 
 - [X] Make it (at least) an usable language
 - [X] JIT Compiler
-- [ ] Implement all major operations
-- [ ] Control flow
+- [X] Implement all major operations
+- [X] Control flow (only `if` conditionals for now)
 - [ ] Make it [turing complete](https://en.wikipedia.org/wiki/Turing_completeness)
-- [ ] Statically typed
+- [ ] Statically typed (implement a proper type checker)
 
 ## Quick start
 > **WARNING**: This is a project in VERY early stages of development. USE THIS LANGUAGE AT YOUR OWN RISK!

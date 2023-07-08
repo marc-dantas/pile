@@ -1,7 +1,9 @@
-10 5 > dump
-5 10 < dump
-10 10 <= dump
-10 10 >= dump
-10 10 != dump
-4.67 5.2 != dump
-1 1 = dump
+1 1 = if
+    1 dump
+    2 dump
+    1 2 = if
+        3 dump
+    else
+        4 dump
+    end
+end

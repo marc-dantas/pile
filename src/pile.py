@@ -132,14 +132,25 @@ main_fn = ir.Function(
     ir.FunctionType(ir.IntType(32), []),
     name="main"
 )
-builder = ir.IRBuilder(main_fn.append_basic_block(name="entry"))
+entry = main_fn.append_basic_block(name="entry")
+builder = ir.IRBuilder(entry)
+merge_block = entry
 stack: list = []
+conditionals: list = []
 FUNCTIONS: Dict[str, ir.Function] = {}
 CONSTS: Dict[str, ir.GlobalVariable] = {}
 
 
+@dataclass
+class Cond:
+    true: ir.Block
+    false: ir.Block
+    merge: ir.Block
+    has_else: bool
+
+
 def compile(prog: Program) -> ir.Module:
-    table: Dict[str, Callable] = {
+    ops: Dict[str, Callable] = {
         "+": lambda: add(),
         "-": lambda: sub(),
         "*": lambda: mul(),
@@ -162,9 +173,29 @@ def compile(prog: Program) -> ir.Module:
             ipush(int(node.token.value))
         elif node.kind == NodeKind.Float:
             fpush(float(node.token.value))
-        elif node.token.value in table:
-            action = table[node.token.value]
+        elif node.token.value in ops:
+            action = ops[node.token.value]
             action()
+        elif node.token.value == "if":
+            comparison = builder.load(stack.pop())
+            true = main_fn.append_basic_block("if")
+            false = main_fn.append_basic_block("else")
+            merge = main_fn.append_basic_block("merge")
+            builder.cbranch(comparison, true, false)
+            conditionals.append(Cond(true, false, merge, False))
+            builder.position_at_end(true)
+        elif node.token.value == "else":
+            cond = conditionals[-1]
+            cond.has_else = True
+            builder.branch(cond.merge)
+            builder.position_at_end(cond.false)
+        elif node.token.value == "end": 
+            cond = conditionals.pop()
+            builder.branch(cond.merge)
+            if not cond.has_else:
+                builder.position_at_end(cond.false)
+                builder.branch(cond.merge)
+            builder.position_at_end(cond.merge)
         else:
             error(f"invalid op or identifier `{node.token.value}`",
                   node.token.position)
