@@ -2,6 +2,8 @@
 [Concatenative](https://en.wikipedia.org/wiki/Concatenative_programming_language), [stack-based](https://en.wikipedia.org/wiki/Stack-oriented_programming), [statically typed](https://en.wikipedia.org/wiki/Type_system#STATIC) and [compiled](https://en.wikipedia.org/wiki/Compiled_language) programming language for computers.
 
 ![Python](https://img.shields.io/badge/Python-3.8+-3670A0?style=plastic&logo=python&logoColor=white)
+![PyPy](https://img.shields.io/badge/PyPy-3.8+-3670A0?style=plastic&logo=pypy&logoColor=white)
+
 
 > NOTE: This language is not designed to be used in production.
 > This project has educational purposes to teach stack-based architectures to students.
