@@ -245,31 +245,29 @@ def rot() -> None:
 
 def add() -> None:
     b = builder.load(stack.pop())
-    a = builder.load(stack.pop())
+    a = builder.load(stack[-1])
     result = (builder.fadd(a, b)
               if a.type in (FLOAT, DOUBLE)
               else builder.add(a, b))
-    stack.append(builder.alloca(a.type))
     builder.store(result, stack[-1])
 
 
 def sub() -> None:
     b = builder.load(stack.pop())
-    a = builder.load(stack.pop())
+    a = builder.load(stack[-1])
     result = (builder.fsub(a, b)
               if a.type in (FLOAT, DOUBLE)
               else builder.sub(a, b))
-    stack.append(builder.alloca(a.type))
     builder.store(result, stack[-1])
+
 
 
 def mul() -> None:
     b = builder.load(stack.pop())
-    a = builder.load(stack.pop())
+    a = builder.load(stack[-1])
     result = (builder.fmul(a, b)
               if a.type in (FLOAT, DOUBLE)
               else builder.mul(a, b))
-    stack.append(builder.alloca(a.type))
     builder.store(result, stack[-1])
 
 
