@@ -1,1 +1,5 @@
-2 1 - dump
+0
+while dup 10 < do
+    dup dump
+    1 +
+end
