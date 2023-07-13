@@ -37,6 +37,7 @@ def find_col(string: str, col: int, pred: Callable) -> int:
 
 def lex_line(line: str) -> Iterable[Tuple[int, str, TokenKind]]:
     col = find_col(line, 0, lambda x: not x.isspace())
+    line = line.split("//")[0]
     end = None
     while col < len(line):
         if line[col] == '"':
