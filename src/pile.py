@@ -168,6 +168,9 @@ def compile(prog: Program) -> ir.Module:
         "drop": drop, "over": over,
         "rot": rot, "swap": swap,
         "dump": dump, "fdump": fdump,
+        "if": start_cond, "else": else_cond,
+        "while": start_loop, "do": do_loop,
+        "end": end_cond,
     }
     for node in prog:
         if node.kind == NodeKind.Int:
@@ -179,47 +182,57 @@ def compile(prog: Program) -> ir.Module:
         elif node.token.value in ops:
             action = ops[node.token.value]
             action()
-        elif node.token.value == "if":
-            cmp = builder.load(stack.pop())
-            true = main_fn.append_basic_block("if")
-            false = main_fn.append_basic_block("else")
-            merge = main_fn.append_basic_block("end")
-            builder.cbranch(cmp, true, false)
-            conditionals.append(If(true, false, merge, False))
-            builder.position_at_end(true)
-        elif node.token.value == "while":
-            cmp_return = main_fn.append_basic_block("while")
-            true = main_fn.append_basic_block("do")
-            merge = main_fn.append_basic_block("end")
-            conditionals.append(While(true, merge, merge, cmp_return))
-            builder.branch(cmp_return)
-            builder.position_at_end(cmp_return)
-        elif node.token.value == "do":
-            cmp = builder.load(stack.pop())
-            cond = conditionals[-1]
-            builder.cbranch(cmp, cond.true, cond.merge)
-            builder.position_at_end(cond.true)
-        elif node.token.value == "else":
-            cond = conditionals[-1]
-            cond.has_else = True
-            builder.branch(cond.merge)
-            builder.position_at_end(cond.false)
-        elif node.token.value == "end": 
-            cond = conditionals.pop()
-            if isinstance(cond, If):
-                builder.branch(cond.merge)
-                if not cond.has_else:
-                    builder.position_at_end(cond.false)
-                    builder.branch(cond.merge)
-                builder.position_at_end(cond.merge)
-            elif isinstance(cond, While):
-                builder.branch(cond.cmp_return)
-                builder.position_at_end(cond.merge)
         else:
             error(f"invalid op or identifier `{node.token.value}`",
                   node.token.position)
     ret(0)
     return module
+
+
+def start_cond() -> None:
+    cmp = builder.load(stack.pop())
+    true = main_fn.append_basic_block("if")
+    false = main_fn.append_basic_block("else")
+    merge = main_fn.append_basic_block("end")
+    builder.cbranch(cmp, true, false)
+    conditionals.append(If(true, false, merge, False))
+    builder.position_at_end(true)
+
+
+def start_loop() -> None:
+    cmp_return = main_fn.append_basic_block("while")
+    true = main_fn.append_basic_block("do")
+    merge = main_fn.append_basic_block("end")
+    conditionals.append(While(true, merge, merge, cmp_return))
+    builder.branch(cmp_return)
+    builder.position_at_end(cmp_return)
+
+
+def do_loop() -> None:
+    cmp = builder.load(stack.pop())
+    cond = conditionals[-1]
+    builder.cbranch(cmp, cond.true, cond.merge)
+    builder.position_at_end(cond.true)
+
+
+def else_cond() -> None:
+    cond = conditionals[-1]
+    cond.has_else = True
+    builder.branch(cond.merge)
+    builder.position_at_end(cond.false)
+
+
+def end_cond() -> None:
+    cond = conditionals.pop()
+    if isinstance(cond, If):
+        builder.branch(cond.merge)
+        if not cond.has_else:
+            builder.position_at_end(cond.false)
+            builder.branch(cond.merge)
+        builder.position_at_end(cond.merge)
+    elif isinstance(cond, While):
+        builder.branch(cond.cmp_return)
+        builder.position_at_end(cond.merge)
 
 
 def ipush(value: int) -> None:
