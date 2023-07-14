@@ -2,7 +2,7 @@
 from argparse import *
 from ctypes import CFUNCTYPE, c_int
 from os import remove
-from os.path import splitext
+from os.path import splitext, exists
 from pile import *
 import subprocess
 
@@ -14,7 +14,8 @@ def parse_args() -> Namespace:
     p = ArgumentParser("pile",
                        description="Pile Programming Language",
                        epilog="Copyright © 2023 Marcio Dantas. "
-                       "This software is under MIT License")
+                       "This software is under MIT License",
+                       usage="pile [OPTIONS] filename")
     p.add_argument("filename")
     p.add_argument(
         "-e", "--emit-llvm",
@@ -42,7 +43,7 @@ def dump_tokens(path: str) -> None:
 
 
 def err(msg: str) -> None:
-    print(f"pile: {msg}", file=stderr)
+    print(f"pile: error: {msg}", file=stderr)
     exit(1)
 
 
@@ -67,6 +68,9 @@ def compile_mcjit(mod: ir.Module) -> binding.ExecutionEngine:
 
 def main() -> None:
     args = parse_args()
+    if not exists(args.filename):
+        err(f"no such file \"{args.filename}\"")
+    
     if args.emit_llvm:
         if args.output is None:
             print(pile2llvm(args.filename))
