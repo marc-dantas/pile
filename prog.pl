@@ -4,7 +4,7 @@
 if
     1 dump
 else
-    2 dump
+    2 dump f
 end
 
 // while loops

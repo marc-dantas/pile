@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from llvmlite import ir, binding
 from sys import stderr
-from typing import Callable
+from typing import Callable, TextIO
 from typing import Dict, Iterable, Tuple
 
 I32: ir.IntType = ir.IntType(32)
@@ -183,8 +183,10 @@ def compile(prog: Program) -> ir.Module:
             action = ops[node.token.value]
             action()
         else:
-            error(f"invalid op or identifier `{node.token.value}`",
-                  node.token.position)
+            throw(node.token.position,
+                  "word error",
+                  "unknown operation or defined "
+                  f"identifier `{node.token.value}`")
     ret(0)
     return module
 
@@ -429,7 +431,41 @@ def const_str(value: bytearray, cstr: bool = True) -> ir.AllocaInstr:
     return string
 
 
-def error(msg: str, pos: Tuple[str, int, int]) -> None:
-    print(f"pile: error at {pos[0]}:{pos[1]}:{pos[2]}:", file=stderr)
-    print(f"  -> {msg}", file=stderr)
+def indent(file: TextIO,
+           text: str,
+           prefix: int = None,
+           suffix: int = None) -> None:
+    if prefix is None:
+        prefix = 2
+    if suffix is None:
+        suffix = 0
+    file.write(' '*prefix + text + ' '*suffix + '\n')
+
+
+def throw(pos: Tuple[str, int, int],
+          kind: str, msg: str,
+          note: str = None) -> None:
+    stderr.write("pile: error at "
+                 f"{pos[0]}:{pos[1]}:{pos[2]}:\n")
+    indent(stderr, f"| {kind}:")
+    for line in break_line_at(25, msg):
+        indent(stderr, f"|    {line}")
+    if note is not None:
+        for line in break_line_at(25, note):
+            indent(stderr, f"+ {line}")
     exit(1)
+
+
+def break_line_at(char_pos: int, value: str) -> Iterable[str]:
+    words = value.split()
+    current_line = ''
+    current_length = 0
+    for word in words:
+        word_length = len(word) + 1
+        if current_length + word_length > char_pos:
+            yield current_line
+            current_line = ''
+            current_length = 0
+        current_line += f'{word} '
+        current_length += word_length
+    yield current_line
