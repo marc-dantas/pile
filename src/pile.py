@@ -152,7 +152,8 @@ def parse(tokens: Iterable[Token]) -> Program:
     binop = [("integer", 2),
              ("float", 2)]
     unop = [("integer", 1),
-            ("float", 1)]
+            ("float", 1),
+            ("string", 1)]
     ops: Dict[str, Callable] = {
         "+": lambda t: check_op(types, t, binop),
         "-": lambda t: check_op(types, t, binop),
