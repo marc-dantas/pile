@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from llvmlite import ir, binding
 from sys import stderr
-from typing import Callable, TextIO
-from typing import Dict, Iterable, Tuple
+from typing import Callable, TextIO, List
+from typing import Dict, Iterable, Tuple, Union
 
 I32: ir.IntType = ir.IntType(32)
 BOOL: ir.IntType = ir.IntType(1)
@@ -110,11 +110,79 @@ def match_kind(token: Token) -> NodeKind:
         raise UnreachableError("match_kind isn't handling all TokenKind variants")
 
 
+def check_op(stack: List[str],
+             token: Token,
+             expected: List[Tuple[str, int]],
+             ret_type: str = None) -> None:
+    if len(stack) < len(expected):
+        throw(token.position, "stack underflow",
+              f"`{token.value}` operation needs "
+              f"{len(expected)} stack value{'' if len(expected) == 1 else 's'} "
+              f"to be performed but got {len(stack)} value{'' if len(stack) == 1 else 's'}")
+    values = tuple(stack.pop() for _ in range(expected[0][1]))
+    expected_cmp = [
+        tuple(expect[0] for _ in range(expect[1]))
+        for expect in expected
+    ]
+    
+    if values not in expected_cmp:
+        expected_str = " or ".join(
+            f"({', '.join(i[0] for _ in range(i[1]))})"
+            for i in expected
+        )
+        throw(token.position, "type mismatch",
+              f"`{token.value}` operation got mismatched type"
+              f"{'s' if expected[0][1] > 1 else ''} "
+              f"({', '.join(values)}) but operation expects {expected_str}")
+    if ret_type is None:
+        stack.append(values[0])
+    elif ret_type != "_":
+        stack.append(ret_type)
+
+
 def parse(tokens: Iterable[Token]) -> Program:
-    # TODO: Make the parser recognize Symbols in wrong places.
-    # TODO: Make the parser be able to parse code blocks (if, while, etc.).
+    types: List[str] = []
+    terop = [("integer", 3),
+             ("float", 3)]
+    binop = [("integer", 2),
+             ("float", 2)]
+    unop = [("integer", 1),
+            ("float", 1)]
+    ops: Dict[str, Callable] = {
+        "+": lambda t: check_op(types, t, binop),
+        "-": lambda t: check_op(types, t, binop),
+        "*": lambda t: check_op(types, t, binop),
+        ">": lambda t: check_op(types, t, binop, "bool"),
+        "<": lambda t: check_op(types, t, binop, "bool"),
+        ">=": lambda t: check_op(types, t, binop, "bool"),
+        "<=": lambda t: check_op(types, t, binop, "bool"),
+        "!=": lambda t: check_op(types, t, binop, "bool"),
+        "=": lambda t: check_op(types, t, binop, "bool"),
+        "dup": lambda t: check_op(types, t, unop),
+        "drop": lambda t: check_op(types, t, unop),
+        "over": lambda t: check_op(types, t, binop),
+        "rot": lambda t: check_op(types, t, terop),
+        "swap": lambda t: check_op(types, t, binop),
+        "dump": lambda t: check_op(types, t, [("integer", 1)]),
+        "fdump": lambda t: check_op(types, t, [("float", 1)]),
+        "if": lambda t: check_op(types, t, [("bool", 1)], "_"),
+        "do": lambda t: check_op(types, t, [("bool", 1)], "_"),
+    }
     for token in tokens:
+        if token.kind == TokenKind.Int:
+            types.append("integer")
+        elif token.kind == TokenKind.Float:
+            types.append("float")
+        elif token.kind == TokenKind.String:
+            types.append("string")
+        if token.value in ops:
+            ops[token.value](token)
         yield Node(token, match_kind(token))
+    if types:
+        throw(token.position, "stack overflow",
+              f"the program ended with {len(types)} remaining "
+              f"value{'' if len(types) == 1 else 's'} on top of the stack",
+              "use `drop` to ignore values")
 
 
 binding.initialize()
@@ -448,10 +516,10 @@ def throw(pos: Tuple[str, int, int],
     stderr.write("pile: error at "
                  f"{pos[0]}:{pos[1]}:{pos[2]}:\n")
     indent(stderr, f"| {kind}:")
-    for line in break_line_at(25, msg):
+    for line in break_line_at(50, msg):
         indent(stderr, f"|    {line}")
     if note is not None:
-        for line in break_line_at(25, note):
+        for line in break_line_at(50, note):
             indent(stderr, f"+ {line}")
     exit(1)
 
@@ -459,13 +527,11 @@ def throw(pos: Tuple[str, int, int],
 def break_line_at(char_pos: int, value: str) -> Iterable[str]:
     words = value.split()
     current_line = ''
-    current_length = 0
     for word in words:
-        word_length = len(word) + 1
-        if current_length + word_length > char_pos:
-            yield current_line
-            current_line = ''
-            current_length = 0
-        current_line += f'{word} '
-        current_length += word_length
-    yield current_line
+        if len(current_line) + len(word) + 1 <= char_pos:
+            current_line += f'{word} '
+        else:
+            yield current_line.strip()
+            current_line = f'{word} '
+    if current_line:
+        yield current_line.strip()
