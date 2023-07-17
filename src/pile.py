@@ -113,7 +113,7 @@ def match_kind(token: Token) -> NodeKind:
 def check_op(stack: List[str],
              token: Token,
              expected: List[Tuple[str, int]],
-             ret_type: str = None) -> None:
+             ret_type: str = None) -> Union[str, None]:
     if len(stack) < expected[0][1]:
         throw(token.position,
               "stack underflow",
@@ -137,8 +137,10 @@ def check_op(stack: List[str],
               f"({', '.join(values)}) but operation expects {expected_str}")
     if ret_type is None:
         stack.append(values[0])
+        return values[0]
     elif ret_type != "_":
         stack.append(ret_type)
+        return ret_type
 
 
 def parse(tokens: Iterable[Token]) -> Program:
@@ -160,8 +162,7 @@ def parse(tokens: Iterable[Token]) -> Program:
         "<=": lambda t: check_op(types, t, binop, "bool"),
         "!=": lambda t: check_op(types, t, binop, "bool"),
         "=": lambda t: check_op(types, t, binop, "bool"),
-        "dup": lambda t: check_op(types, t, unop),
-        "drop": lambda t: check_op(types, t, unop),
+        "drop": lambda t: check_op(types, t, unop, "_"),
         "over": lambda t: check_op(types, t, binop),
         "rot": lambda t: check_op(types, t, terop),
         "swap": lambda t: check_op(types, t, binop),
@@ -175,6 +176,10 @@ def parse(tokens: Iterable[Token]) -> Program:
             types.append("float")
         elif token.kind == TokenKind.String:
             types.append("string")
+        elif token.value == "dup":
+            ret_type = check_op(types, token, unop)
+            if ret_type is not None:
+                types.append(ret_type)
         elif token.value == "if":
             check_op(types, token, [("bool", 1)], "_")
             blocks.append("if")
@@ -192,6 +197,7 @@ def parse(tokens: Iterable[Token]) -> Program:
                 throw(token.position,
                       "syntax error",
                       "started `do` block without `while` first")
+            blocks.append("do")
         elif token.value == "end":
             if not blocks:
                 throw(token.position, "syntax error",
@@ -207,7 +213,8 @@ def parse(tokens: Iterable[Token]) -> Program:
     if types:
         throw(token.position, "stack overflow",
               f"the program ended with {len(types)} remaining "
-              f"value{'' if len(types) == 1 else 's'} on top of the stack",
+              f"value{'' if len(types) == 1 else 's'} on top of the stack "
+              "with no handling",
               "use `drop` to ignore values")
 
 
