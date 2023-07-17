@@ -18,6 +18,7 @@
 - [X] Control flow
 - [X] Strings
 - [X] Statically typed (implement a proper type checker)
+- [ ] Documentation
 - [ ] Make it [turing complete](https://en.wikipedia.org/wiki/Turing_completeness)
 
 ## Quick start
