@@ -114,17 +114,18 @@ def check_op(stack: List[str],
              token: Token,
              expected: List[Tuple[str, int]],
              ret_type: str = None) -> None:
-    if len(stack) < len(expected):
-        throw(token.position, "stack underflow",
-              f"`{token.value}` operation needs "
-              f"{len(expected)} stack value{'' if len(expected) == 1 else 's'} "
-              f"to be performed but got {len(stack)} value{'' if len(stack) == 1 else 's'}")
+    if len(stack) < expected[0][1]:
+        throw(token.position,
+              "stack underflow",
+              f"`{token.value}` operation needs {expected[0][1]} "
+              f"stack value{'s' if expected[0][1] > 1 else ''} to be "
+              f"performed but got {len(stack) if stack else 'no'} values")
     values = tuple(stack.pop() for _ in range(expected[0][1]))
     expected_cmp = [
         tuple(expect[0] for _ in range(expect[1]))
         for expect in expected
     ]
-    
+
     if values not in expected_cmp:
         expected_str = " or ".join(
             f"({', '.join(i[0] for _ in range(i[1]))})"
@@ -142,6 +143,7 @@ def check_op(stack: List[str],
 
 def parse(tokens: Iterable[Token]) -> Program:
     types: List[str] = []
+    blocks: List[str] = []
     terop = [("integer", 3),
              ("float", 3)]
     binop = [("integer", 2),
@@ -163,10 +165,8 @@ def parse(tokens: Iterable[Token]) -> Program:
         "over": lambda t: check_op(types, t, binop),
         "rot": lambda t: check_op(types, t, terop),
         "swap": lambda t: check_op(types, t, binop),
-        "dump": lambda t: check_op(types, t, [("integer", 1)]),
-        "fdump": lambda t: check_op(types, t, [("float", 1)]),
-        "if": lambda t: check_op(types, t, [("bool", 1)], "_"),
-        "do": lambda t: check_op(types, t, [("bool", 1)], "_"),
+        "dump": lambda t: check_op(types, t, [("integer", 1)], "_"),
+        "fdump": lambda t: check_op(types, t, [("float", 1)], "_"),
     }
     for token in tokens:
         if token.kind == TokenKind.Int:
@@ -175,9 +175,35 @@ def parse(tokens: Iterable[Token]) -> Program:
             types.append("float")
         elif token.kind == TokenKind.String:
             types.append("string")
-        if token.value in ops:
+        elif token.value == "if":
+            check_op(types, token, [("bool", 1)], "_")
+            blocks.append("if")
+        elif token.value == "while":
+            blocks.append("while")
+        elif token.value == "do":
+            check_op(types, token, [("bool", 1)], "_")
+            if blocks:
+                block = blocks.pop()
+                if block != "while":
+                    throw(token.position, "syntax error",
+                          f"started `do` block using `{block}`"
+                          f"instead of `while`")
+            else:
+                throw(token.position,
+                      "syntax error",
+                      "started `do` block without `while` first")
+        elif token.value == "end":
+            if not blocks:
+                throw(token.position, "syntax error",
+                      "block ended without a beginning")
+            blocks.pop()
+        elif token.value in ops:
             ops[token.value](token)
         yield Node(token, match_kind(token))
+    if blocks:
+        throw(token.position, "syntax error",
+              f"unterminated `{blocks.pop()}` block",
+              "use `end` to finish a block")
     if types:
         throw(token.position, "stack overflow",
               f"the program ended with {len(types)} remaining "
