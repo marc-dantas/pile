@@ -16,8 +16,8 @@
 - [X] JIT Compiler
 - [X] Implement all major operations
 - [X] Control flow
-- [ ] Strings
-- [ ] Statically typed (implement a proper type checker)
+- [X] Strings
+- [X] Statically typed (implement a proper type checker)
 - [ ] Make it [turing complete](https://en.wikipedia.org/wiki/Turing_completeness)
 
 ## Quick start
