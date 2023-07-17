@@ -141,6 +141,7 @@ def check_op(stack: List[str],
     elif ret_type != "_":
         stack.append(ret_type)
         return ret_type
+    return None
 
 
 def parse(tokens: Iterable[Token]) -> Program:
