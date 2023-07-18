@@ -78,6 +78,10 @@ Pile has a very small list of built-in operations:
 - `<=`: "less than or equal" comparison operation
 - `!=`: "not equal" comparison operation
 - `=`: "equal" comparison operation
+- `|`: bitwise OR operation
+- `&`: bitwise AND operation
+- `>>`: bitwise shift right operation
+- `<<`: bitwise shift left operation  
 - `drop`: drops a value from the top of the stack (`a -- `)
 - `dup`: duplicates the last element to the top of the stack (`a -- a a`) 
 - `over`: copies the 2nd last element on top of the stack (`a b -- a b a`) 

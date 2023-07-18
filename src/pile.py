@@ -172,6 +172,11 @@ def parse(tokens: Iterable[Token]) -> Program:
         "<=": lambda t: check_op(types, t, binop, "bool"),
         "!=": lambda t: check_op(types, t, binop, "bool"),
         "=": lambda t: check_op(types, t, binop, "bool"),
+        "|": lambda t: check_op(types, t, [("integer", 2), ("bool", 2)]),
+        "&": lambda t: check_op(types, t, [("integer", 2), ("bool", 2)]),
+        ">>": lambda t: check_op(types, t, [("integer", 2)]),
+        "<<": lambda t: check_op(types, t, [("integer", 2)]),
+        "!": lambda t: check_op(types, t, unop),
         "drop": lambda t: check_op(types, t, unop, "_"),
         "dup": lambda t: check_op(types, token, unop, lossy=2),
         "swap": lambda t: check_op(types, t, binop, lossy=2),
@@ -271,7 +276,9 @@ def compile(prog: Program) -> ir.Module:
         "*": mul, "/": div,
         ">": gt, "<": lt, ">=": ge,
         "<=": le, "!=": ne,
-        "=": eq, "dup": dup,
+        "=": eq, "|": bor,
+        "&": band, ">>": shr,
+        "<<": shl, "!": not_, "dup": dup,
         "drop": drop, "over": over,
         "rot": rot, "swap": swap,
         "dump": dump, "if": start_cond,
@@ -485,6 +492,39 @@ def eq() -> None:
               if a.type in (FLOAT, DOUBLE)
               else builder.icmp_signed("==", a, b))
     stack.append(builder.alloca(BOOL))
+    builder.store(result, stack[-1])
+
+def shr() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack[-1])
+    result = builder.lshr(a, b)
+    builder.store(result, stack[-1])
+
+
+def shl() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack[-1])
+    result = builder.shl(a, b)
+    builder.store(result, stack[-1])
+
+
+def bor() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack[-1])
+    result = builder.or_(a, b)
+    builder.store(result, stack[-1])
+
+
+def band() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack[-1])
+    result = builder.and_(a, b)
+    builder.store(result, stack[-1])
+
+
+def not_() -> None:
+    a = builder.load(stack[-1])
+    result = builder.not_(a)
     builder.store(result, stack[-1])
 
 

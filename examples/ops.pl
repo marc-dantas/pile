@@ -12,6 +12,12 @@
 1 2 <  dump // Compares 1 < 2
 1 2 <= dump // Compares 1 <= 2
 
+// bitwise
+1 1 |  dump // 0001 | 0001
+3 1 &  dump // 0011 & 0001
+2 2 >> dump // 0010 >> 0010
+2 2 << dump // 0010 << 0010
+
 // stack operations
 1     drop                // There's nothing here anymore :(
 1     dup  dump dump      // There are two values here now :)
