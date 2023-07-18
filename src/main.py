@@ -2,6 +2,7 @@
 from argparse import *
 from ctypes import CFUNCTYPE, c_int
 from os import remove
+from sys import platform
 from os.path import splitext, exists
 from pile import *
 import subprocess
@@ -49,11 +50,15 @@ def err(msg: str) -> None:
 
 def compile_to_executable(filename: str, output: str) -> None:
     if output is None:
-            output = f"{splitext(filename)[0]}"
+        output = filename
     llvm_path = f"{splitext(output)[0]}.ll"
     with open(llvm_path, "w") as llvm_f:
         llvm_f.write(str(pile2llvm(filename)))
-    subprocess.call(["clang", llvm_path, "-o", f"{splitext(llvm_path)[0]}.out"])
+    subprocess.call(["clang",
+                     llvm_path,
+                     "-o",
+                     splitext(output)[0]
+                     + ('.exe' if platform == "win32" else '')])
     remove(llvm_path)
 
 

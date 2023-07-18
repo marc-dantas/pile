@@ -18,7 +18,7 @@
 - [X] Control flow
 - [X] Strings
 - [X] Statically typed (implement a proper type checker)
-- [ ] Documentation
+- [X] Documentation
 - [ ] Make it [turing complete](https://en.wikipedia.org/wiki/Turing_completeness)
 
 ## Quick start
@@ -58,6 +58,8 @@ Get the LLVM representation of `prog.pl`:
 $ python3 src/main.py prog.pl -e
 ```
 
+# Documentation
+You can read the official documentation [here](./docs/index.md)
 
 ---
 

@@ -3,7 +3,7 @@ from enum import Enum, auto
 from llvmlite import ir, binding
 from sys import stderr
 from typing import Callable, TextIO, List
-from typing import Dict, Iterable, Tuple, Union
+from typing import Dict, Iterable, Tuple
 
 I32: ir.IntType = ir.IntType(32)
 BOOL: ir.IntType = ir.IntType(1)
@@ -113,14 +113,17 @@ def match_kind(token: Token) -> NodeKind:
 def check_op(stack: List[str],
              token: Token,
              expected: List[Tuple[str, int]],
-             ret_type: str = None) -> Union[str, None]:
+             ret_type: str = None,
+             lossy: int = 0) -> None:
     if len(stack) < expected[0][1]:
         throw(token.position,
               "stack underflow",
               f"`{token.value}` operation needs {expected[0][1]} "
               f"stack value{'s' if expected[0][1] > 1 else ''} to be "
               f"performed but got {len(stack) if stack else 'no'} values")
+    
     values = tuple(stack.pop() for _ in range(expected[0][1]))
+    
     expected_cmp = [
         tuple(expect[0] for _ in range(expect[1]))
         for expect in expected
@@ -136,12 +139,15 @@ def check_op(stack: List[str],
               f"{'s' if expected[0][1] > 1 else ''} "
               f"({', '.join(values)}) but operation expects {expected_str}")
     if ret_type is None:
-        stack.append(values[0])
-        return values[0]
+        if lossy == 0:
+            stack.append(values[0])
+        else:
+            stack.extend([values[0] for _ in range(lossy)])
     elif ret_type != "_":
-        stack.append(ret_type)
-        return ret_type
-    return None
+        if lossy == 0:
+            stack.append(ret_type)
+        else:
+            stack.extend([ret_type for _ in range(lossy)])
 
 
 def parse(tokens: Iterable[Token]) -> Program:
@@ -153,11 +159,13 @@ def parse(tokens: Iterable[Token]) -> Program:
              ("float", 2)]
     unop = [("integer", 1),
             ("float", 1),
-            ("string", 1)]
+            ("string", 1),
+            ("bool", 1)]
     ops: Dict[str, Callable] = {
         "+": lambda t: check_op(types, t, binop),
         "-": lambda t: check_op(types, t, binop),
         "*": lambda t: check_op(types, t, binop),
+        "/": lambda t: check_op(types, t, [binop[1]]),
         ">": lambda t: check_op(types, t, binop, "bool"),
         "<": lambda t: check_op(types, t, binop, "bool"),
         ">=": lambda t: check_op(types, t, binop, "bool"),
@@ -165,11 +173,11 @@ def parse(tokens: Iterable[Token]) -> Program:
         "!=": lambda t: check_op(types, t, binop, "bool"),
         "=": lambda t: check_op(types, t, binop, "bool"),
         "drop": lambda t: check_op(types, t, unop, "_"),
-        "over": lambda t: check_op(types, t, binop),
-        "rot": lambda t: check_op(types, t, terop),
-        "swap": lambda t: check_op(types, t, binop),
-        "dump": lambda t: check_op(types, t, [("integer", 1)], "_"),
-        "fdump": lambda t: check_op(types, t, [("float", 1)], "_"),
+        "dup": lambda t: check_op(types, token, unop, lossy=2),
+        "swap": lambda t: check_op(types, t, binop, lossy=2),
+        "over": lambda t: check_op(types, t, binop, lossy=3),
+        "rot": lambda t: check_op(types, t, terop, lossy=3),
+        "dump": lambda t: check_op(types, t, unop, "_"),
     }
     for token in tokens:
         if token.kind == TokenKind.Int:
@@ -178,10 +186,6 @@ def parse(tokens: Iterable[Token]) -> Program:
             types.append("float")
         elif token.kind == TokenKind.String:
             types.append("string")
-        elif token.value == "dup":
-            ret_type = check_op(types, token, unop)
-            if ret_type is not None:
-                types.append(ret_type)
         elif token.value == "if":
             check_op(types, token, [("bool", 1)], "_")
             blocks.append("if")
@@ -264,16 +268,15 @@ class While(Cond):
 def compile(prog: Program) -> ir.Module:
     ops: Dict[str, Callable] = {
         "+": add, "-": sub,
-        "*": mul, ">": gt,
-        "<": lt, ">=": ge,
+        "*": mul, "/": div,
+        ">": gt, "<": lt, ">=": ge,
         "<=": le, "!=": ne,
         "=": eq, "dup": dup,
         "drop": drop, "over": over,
         "rot": rot, "swap": swap,
-        "dump": dump, "fdump": fdump,
-        "if": start_cond, "else": else_cond,
-        "while": start_loop, "do": do_loop,
-        "end": end_cond,
+        "dump": dump, "if": start_cond,
+        "else": else_cond, "while": start_loop,
+        "do": do_loop, "end": end_cond,
     }
     for node in prog:
         if node.kind == NodeKind.Int:
@@ -418,6 +421,13 @@ def mul() -> None:
     builder.store(result, stack[-1])
 
 
+def div() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack[-1])
+    result = builder.fdiv(a, b)
+    builder.store(result, stack[-1])
+
+
 def gt() -> None:
     b = builder.load(stack.pop())
     a = builder.load(stack.pop())
@@ -481,30 +491,20 @@ def eq() -> None:
 def dump() -> None:
     result = builder.load(stack.pop())
     
-    format_str = const_str(bytearray(b"%d\n"))
+    format_str = const_str(bytearray(b"?\n"))
+    if result.type in (ir.IntType(1), ir.IntType(32)):  # int or bool
+        format_str = const_str(bytearray(b"%d\n"))
+    elif result.type == ir.FloatType():
+        format_str = const_str(bytearray(b"%f\n"))
+        result = builder.fpext(result, ir.DoubleType())
+    elif result.type == ir.PointerType(ir.IntType(8)):  # string
+        format_str = const_str(bytearray(b"%s\n"))
     
     if "printf" not in FUNCTIONS:
         typ = ir.FunctionType(ir.IntType(32),
                              [ir.PointerType(ir.IntType(8))],
                              var_arg=True)
         FUNCTIONS["printf"] = ir.Function(module, typ, name="printf")
-    format_str = builder.bitcast(format_str,
-                                 ir.PointerType(ir.IntType(8)))
-    builder.call(FUNCTIONS["printf"], [format_str, result])
-
-
-def fdump() -> None:
-    result = builder.load(stack.pop())
-
-    format_str = const_str(bytearray(b"%f\n\0"))
-    
-    if "printf" not in FUNCTIONS:
-        typ = ir.FunctionType(ir.IntType(32),
-                             [ir.PointerType(ir.IntType(8))],
-                             var_arg=True)
-        FUNCTIONS["printf"] = ir.Function(module, typ, name="printf")
-    
-    result = builder.fpext(result, ir.DoubleType())
     format_str = builder.bitcast(format_str,
                                  ir.PointerType(ir.IntType(8)))
     builder.call(FUNCTIONS["printf"], [format_str, result])
