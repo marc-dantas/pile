@@ -42,20 +42,20 @@ This language is not a proper language yet, but you already do some stuff with i
 Execute the code directly by the JIT compiler:
 ```console
 $ # To run main.py this way, do `chmod +x src/main.py`
-$ src/main.py prog.pl
+$ src/main.py examples/hello.pl
 ```
 
 Compile to executable and run the program `prog.pl` (using clang):
 ```console
-$ python3 src/main.py prog.pl -c
+$ python3 src/main.py examples/hello.pl -c
 ... clang stuff ...
-$ ./prog.out
+$ ./examples/hello
 ```
 
 
 Get the LLVM representation of `prog.pl`:
 ```console
-$ python3 src/main.py prog.pl -e
+$ python3 src/main.py examples/hello.pl -e
 ```
 
 # Documentation
