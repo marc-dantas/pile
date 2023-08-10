@@ -47,19 +47,22 @@ def err(msg: str) -> None:
     print(f"pile: error: {msg}", file=stderr)
     exit(1)
 
-
-def compile_to_executable(filename: str, output: str) -> None:
-    if output is None:
-        output = filename
-    llvm_path = f"{splitext(output)[0]}.ll"
-    with open(llvm_path, "w") as llvm_f:
-        llvm_f.write(str(pile2llvm(filename)))
-    subprocess.call(["clang",
-                     llvm_path,
-                     "-o",
-                     splitext(output)[0]
-                     + ('.exe' if platform == "win32" else '')])
-    remove(llvm_path)
+if platform != "win32":
+    def compile_to_executable(filename: str, output: str) -> None:
+        if output is None:
+            output = filename
+        llvm_path = f"{splitext(output)[0]}.ll"
+        with open(llvm_path, "w") as llvm_f:
+            llvm_f.write(str(pile2llvm(filename)))
+        subprocess.call(["clang",
+                         llvm_path,
+                         "-o",
+                         splitext(output)[0]
+                         + ('.exe' if platform == "win32" else '')])
+        remove(llvm_path)
+else:
+    def compile_to_executable(filename: str, output: str) -> None:
+        err("compile to executable is not supported on Windows systems")
 
 
 def compile_mcjit(mod: ir.Module) -> binding.ExecutionEngine:
@@ -91,6 +94,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    #dump_tokens("prog.pl")
-    #print(pile2llvm("prog.pl"))
     main()

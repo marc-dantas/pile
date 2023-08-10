@@ -12,7 +12,7 @@
 
 ## Development milestones
 
-- [X] Make it (at least) an usable language
+- [X] Make it (at least) a usable language
 - [X] JIT Compiler
 - [X] Implement all major operations
 - [X] Control flow
@@ -24,8 +24,7 @@
 ## Quick start
 > **WARNING**: This is a project in VERY early stages of development. USE THIS LANGUAGE AT YOUR OWN RISK!
 > Keep eyes on the next commits if you want to contribute.
-
-> **DISCLAIMER**: I don't know if this project works on Windows yet because I don't have an Windows machine to test it. So, you can test it on your machine and create an issue if it doesn't work properly.
+> **DISCLAIMER**: On Windows systems, this project is more limited. I recommend using Unix/Linux!
 
 #### Dependencies
 

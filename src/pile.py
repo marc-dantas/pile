@@ -42,9 +42,9 @@ def lex_line(line: str) -> Iterable[Tuple[int, str, TokenKind]]:
     while col < len(line):
         if line[col] == '"':
             # TODO: Report unterminated and unstarted strings
-            end = find_col(line, col+1, lambda x: x == '"')
-            yield (col, line[col+1:end], TokenKind.String)
-            col = find_col(line, end+1, lambda x: not x.isspace())
+            end = find_col(line, col + 1, lambda x: x == '"')
+            yield (col, line[col + 1:end], TokenKind.String)
+            col = find_col(line, end + 1, lambda x: not x.isspace())
         else:
             end = find_col(line, col, lambda x: x.isspace())
             token = line[col:end]
@@ -55,9 +55,9 @@ def lex_line(line: str) -> Iterable[Tuple[int, str, TokenKind]]:
 def lex_file(path: str) -> Iterable[Token]:
     with open(path, "r") as f:
         yield from (
-            Token(val, kind, (path, row+1, col))
+            Token(val, kind, (path, row + 1, col))
             for row, x in enumerate(f.readlines())
-            for col, val, kind in lex_line(x) 
+            for col, val, kind in lex_line(x)
         )
 
 
@@ -94,6 +94,8 @@ class Node:
 
 
 Program = Iterable[Node]
+
+
 class UnreachableError(Exception): ...
 
 
@@ -121,9 +123,9 @@ def check_op(stack: List[str],
               f"`{token.value}` operation needs {expected[0][1]} "
               f"stack value{'s' if expected[0][1] > 1 else ''} to be "
               f"performed but got {len(stack) if stack else 'no'} values")
-    
+
     values = tuple(stack.pop() for _ in range(expected[0][1]))
-    
+
     expected_cmp = [
         tuple(expect[0] for _ in range(expect[1]))
         for expect in expected
@@ -246,6 +248,7 @@ stack: list = []
 conditionals: list = []
 FUNCTIONS: Dict[str, ir.Function] = {}
 CONSTS: Dict[str, ir.GlobalVariable] = {}
+
 
 @dataclass
 class Cond:
@@ -418,7 +421,6 @@ def sub() -> None:
     builder.store(result, stack[-1])
 
 
-
 def mul() -> None:
     b = builder.load(stack.pop())
     a = builder.load(stack[-1])
@@ -494,6 +496,7 @@ def eq() -> None:
     stack.append(builder.alloca(BOOL))
     builder.store(result, stack[-1])
 
+
 def shr() -> None:
     b = builder.load(stack.pop())
     a = builder.load(stack[-1])
@@ -530,7 +533,7 @@ def not_() -> None:
 
 def dump() -> None:
     result = builder.load(stack.pop())
-    
+
     format_str = const_str(bytearray(b"?\n"))
     if result.type in (ir.IntType(1), ir.IntType(32)):  # int or bool
         format_str = const_str(bytearray(b"%d\n"))
@@ -539,11 +542,11 @@ def dump() -> None:
         result = builder.fpext(result, ir.DoubleType())
     elif result.type == ir.PointerType(ir.IntType(8)):  # string
         format_str = const_str(bytearray(b"%s\n"))
-    
+
     if "printf" not in FUNCTIONS:
         typ = ir.FunctionType(ir.IntType(32),
-                             [ir.PointerType(ir.IntType(8))],
-                             var_arg=True)
+                              [ir.PointerType(ir.IntType(8))],
+                              var_arg=True)
         FUNCTIONS["printf"] = ir.Function(module, typ, name="printf")
     format_str = builder.bitcast(format_str,
                                  ir.PointerType(ir.IntType(8)))
@@ -582,7 +585,7 @@ def indent(file: TextIO,
         prefix = 2
     if suffix is None:
         suffix = 0
-    file.write(' '*prefix + text + ' '*suffix + '\n')
+    file.write(' ' * prefix + text + ' ' * suffix + '\n')
 
 
 def throw(pos: Tuple[str, int, int],
