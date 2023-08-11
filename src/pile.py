@@ -38,17 +38,16 @@ def find_col(string: str, col: int, pred: Callable) -> int:
 def lex_line(line: str) -> Iterable[Tuple[int, str, TokenKind]]:
     col = find_col(line, 0, lambda x: not x.isspace())
     line = line.split("//")[0]
-    end = None
     while col < len(line):
         if line[col] == '"':
             # TODO: Report unterminated and unstarted strings
             end = find_col(line, col + 1, lambda x: x == '"')
-            yield (col, line[col + 1:end], TokenKind.String)
+            yield col, line[col + 1:end], TokenKind.String
             col = find_col(line, end + 1, lambda x: not x.isspace())
         else:
             end = find_col(line, col, lambda x: x.isspace())
             token = line[col:end]
-            yield (col, line[col:end], classify_token(token))
+            yield col, line[col:end], classify_token(token)
             col = find_col(line, end, lambda x: not x.isspace())
 
 
@@ -96,7 +95,8 @@ class Node:
 Program = Iterable[Node]
 
 
-class UnreachableError(Exception): ...
+class UnreachableError(Exception):
+    ...
 
 
 def match_kind(token: Token) -> NodeKind:
@@ -112,19 +112,19 @@ def match_kind(token: Token) -> NodeKind:
         raise UnreachableError("match_kind isn't handling all TokenKind variants")
 
 
-def check_op(stack: List[str],
+def check_op(virtual_stack: List[str],
              token: Token,
              expected: List[Tuple[str, int]],
              ret_type: str = None,
              lossy: int = 0) -> None:
-    if len(stack) < expected[0][1]:
+    if len(virtual_stack) < expected[0][1]:
         throw(token.position,
               "stack underflow",
               f"`{token.value}` operation needs {expected[0][1]} "
               f"stack value{'s' if expected[0][1] > 1 else ''} to be "
-              f"performed but got {len(stack) if stack else 'no'} values")
+              f"performed but got {len(virtual_stack) if virtual_stack else 'no'} values")
 
-    values = tuple(stack.pop() for _ in range(expected[0][1]))
+    values = tuple(virtual_stack.pop() for _ in range(expected[0][1]))
 
     expected_cmp = [
         tuple(expect[0] for _ in range(expect[1]))
@@ -142,14 +142,14 @@ def check_op(stack: List[str],
               f"({', '.join(values)}) but operation expects {expected_str}")
     if ret_type is None:
         if lossy == 0:
-            stack.append(values[0])
+            virtual_stack.append(values[0])
         else:
-            stack.extend([values[0] for _ in range(lossy)])
+            virtual_stack.extend([values[0] for _ in range(lossy)])
     elif ret_type != "_":
         if lossy == 0:
-            stack.append(ret_type)
+            virtual_stack.append(ret_type)
         else:
-            stack.extend([ret_type for _ in range(lossy)])
+            virtual_stack.extend([ret_type for _ in range(lossy)])
 
 
 def parse(tokens: Iterable[Token]) -> Program:
@@ -273,7 +273,7 @@ class While(Cond):
     cmp_return: ir.Block
 
 
-def compile(prog: Program) -> ir.Module:
+def compile_program(prog: Program) -> ir.Module:
     ops: Dict[str, Callable] = {
         "+": add, "-": sub,
         "*": mul, "/": div,

@@ -35,7 +35,7 @@ def parse_args() -> Namespace:
 
 def pile2llvm(path: str) -> ir.Module:
     prog = parse(lex_file(path))
-    return compile(prog)
+    return compile_program(prog)
 
 
 def dump_tokens(path: str) -> None:
@@ -47,22 +47,15 @@ def err(msg: str) -> None:
     print(f"pile: error: {msg}", file=stderr)
     exit(1)
 
-if platform != "win32":
-    def compile_to_executable(filename: str, output: str) -> None:
-        if output is None:
-            output = filename
-        llvm_path = f"{splitext(output)[0]}.ll"
-        with open(llvm_path, "w") as llvm_f:
-            llvm_f.write(str(pile2llvm(filename)))
-        subprocess.call(["clang",
-                         llvm_path,
-                         "-o",
-                         splitext(output)[0]
-                         + ('.exe' if platform == "win32" else '')])
-        remove(llvm_path)
-else:
-    def compile_to_executable(filename: str, output: str) -> None:
-        err("compile to executable is not supported on Windows systems")
+
+def compile_to_executable(filename: str, output: str) -> None:
+    if output is None:
+        output = filename
+    llvm_path = f"{splitext(output)[0]}.ll"
+    with open(llvm_path, "w") as llvm_f:
+        llvm_f.write(str(pile2llvm(filename)))
+    subprocess.call(["clang", llvm_path, "-o", splitext(output)[0]])
+    remove(llvm_path)
 
 
 def compile_mcjit(mod: ir.Module) -> binding.ExecutionEngine:
@@ -86,6 +79,8 @@ def main() -> None:
             with open(args.output, "w") as f:
                 f.write(str(pile2llvm(args.filename)))
     elif args.compile:
+        if platform == "win32":
+            err("the ability to compile a program to an executable is not supported on Windows")
         compile_to_executable(args.filename, args.output)
     else:
         engine = compile_mcjit(pile2llvm(args.filename))
