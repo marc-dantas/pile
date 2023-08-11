@@ -44,13 +44,19 @@ $ # To run main.py this way, do `chmod +x src/main.py`
 $ src/main.py examples/hello.pl
 ```
 
-Compile to executable and run the program `prog.pl` (using clang):
+Compile to executable and run the program `prog.pl` (only on Unix/Linux systems):
 ```console
 $ python3 src/main.py examples/hello.pl -c
 ... clang stuff ...
 $ ./examples/hello
 ```
 
+Show all tokens of given file:
+```console
+$ python3 src/main.py examples/hello.pl -t
+string `hello world` at file "examples/hello.pl", row 2 col 0
+word `dump` at file "examples/hello.pl", row 2 col 14
+```
 
 Get the LLVM representation of `prog.pl`:
 ```console
