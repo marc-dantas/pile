@@ -18,17 +18,22 @@ def parse_args() -> Namespace:
                        "This software is under MIT License",
                        usage="pile [OPTIONS] filename")
     p.add_argument("filename")
-    p.add_argument(
-        "-e", "--emit-llvm",
-        action="store_true",
-        help="prints the compiled LLVM representation of given file"
-    )
     p.add_argument("-o", "--output", help="sets the output file to be written on.")
     p.add_argument(
         "-c", "--compile",
         help="compiles to an executable (using clang) instead "
         "of running by the JIT compiler.",
         action="store_true"
+    )
+    p.add_argument(
+        "-t", "--tokenize",
+        action="store_true",
+        help="prints the tokens of the given source file"
+    )
+    p.add_argument(
+        "-e", "--emit-llvm",
+        action="store_true",
+        help="prints the compiled LLVM representation of given file"
     )
     return p.parse_args()
 
@@ -39,8 +44,15 @@ def pile2llvm(path: str) -> ir.Module:
 
 
 def dump_tokens(path: str) -> None:
+    format_tokenkind = (lambda tk: {
+        TokenKind.Word: "word",
+        TokenKind.Int: "integer",
+        TokenKind.Float: "float",
+        TokenKind.String: "string",
+    }.get(tk, "token"))
     for i in lex_file(path):
-        print(i)
+        f, r, c = i.position
+        print(f"{format_tokenkind(i.kind)} `{i.value}` at file \"{f}\", row {r} col {c}")
 
 
 def err(msg: str) -> None:
@@ -82,6 +94,8 @@ def main() -> None:
         if platform == "win32":
             err("the ability to compile a program to an executable is not supported on Windows")
         compile_to_executable(args.filename, args.output)
+    elif args.tokenize:
+        dump_tokens(args.filename)
     else:
         engine = compile_mcjit(pile2llvm(args.filename))
         main_addr = engine.get_function_address("main")
