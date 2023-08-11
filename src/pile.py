@@ -198,6 +198,16 @@ def parse(tokens: Iterable[Token]) -> Program:
             blocks.append("if")
         elif token.value == "while":
             blocks.append("while")
+        elif token.value == "else":
+            if blocks:
+                block = blocks[-1]
+                if block != "if":
+                    throw(token.position, "syntax error",
+                          f"`{block}` block does not support else")
+            else:
+                throw(token.position,
+                      "syntax error",
+                      "started `else` block without a proper beginning.")
         elif token.value == "do":
             check_op(types, token, [("bool", 1)], "_")
             if blocks:
