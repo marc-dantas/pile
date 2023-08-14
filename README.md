@@ -63,8 +63,8 @@ Get the LLVM representation of `prog.pl`:
 $ python3 src/main.py examples/hello.pl -e
 ```
 
-# Documentation
-You can read the official documentation [here](./docs/index.md)
+# Wiki page
+You can read the official wiki page [here](https://esolangs.org/wiki/Pile).
 
 ---
 
