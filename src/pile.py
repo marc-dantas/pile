@@ -167,7 +167,8 @@ def parse(tokens: Iterable[Token]) -> Program:
         "+": lambda t: check_op(types, t, binop),
         "-": lambda t: check_op(types, t, binop),
         "*": lambda t: check_op(types, t, binop),
-        "/": lambda t: check_op(types, t, [binop[1]]),
+        "/": lambda t: check_op(types, t, binop),
+        "%": lambda t: check_op(types, t, binop),
         ">": lambda t: check_op(types, t, binop, "bool"),
         "<": lambda t: check_op(types, t, binop, "bool"),
         ">=": lambda t: check_op(types, t, binop, "bool"),
@@ -287,7 +288,8 @@ def compile_program(prog: Program) -> ir.Module:
     ops: Dict[str, Callable] = {
         "+": add, "-": sub,
         "*": mul, "/": div,
-        ">": gt, "<": lt, ">=": ge,
+        "%": mod, ">": gt,
+        "<": lt, ">=": ge,
         "<=": le, "!=": ne,
         "=": eq, "|": bor,
         "&": band, ">>": shr,
@@ -443,7 +445,18 @@ def mul() -> None:
 def div() -> None:
     b = builder.load(stack.pop())
     a = builder.load(stack[-1])
-    result = builder.fdiv(a, b)
+    result = (builder.fdiv(a, b)
+              if a.type in (FLOAT, DOUBLE)
+              else builder.sdiv(a, b))
+    builder.store(result, stack[-1])
+
+
+def mod() -> None:
+    b = builder.load(stack.pop())
+    a = builder.load(stack[-1])
+    result = (builder.frem(a, b)
+              if a.type in (FLOAT, DOUBLE)
+              else builder.srem(a, b))
     builder.store(result, stack[-1])
 
 
@@ -544,7 +557,7 @@ def not_() -> None:
 def dump() -> None:
     result = builder.load(stack.pop())
 
-    format_str = const_str(bytearray(b"?\n"))
+    format_str = None
     if result.type in (ir.IntType(1), ir.IntType(32)):  # int or bool
         format_str = const_str(bytearray(b"%d\n"))
     elif result.type == ir.FloatType():
