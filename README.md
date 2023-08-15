@@ -1,70 +1,71 @@
-# Pile
-[Concatenative](https://en.wikipedia.org/wiki/Concatenative_programming_language), [stack-based](https://en.wikipedia.org/wiki/Stack-oriented_programming), [statically typed](https://en.wikipedia.org/wiki/Type_system#STATIC) and [compiled](https://en.wikipedia.org/wiki/Compiled_language) programming language for computers.
+```
+ _____ _ _      
+|  __ (_) |     
+| |__) || | ___ 
+|  ___/ | |/ _ \
+| |   | | |  __/
+|_|   |_|_|\___|
+```
 
-![Python](https://img.shields.io/badge/Python-3.8+-3670A0?style=plastic&logo=python&logoColor=white)
-![PyPy](https://img.shields.io/badge/PyPy-3.8+-3670A0?style=plastic&logo=pypy&logoColor=white)
-
-
-> NOTE: This language is not designed to be used in production.
-> This project has educational purposes to teach stack-based architectures to students.
+Pile is an [Esoteric](https://en.wikipedia.org/wiki/Esoteric_programming_language), [Concatenative](https://en.wikipedia.org/wiki/Concatenative_programming_language), [stack-based](https://en.wikipedia.org/wiki/Stack-oriented_programming), [statically typed](https://en.wikipedia.org/wiki/Type_system#STATIC) and [compiled](https://en.wikipedia.org/wiki/Compiled_language) programming language designed **only** for educational purposes.
 
 ---
 
-## Development milestones
-
-- [X] Make it (at least) a usable language
-- [X] JIT Compiler
-- [X] Implement all major operations
-- [X] Control flow
-- [X] Strings
-- [X] Statically typed (implement a proper type checker)
-- [X] Documentation
-- [ ] Make it [turing complete](https://en.wikipedia.org/wiki/Turing_completeness)
-
 ## Quick start
-> **WARNING**: This is a project in VERY early stages of development. USE THIS LANGUAGE AT YOUR OWN RISK!
-> Keep eyes on the next commits if you want to contribute.
-> **DISCLAIMER**: On Windows systems, this project is more limited. I recommend using Unix/Linux!
 
-#### Dependencies
+### Dependencies
 
-To use this software, you need to install the dependencies by doing:
+To use this software, you need to install the dependencies by running:
+(Python version 3.8 or higher is required, get it [here](https://www.python.org/downloads/))
+
 ```console
 $ cd path/to/pile
 $ python3 -m pip install -r requirements.txt
 ```
 
-#### How to use
+### Usage
 
-This language is not a proper language yet, but you already do some stuff with it:
+#### Execute the hello world program
 
-Execute the code directly by the JIT compiler:
-```console
-$ # To run main.py this way, do `chmod +x src/main.py`
-$ src/main.py examples/hello.pl
-```
+- Unix/Linux
+    ```console
+    $ chmod +x src/main.py
+    $ src/main.py examples/hello.pl
+    ```
+- Windows
+    ```console
+    > python .\src\main.py .\examples\hello.pl
+    ```
 
-Compile to executable and run the program `prog.pl` (only on Unix/Linux systems):
+#### Compile to executable and run (only on Unix/Linux systems)
 ```console
 $ python3 src/main.py examples/hello.pl -c
-... clang stuff ...
 $ ./examples/hello
 ```
 
-Show all tokens of given file:
-```console
-$ python3 src/main.py examples/hello.pl -t
-string `hello world` at file "examples/hello.pl", row 2 col 0
-word `dump` at file "examples/hello.pl", row 2 col 14
-```
+#### Show all tokens of the program
+- Unix/Linux
+    ```console
+    $ python3 src/main.py examples/hello.pl -t
+    ```
+- Windows
+    ```console
+    > python .\src\main.py .\examples\hello.pl -t
+    ```
+  
 
-Get the LLVM representation of `prog.pl`:
-```console
-$ python3 src/main.py examples/hello.pl -e
-```
+#### Get the LLVM Intermediate Representation
+- Unix/Linux
+    ```console
+    $ python3 src/main.py examples/hello.pl -e
+    ```
+- Windows
+    ```console
+    > python .\src\main.py .\examples\hello.pl -e
+    ```
 
-# Wiki page
-You can read the official wiki page [here](https://esolangs.org/wiki/Pile).
+# Docs
+You can read the official wiki page [here](https://esolangs.org/wiki/Pile) and learn more about how to use Pile and how it works.
 
 ---
 
