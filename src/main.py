@@ -18,7 +18,8 @@ def parse_args() -> Namespace:
                        "This software is under MIT License",
                        usage="pile [OPTIONS] filename")
     p.add_argument("filename")
-    p.add_argument("-o", "--output", help="sets the output file to be written on.")
+    p.add_argument("-o", "--output",
+                   help="sets the output file to be written on.")
     p.add_argument(
         "-c", "--compile",
         help="compiles to an executable (using clang) instead "
@@ -52,7 +53,8 @@ def dump_tokens(path: str) -> None:
     }.get(tk, "token"))
     for i in lex_file(path):
         f, r, c = i.position
-        print(f"{format_tokenkind(i.kind)} `{i.value}` at file \"{f}\", row {r} col {c}")
+        print(
+            f"{format_tokenkind(i.kind)} `{i.value}` at file \"{f}\", row {r} col {c}")
 
 
 def err(msg: str) -> None:
@@ -83,7 +85,7 @@ def main() -> None:
     args = parse_args()
     if not exists(args.filename):
         err(f"no such file \"{args.filename}\"")
-    
+
     if args.emit_llvm:
         if args.output is None:
             print(pile2llvm(args.filename))
@@ -92,7 +94,7 @@ def main() -> None:
                 f.write(str(pile2llvm(args.filename)))
     elif args.compile:
         if platform == "win32":
-            err("the ability to compile a program to an executable is not supported on Windows")
+            err("the ability to compile a program to an executable is not supported on Windows systems YET")
         compile_to_executable(args.filename, args.output)
     elif args.tokenize:
         dump_tokens(args.filename)

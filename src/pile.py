@@ -109,7 +109,8 @@ def match_kind(token: Token) -> NodeKind:
     elif token.kind == TokenKind.String:
         return NodeKind.String
     else:
-        raise UnreachableError("match_kind isn't handling all TokenKind variants")
+        raise UnreachableError(
+            "match_kind isn't handling all TokenKind variants")
 
 
 def check_op(virtual_stack: List[str],
