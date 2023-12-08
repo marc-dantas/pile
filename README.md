@@ -30,7 +30,7 @@ $ python3 -m pip install -r requirements.txt
 - Unix/Linux
     ```console
     $ chmod +x src/main.py
-    $ src/main.py examples/hello.pl
+    $ src/main.py examples/hello.pile
     ```
 - Windows
     ```console
@@ -39,29 +39,29 @@ $ python3 -m pip install -r requirements.txt
 
 #### Compile to executable and run (only on Unix/Linux systems)
 ```console
-$ python3 src/main.py examples/hello.pl -c
+$ python3 src/main.py examples/hello.pile -c
 $ ./examples/hello
 ```
 
 #### Show all tokens of the program
 - Unix/Linux
     ```console
-    $ python3 src/main.py examples/hello.pl -t
+    $ python3 src/main.py examples/hello.pile -t
     ```
 - Windows
     ```console
-    > python .\src\main.py .\examples\hello.pl -t
+    > python .\src\main.py .\examples\hello.pile -t
     ```
   
 
 #### Get the LLVM Intermediate Representation
 - Unix/Linux
     ```console
-    $ python3 src/main.py examples/hello.pl -e
+    $ python3 src/main.py examples/hello.pile -e
     ```
 - Windows
     ```console
-    > python .\src\main.py .\examples\hello.pl -e
+    > python .\src\main.py .\examples\hello.pile -e
     ```
 
 # Docs
