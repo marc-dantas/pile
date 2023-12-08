@@ -555,18 +555,26 @@ def not_() -> None:
     builder.store(result, stack[-1])
 
 
+# NOTE: This operation isn't supposed to be fast. It is a debug-purpose-only operation
 def dump() -> None:
     result = builder.load(stack.pop())
 
     format_str = None
-    if result.type in (ir.IntType(1), ir.IntType(32)):  # int or bool
+    if result.type == ir.IntType(32):                   # int
         format_str = const_str(bytearray(b"%d\n"))
-    elif result.type == ir.FloatType():
+    elif result.type == ir.IntType(1):                  # bool
+        format_str = const_str(bytearray(b"%d\n"))
+        # needed zero-extending to avoid printing overflows
+        # see issue https://github.com/marc-dantas/pile/issues/1
+        result = builder.zext(result, ir.IntType(32))
+    elif result.type == ir.FloatType():                 # float
         format_str = const_str(bytearray(b"%f\n"))
         result = builder.fpext(result, ir.DoubleType())
     elif result.type == ir.PointerType(ir.IntType(8)):  # string
         format_str = const_str(bytearray(b"%s\n"))
-
+    else:
+        raise UnreachableError("this point of the code is unreachable at dump operation")
+    
     if "printf" not in FUNCTIONS:
         typ = ir.FunctionType(ir.IntType(32),
                               [ir.PointerType(ir.IntType(8))],
