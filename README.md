@@ -34,7 +34,7 @@ $ python3 -m pip install -r requirements.txt
     ```
 - Windows
     ```console
-    > python .\src\main.py .\examples\hello.pl
+    > python .\src\main.py .\examples\hello.pile
     ```
 
 #### Compile to executable and run (only on Unix/Linux systems)
