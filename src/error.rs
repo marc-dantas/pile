@@ -1,4 +1,59 @@
-use crate::parser::ParseError;
+use crate::{parser::ParseError, RuntimeError};
+
+pub fn runtime_error(e: RuntimeError) {
+    match e {
+        RuntimeError::InvalidName(span, x) => {
+            throw(
+                "runtime error",
+                &format!("identifier `{x}` not a valid name referred to anything."),
+                &span.filename,
+                span.line,
+                span.col,
+                Some("maybe a typo?")
+            );
+        }
+        RuntimeError::InvalidOp(span, x) => {
+            throw(
+                "runtime error",
+                &format!("tried to use inexistent operation `{x}`."),
+                &span.filename,
+                span.line,
+                span.col,
+                None
+            );
+        }
+        RuntimeError::StackOverflow(span, x) => {
+            throw(
+                "runtime error",
+                &format!("program ended with {x} unhandled element(s) on the stack."),
+                &span.filename,
+                span.line,
+                span.col,
+                Some("use `drop` operation to remove values.")
+            );
+        }
+        RuntimeError::StackUnderflow(span, n, x) => {
+            throw(
+                "runtime error",
+                &format!("operation `{n}` expects {x} element(s) on top of the stack but got a different amount."),
+                &span.filename,
+                span.line,
+                span.col,
+                Some("try checking the values before the operation.")
+            );
+        }
+        RuntimeError::UnexpectedType(span, n, x, y) => {
+            throw(
+                "runtime error",
+                &format!("operation `{n}` expects {x} datatype(s) on the stack to work, but got {y}."),
+                &span.filename,
+                span.line,
+                span.col,
+                Some("try checking the values before the operation.")
+            );
+        }
+    }
+}
 
 pub fn parse_error(e: ParseError) {
     match e {

@@ -23,16 +23,24 @@ fn parse(filename: String, source: String) -> Result<ProgramTree, ParseError> {
 }
 
 fn run(p: ProgramTree) -> Result<(), RuntimeError> {
-    todo!()
+    let mut r = Runtime::new(&p);
+    r.run()
 }
 
 fn from_command_line(argv: &mut Args) {
     let program = argv.next().unwrap();
     if let Some(name) = argv.next() {
         if let Ok(source) = read_from_path(&name) {
+            // To test the lexer, temporary
+            // let f = InputFile {
+            //     name: name,
+            //     content: source.chars().peekable(),
+            // };
+            // let l = Lexer::new(f, Span { line: 1, col: 1 });
+            // for i in l {println!("{i:?}")}
             match parse(name.to_string(), source) {
                 Ok(p) => if let Err(e) = run(p) {
-                    error::fatal("a {e}");
+                    error::runtime_error(e);
                 },
                 Err(e) => error::parse_error(e),
             }
