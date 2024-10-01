@@ -91,7 +91,7 @@ impl<'a> Iterator for Lexer<'a> {
                     let col = self.span.col;
                     let mut buffer = String::from(c);
                     while let Some(d) = self.input.content.peek() {
-                        if Token::is_whitespace(&d) {
+                        if !Token::is_number(&d) {
                             break;
                         }
                         buffer.push(*d);
