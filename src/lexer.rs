@@ -117,7 +117,7 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                         buffer.push(d);
                     }
-                    self.span.col += buffer.len();
+                    self.span.col += buffer.len() + 2; // +2 to consider both quote marks
                     return Some(Token::new(
                         buffer,
                         TokenKind::String,
