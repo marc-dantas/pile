@@ -1,5 +1,4 @@
 use crate::lexer::{Lexer, Token, TokenKind, TokenSpan};
-use std::iter::Peekable;
 
 fn is_reserved_word(value: &str) -> bool {
     matches!(value, "if" | "loop" | "proc" | "end" | "else")
@@ -13,17 +12,17 @@ fn is_valid_identifier(value: &str) -> bool {
 }
 
 #[derive(Debug)]
-pub enum Expr {
+pub enum Node {
     Number(f64, TokenSpan),
-    Word(String, TokenSpan),
     String(String, TokenSpan),
-    Procedure(String, Vec<Expr>, TokenSpan),
-    If(Vec<Expr>, Option<Vec<Expr>>, TokenSpan),
-    Loop(Vec<Expr>, TokenSpan),
+    Procedure(String, Vec<Node>, TokenSpan),
+    If(Vec<Node>, Option<Vec<Node>>, TokenSpan),
+    Loop(Vec<Node>, TokenSpan),
     Operation(String, TokenSpan),
+    // Word(String, TokenSpan)
 }
 
-pub type ProgramTree = Vec<Expr>;
+pub type ProgramTree = Vec<Node>;
 
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
@@ -55,9 +54,9 @@ impl<'a> Parser<'a> {
         Ok(exprs)
     }
 
-    fn parse_expr(&mut self, token: Token) -> Result<Expr, ParseError> {
+    fn parse_expr(&mut self, token: Token) -> Result<Node, ParseError> {
         match token.kind {
-            TokenKind::Number => Ok(Expr::Number(token.value.parse().unwrap(), token.span)),
+            TokenKind::Number => Ok(Node::Number(token.value.parse().unwrap(), token.span)),
             TokenKind::Word => match token.value.as_str() {
                 "proc" => self.parse_proc(),
                 "if" => self.parse_if(),
@@ -67,15 +66,16 @@ impl<'a> Parser<'a> {
                         .clone()
                         .unwrap_or_else(|| token.span.clone()),
                 )),
-                value if is_valid_identifier(value) => Ok(Expr::Word(token.value, token.span)),
+                // value if is_valid_identifier(value) => Ok(Node::Word(token.value, token.span)),
+                
                 // expand this match to more Expr variants for each operation (or maybe implement an OpKind-like thing)
-                _ => Ok(Expr::Operation(token.value, token.span))
+                _ => Ok(Node::Operation(token.value, token.span))
             },
-            TokenKind::String => Ok(Expr::String(token.value, token.span)),
+            TokenKind::String => Ok(Node::String(token.value, token.span)),
         }
     }
 
-    fn parse_proc(&mut self) -> Result<Expr, ParseError> {
+    fn parse_proc(&mut self) -> Result<Node, ParseError> {
         let proc_name = self.lexer.next().ok_or_else(|| {
             let span = self.current_span.clone().unwrap_or_else(|| TokenSpan {
                 filename: "unknown".to_string(),
@@ -98,7 +98,7 @@ impl<'a> Parser<'a> {
         while let Some(token) = self.lexer.next() {
             self.current_span = Some(token.span.clone());
             if token.value == "end" {
-                return Ok(Expr::Procedure(proc_name.value, body, token.span));
+                return Ok(Node::Procedure(proc_name.value, body, token.span));
             }
             body.push(self.parse_expr(token)?);
         }
@@ -111,7 +111,7 @@ impl<'a> Parser<'a> {
         ))
     }
 
-    fn parse_if(&mut self) -> Result<Expr, ParseError> {
+    fn parse_if(&mut self) -> Result<Node, ParseError> {
         let mut if_body = Vec::new();
         let else_body = None;
 
@@ -122,7 +122,7 @@ impl<'a> Parser<'a> {
                 while let Some(token) = self.lexer.next() {
                     self.current_span = Some(token.span.clone());
                     if token.value == "end" {
-                        return Ok(Expr::If(if_body, Some(else_block), token.span));
+                        return Ok(Node::If(if_body, Some(else_block), token.span));
                     }
                     else_block.push(self.parse_expr(token)?);
                 }
@@ -133,7 +133,7 @@ impl<'a> Parser<'a> {
                     "else".to_string(),
                 ));
             } else if token.value == "end" {
-                return Ok(Expr::If(if_body, else_body, token.span));
+                return Ok(Node::If(if_body, else_body, token.span));
             }
             if_body.push(self.parse_expr(token)?);
         }
@@ -148,13 +148,13 @@ impl<'a> Parser<'a> {
         ))
     }
 
-    fn parse_loop(&mut self) -> Result<Expr, ParseError> {
+    fn parse_loop(&mut self) -> Result<Node, ParseError> {
         let mut body = Vec::new();
 
         while let Some(token) = self.lexer.next() {
             self.current_span = Some(token.span.clone());
             if token.value == "end" {
-                return Ok(Expr::Loop(body, token.span));
+                return Ok(Node::Loop(body, token.span));
             }
             body.push(self.parse_expr(token)?);
         }
