@@ -10,16 +10,26 @@ pub enum Data {
 pub enum NumberBinaryOp {
     Add, Sub, Mul, Div,
     Gt, Lt, Eq, Ge, Le, Ne,
-    Shl, Shr, Bor, Band
+    Shl, Shr, Bor, Band,
+    Swap, Over
 }
 
+// stack operations:
+// dup (a -- a a)
+// drop (a -- )
+// swap (a b -- b a)
+// over (a b -- a b a)
+// rot (a b c -- b c a)
+
 pub enum NumberUnaryOp {
-    Print,
+    Print, Dup, Drop
 }
 
 pub fn numberunaryop_readable(x: NumberUnaryOp) -> String {
     return match x {
         NumberUnaryOp::Print => String::from("print"),
+        NumberUnaryOp::Dup => String::from("dup"),
+        NumberUnaryOp::Drop => String::from("drop"),
     };
 }
 
@@ -39,7 +49,9 @@ pub fn numberbinaryop_readable(x: NumberBinaryOp) -> String {
         NumberBinaryOp::Shl => String::from(">>"),
         NumberBinaryOp::Shr => String::from("<<"),
         NumberBinaryOp::Bor => String::from("|"),
-        NumberBinaryOp::Band => String::from("&")
+        NumberBinaryOp::Band => String::from("&"),
+        NumberBinaryOp::Swap => String::from("swap"),
+        NumberBinaryOp::Over => String::from("over"),
     };
 }
 
@@ -73,6 +85,8 @@ impl<'a> Runtime<'a> {
             match a {
                 Data::Number(n) => match x {
                     NumberUnaryOp::Print => println!("{}", n),
+                    NumberUnaryOp::Dup => self.push_number(n),
+                    NumberUnaryOp::Drop => self.drop(),
                 },
                 Data::String(_) => return Err(RuntimeError::UnexpectedType(span, numberunaryop_readable(x), "(number)".to_string(), "(string)".to_string())),
             }
@@ -85,22 +99,31 @@ impl<'a> Runtime<'a> {
     fn binop_number(&mut self, span: TokenSpan, x: NumberBinaryOp) -> Result<(), RuntimeError> {
         if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
             match (a, b) {
-                (Data::Number(n1), Data::Number(n2)) => self.push_number(match x {
-                    NumberBinaryOp::Add => n1 + n2,
-                    NumberBinaryOp::Sub => n1 - n2,
-                    NumberBinaryOp::Mul => n1 * n2,
-                    NumberBinaryOp::Div => n1 / n2,
-                    NumberBinaryOp::Eq => (n1 == n2) as i32 as f64,
-                    NumberBinaryOp::Ne => (n1 != n2) as i32 as f64,
-                    NumberBinaryOp::Lt => (n1 < n2) as i32 as f64,
-                    NumberBinaryOp::Gt => (n1 > n2) as i32 as f64,
-                    NumberBinaryOp::Le => (n1 <= n2) as i32 as f64,
-                    NumberBinaryOp::Ge => (n1 >= n2) as i32 as f64,
-                    NumberBinaryOp::Shl => ((n1 as i32) << (n2 as i32)) as f64,
-                    NumberBinaryOp::Shr => ((n1 as i32) >> (n2 as i32)) as f64,
-                    NumberBinaryOp::Bor => ((n1 as i32) | (n2 as i32)) as f64,
-                    NumberBinaryOp::Band => ((n1 as i32) & (n2 as i32)) as f64,
-                }),
+                (Data::Number(n1), Data::Number(n2)) => match x {
+                    NumberBinaryOp::Add => self.push_number(n1 + n2),
+                    NumberBinaryOp::Sub => self.push_number(n1 - n2),
+                    NumberBinaryOp::Mul => self.push_number(n1 * n2),
+                    NumberBinaryOp::Div => self.push_number(n1 / n2),
+                    NumberBinaryOp::Eq => self.push_number((n1 == n2) as i32 as f64),
+                    NumberBinaryOp::Ne => self.push_number((n1 != n2) as i32 as f64),
+                    NumberBinaryOp::Lt => self.push_number((n1 < n2) as i32 as f64),
+                    NumberBinaryOp::Gt => self.push_number((n1 > n2) as i32 as f64),
+                    NumberBinaryOp::Le => self.push_number((n1 <= n2) as i32 as f64),
+                    NumberBinaryOp::Ge => self.push_number((n1 >= n2) as i32 as f64),
+                    NumberBinaryOp::Shl => self.push_number(((n1 as i32) << (n2 as i32)) as f64),
+                    NumberBinaryOp::Shr => self.push_number(((n1 as i32) >> (n2 as i32)) as f64),
+                    NumberBinaryOp::Bor => self.push_number(((n1 as i32) | (n2 as i32)) as f64),
+                    NumberBinaryOp::Band => self.push_number(((n1 as i32) & (n2 as i32)) as f64),
+                    NumberBinaryOp::Swap => {
+                        self.push_number(n1);
+                        self.push_number(n2);
+                    },
+                    NumberBinaryOp::Over => {
+                        self.push_number(n2);
+                        self.push_number(n1);
+                        self.push_number(n2);
+                    },
+                },
                 (Data::String(_), Data::String(_)) => return Err(RuntimeError::UnexpectedType(span, numberbinaryop_readable(x), "(number, number)".to_string(), "(string, string)".to_string())),
                 (Data::String(_), Data::Number(_)) => return Err(RuntimeError::UnexpectedType(span, numberbinaryop_readable(x), "(number, number)".to_string(), "(string, number)".to_string())),
                 (Data::Number(_), Data::String(_)) => return Err(RuntimeError::UnexpectedType(span, numberbinaryop_readable(x), "(number, number)".to_string(), "(number, string)".to_string())),
@@ -122,6 +145,8 @@ impl<'a> Runtime<'a> {
                 let s = s.clone(); // TODO: Solve this
                 match o.as_str() {
                     "print" => self.unop_number(s, NumberUnaryOp::Print)?,
+                    "drop" => self.unop_number(s, NumberUnaryOp::Drop)?,
+                    "dup" => self.unop_number(s, NumberUnaryOp::Dup)?,
                     "+" => self.binop_number(s, NumberBinaryOp::Add)?,
                     "-" => self.binop_number(s, NumberBinaryOp::Sub)?,
                     "*" => self.binop_number(s, NumberBinaryOp::Mul)?,
@@ -136,6 +161,8 @@ impl<'a> Runtime<'a> {
                     ">>" => self.binop_number(s, NumberBinaryOp::Shr)?,
                     "|" => self.binop_number(s, NumberBinaryOp::Bor)?,
                     "&" => self.binop_number(s, NumberBinaryOp::Band)?,
+                    "swap" => self.binop_number(s, NumberBinaryOp::Swap)?,
+                    "over" => self.binop_number(s, NumberBinaryOp::Over)?,
                     _ => return Err(RuntimeError::InvalidOp(s, o.clone())),
                 }
             },
@@ -151,7 +178,6 @@ impl<'a> Runtime<'a> {
         Ok(())
     }
 
-
     fn push_number(&mut self, n: f64) {
         self.stack.push_front(Data::Number(n));
     }
@@ -164,7 +190,7 @@ impl<'a> Runtime<'a> {
         self.stack.pop_front()
     }
 
-    fn drop(&mut self) -> Option<Data> {
-        self.stack.remove(0)
+    fn drop(&mut self) {
+        self.stack.remove(0);
     }
 }
