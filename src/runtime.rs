@@ -13,6 +13,16 @@ pub enum NumberBinaryOp {
     Shl, Shr, Bor, Band
 }
 
+pub enum NumberUnaryOp {
+    Print,
+}
+
+pub fn numberunaryop_readable(x: NumberUnaryOp) -> String {
+    return match x {
+        NumberUnaryOp::Print => String::from("print"),
+    };
+}
+
 // maybe implement some Format thing idk
 pub fn numberbinaryop_readable(x: NumberBinaryOp) -> String {
     return match x {
@@ -38,11 +48,11 @@ pub type Stack = VecDeque<Data>;
 
 #[derive(Debug)]
 pub enum RuntimeError {
-    StackUnderflow(TokenSpan, String, usize),  // when there's too few data on the stack to perform operation
-    StackOverflow(TokenSpan, usize),           // when there's too much data on the stack (leftover unhandled data)
+    StackUnderflow(TokenSpan, String, usize),          // when there's too few data on the stack to perform operation
+    StackOverflow(TokenSpan, usize),                   // when there's too much data on the stack (leftover unhandled data)
     UnexpectedType(TokenSpan, String, String, String), // when there's an operation tries to operate with an unsupported or an invalid datatype
-    InvalidOp(TokenSpan, String),              // used when a word doesn't correspond a valid operation
-    InvalidName(TokenSpan, String),            // used when a word doesn't correspond a valid identifier
+    InvalidOp(TokenSpan, String),                      // used when a word doesn't correspond a valid operation
+    InvalidName(TokenSpan, String),                    // used when a word doesn't correspond a valid identifier
 }
 
 pub struct Runtime<'a> {
@@ -56,6 +66,20 @@ impl<'a> Runtime<'a> {
             input,
             stack: VecDeque::new(),
         }
+    }
+
+    fn unop_number(&mut self, span: TokenSpan, x: NumberUnaryOp) -> Result<(), RuntimeError> {
+        if let Some(a) = self.pop() {
+            match a {
+                Data::Number(n) => match x {
+                    NumberUnaryOp::Print => println!("{}", n),
+                },
+                Data::String(_) => return Err(RuntimeError::UnexpectedType(span, numberunaryop_readable(x), "(number)".to_string(), "(string)".to_string())),
+            }
+        } else {
+            return Err(RuntimeError::StackUnderflow(span, numberunaryop_readable(x), 1));
+        }
+        Ok(())
     }
 
     fn binop_number(&mut self, span: TokenSpan, x: NumberBinaryOp) -> Result<(), RuntimeError> {
@@ -97,16 +121,7 @@ impl<'a> Runtime<'a> {
             Node::Operation(o, s) => {
                 let s = s.clone(); // TODO: Solve this
                 match o.as_str() {
-                    "print" => { // transform this into something like UnaryOp
-                        if let Some(a) = self.pop() {
-                            match a {
-                                Data::Number(n) => println!("{}", n),
-                                Data::String(s) => println!("{}", s),
-                            }
-                        } else {
-                            return Err(RuntimeError::StackUnderflow(s, "print".to_string(), 1));
-                        }
-                    },
+                    "print" => self.unop_number(s, NumberUnaryOp::Print)?,
                     "+" => self.binop_number(s, NumberBinaryOp::Add)?,
                     "-" => self.binop_number(s, NumberBinaryOp::Sub)?,
                     "*" => self.binop_number(s, NumberBinaryOp::Mul)?,
