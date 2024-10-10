@@ -12,14 +12,38 @@ fn is_valid_identifier(value: &str) -> bool {
 }
 
 #[derive(Debug)]
+pub enum OpKind {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Gt,
+    Lt,
+    Eq,
+    Ge,
+    Le,
+    Ne,
+    Shl,
+    Shr,
+    Bor,
+    Band,
+    Swap,
+    Over,
+    Print,
+    Dup,
+    Rot,
+    Drop
+}
+
+#[derive(Debug)]
 pub enum Node {
     Number(f64, TokenSpan),
     String(String, TokenSpan),
     Procedure(String, Vec<Node>, TokenSpan),
     If(Vec<Node>, Option<Vec<Node>>, TokenSpan),
     Loop(Vec<Node>, TokenSpan),
-    Operation(String, TokenSpan),
-    // Word(String, TokenSpan)
+    Operation(String, OpKind, TokenSpan),
+    Word(String, TokenSpan)
 }
 
 pub type ProgramTree = Vec<Node>;
@@ -66,10 +90,32 @@ impl<'a> Parser<'a> {
                         .clone()
                         .unwrap_or_else(|| token.span.clone()),
                 )),
-                // value if is_valid_identifier(value) => Ok(Node::Word(token.value, token.span)),
-                
-                // expand this match to more Expr variants for each operation (or maybe implement an OpKind-like thing)
-                _ => Ok(Node::Operation(token.value, token.span))
+                "+" => Ok(Node::Operation(token.value, OpKind::Add, token.span)),
+                "-" => Ok(Node::Operation(token.value, OpKind::Sub, token.span)),
+                "*" => Ok(Node::Operation(token.value, OpKind::Mul, token.span)),
+                "/" => Ok(Node::Operation(token.value, OpKind::Div, token.span)),
+                "=" => Ok(Node::Operation(token.value, OpKind::Eq, token.span)),
+                "!=" => Ok(Node::Operation(token.value, OpKind::Ne, token.span)),
+                ">" => Ok(Node::Operation(token.value, OpKind::Gt, token.span)),
+                "<" => Ok(Node::Operation(token.value, OpKind::Lt, token.span)),
+                "<=" => Ok(Node::Operation(token.value, OpKind::Le, token.span)),
+                ">=" => Ok(Node::Operation(token.value, OpKind::Ge, token.span)),
+                "|" => Ok(Node::Operation(token.value, OpKind::Bor, token.span)),
+                "&" => Ok(Node::Operation(token.value, OpKind::Band, token.span)),
+                ">>" => Ok(Node::Operation(token.value, OpKind::Shr, token.span)),
+                "<<" => Ok(Node::Operation(token.value, OpKind::Shl, token.span)),
+                "dup" => Ok(Node::Operation(token.value, OpKind::Dup, token.span)),
+                "drop" => Ok(Node::Operation(token.value, OpKind::Drop, token.span)),
+                "swap" => Ok(Node::Operation(token.value, OpKind::Swap, token.span)),
+                "over" => Ok(Node::Operation(token.value, OpKind::Over, token.span)),
+                "rot" => Ok(Node::Operation(token.value, OpKind::Rot, token.span)),
+                "print" => Ok(Node::Operation(token.value, OpKind::Print, token.span)),
+                x if is_valid_identifier(x) => Ok(Node::Word(token.value, token.span)),
+                _ => Err(ParseError::UnexpectedToken(
+                    token.span.clone(),
+                    token.value,
+                    "number, word, string, or operation".to_string(),
+                )),
             },
             TokenKind::String => Ok(Node::String(token.value, token.span)),
         }

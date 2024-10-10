@@ -1,5 +1,5 @@
-use crate::{parser::{ProgramTree, Node}, lexer::TokenSpan};
-use std::{collections::VecDeque, ops::Add, str::Bytes};
+use crate::{parser::{ProgramTree, OpKind, Node}, lexer::TokenSpan};
+use std::{clone, collections::VecDeque};
 
 #[derive(Debug)]
 pub enum Data {
@@ -141,32 +141,32 @@ impl<'a> Runtime<'a> {
             Node::Procedure(n, p, s) => {},
             Node::Number(n, s) => self.push_number(*n),
             Node::String(v, s) => self.push_string(v.to_string()),
-            Node::Operation(o, s) => {
-                let s = s.clone(); // TODO: Solve this
-                match o.as_str() {
-                    "print" => self.unop_number(s, NumberUnaryOp::Print)?,
-                    "drop" => self.unop_number(s, NumberUnaryOp::Drop)?,
-                    "dup" => self.unop_number(s, NumberUnaryOp::Dup)?,
-                    "+" => self.binop_number(s, NumberBinaryOp::Add)?,
-                    "-" => self.binop_number(s, NumberBinaryOp::Sub)?,
-                    "*" => self.binop_number(s, NumberBinaryOp::Mul)?,
-                    "/" => self.binop_number(s, NumberBinaryOp::Div)?,
-                    ">" => self.binop_number(s, NumberBinaryOp::Gt)?,
-                    "<" => self.binop_number(s, NumberBinaryOp::Lt)?,
-                    "=" => self.binop_number(s, NumberBinaryOp::Eq)?,
-                    "<=" => self.binop_number(s, NumberBinaryOp::Le)?,
-                    ">=" => self.binop_number(s, NumberBinaryOp::Ge)?,
-                    "!=" => self.binop_number(s, NumberBinaryOp::Ne)?,
-                    "<<" => self.binop_number(s, NumberBinaryOp::Shl)?,
-                    ">>" => self.binop_number(s, NumberBinaryOp::Shr)?,
-                    "|" => self.binop_number(s, NumberBinaryOp::Bor)?,
-                    "&" => self.binop_number(s, NumberBinaryOp::Band)?,
-                    "swap" => self.binop_number(s, NumberBinaryOp::Swap)?,
-                    "over" => self.binop_number(s, NumberBinaryOp::Over)?,
-                    _ => return Err(RuntimeError::InvalidOp(s, o.clone())),
+            Node::Operation(o, op, s) => {
+                let s = s.clone(); // TODO: this is a hack, fix it
+                match op {
+                    OpKind::Add => self.binop_number(s, NumberBinaryOp::Add)?,
+                    OpKind::Sub => self.binop_number(s, NumberBinaryOp::Sub)?,
+                    OpKind::Mul => self.binop_number(s, NumberBinaryOp::Mul)?,
+                    OpKind::Div => self.binop_number(s, NumberBinaryOp::Div)?,
+                    OpKind::Gt => self.binop_number(s, NumberBinaryOp::Gt)?,
+                    OpKind::Lt => self.binop_number(s, NumberBinaryOp::Lt)?,
+                    OpKind::Eq => self.binop_number(s, NumberBinaryOp::Eq)?,
+                    OpKind::Ge => self.binop_number(s, NumberBinaryOp::Ge)?,
+                    OpKind::Le => self.binop_number(s, NumberBinaryOp::Le)?,
+                    OpKind::Ne => self.binop_number(s, NumberBinaryOp::Ne)?,
+                    OpKind::Shl => self.binop_number(s, NumberBinaryOp::Shl)?,
+                    OpKind::Shr => self.binop_number(s, NumberBinaryOp::Shr)?,
+                    OpKind::Bor => self.binop_number(s, NumberBinaryOp::Bor)?,
+                    OpKind::Band => self.binop_number(s, NumberBinaryOp::Band)?,
+                    OpKind::Swap => self.binop_number(s, NumberBinaryOp::Swap)?,
+                    OpKind::Over => self.binop_number(s, NumberBinaryOp::Over)?,
+                    OpKind::Dup => self.unop_number(s, NumberUnaryOp::Dup)?,
+                    OpKind::Drop => self.unop_number(s, NumberUnaryOp::Drop)?,
+                    OpKind::Print => self.unop_number(s, NumberUnaryOp::Print)?,
+                    OpKind::Rot => { todo!() },
                 }
             },
-            // Node::Word(w, s) => {}
+            Node::Word(w, s) => {}
         }
         Ok(())
     }
