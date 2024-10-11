@@ -7,6 +7,18 @@ pub enum Data {
     Number(f64),
 }
 
+#[derive(Debug)]
+pub struct Procedure<'a>(String, &'a Vec<Node>);
+
+// #[derive(Debug)]
+// pub struct Definition(String, Vec<Node>, TokenSpan);
+
+#[derive(Debug)]
+pub struct Namespace<'a> {
+    pub procs: Vec<Procedure<'a>>,
+    // pub defs: Vec<Data>,
+}
+
 pub enum NumberBinaryOp {
     Add, Sub, Mul, Div,
     Gt, Lt, Eq, Ge, Le, Ne,
@@ -65,11 +77,13 @@ pub enum RuntimeError {
     UnexpectedType(TokenSpan, String, String, String), // when there's an operation tries to operate with an unsupported or an invalid datatype
     InvalidOp(TokenSpan, String),                      // used when a word doesn't correspond a valid operation
     InvalidName(TokenSpan, String),                    // used when a word doesn't correspond a valid identifier
+    ProcRedefinition(TokenSpan, String),               // used when a name is already taken
 }
 
 pub struct Runtime<'a> {
     input: &'a ProgramTree,
     stack: Stack,
+    namespace: Namespace<'a>,
 }
 
 impl<'a> Runtime<'a> {
@@ -77,6 +91,9 @@ impl<'a> Runtime<'a> {
         Self {
             input,
             stack: VecDeque::new(),
+            namespace: Namespace {
+                procs: Vec::new(),
+            }
         }
     }
 
@@ -134,11 +151,16 @@ impl<'a> Runtime<'a> {
         Ok(())
     }
 
-    fn run_node(&mut self, n: &Node) -> Result<(), RuntimeError> {
+    fn run_node(&mut self, n: &'a Node) -> Result<(), RuntimeError> {
         match n {
             Node::If(i, e, s) => {},
             Node::Loop(l, s) => {},
-            Node::Procedure(n, p, s) => {},
+            Node::Procedure(n, p, s) => {
+                if let Some(_) = self.namespace.procs.iter().find(|p| p.0 == *n) {
+                    return Err(RuntimeError::ProcRedefinition(s.clone(), n.to_string()));
+                }
+                self.namespace.procs.push(Procedure(n.to_string(), p));
+            },
             Node::Number(n, s) => self.push_number(*n),
             Node::String(v, s) => self.push_string(v.to_string()),
             Node::Operation(o, op, s) => {
@@ -166,13 +188,26 @@ impl<'a> Runtime<'a> {
                     OpKind::Rot => { todo!() },
                 }
             },
-            Node::Word(w, s) => {}
+            Node::Word(w, s) => {
+                if let Some(p) = self.namespace.procs.iter().find(|p| p.0 == *w) {
+                    self.run_block(&p.1)?;
+                } else {
+                    return Err(RuntimeError::InvalidName(s.clone(), w.to_string()));
+                }
+            }
         }
         Ok(())
     }
 
     pub fn run(&mut self) -> Result<(), RuntimeError> {
         for n in self.input {
+            self.run_node(n)?;
+        }
+        Ok(())
+    }
+
+    fn run_block(&mut self, b: &'a Vec<Node>) -> Result<(), RuntimeError> {
+        for n in b {
             self.run_node(n)?;
         }
         Ok(())
