@@ -10,13 +10,13 @@ pub enum Data {
 #[derive(Debug)]
 pub struct Procedure<'a>(String, &'a Vec<Node>);
 
-// #[derive(Debug)]
-// pub struct Definition(String, Vec<Node>, TokenSpan);
+#[derive(Debug)]
+pub struct Definition(String, Data);
 
 #[derive(Debug)]
 pub struct Namespace<'a> {
     pub procs: Vec<Procedure<'a>>,
-    // pub defs: Vec<Data>,
+    pub defs: Vec<Definition>,
 }
 
 pub enum NumberBinaryOp {
@@ -76,8 +76,9 @@ pub enum RuntimeError {
     StackOverflow(TokenSpan, usize),                   // when there's too much data on the stack (leftover unhandled data)
     UnexpectedType(TokenSpan, String, String, String), // when there's an operation tries to operate with an unsupported or an invalid datatype
     InvalidOp(TokenSpan, String),                      // used when a word doesn't correspond a valid operation
-    InvalidName(TokenSpan, String),                    // used when a word doesn't correspond a valid identifier
+    InvalidWord(TokenSpan, String),                    // used when a word doesn't correspond a valid identifier
     ProcRedefinition(TokenSpan, String),               // used when a name is already taken
+    EmptyDefinition(TokenSpan, String),                // used when a definition has empty body
 }
 
 pub struct Runtime<'a> {
@@ -93,6 +94,7 @@ impl<'a> Runtime<'a> {
             stack: VecDeque::new(),
             namespace: Namespace {
                 procs: Vec::new(),
+                defs: Vec::new(),
             }
         }
     }
@@ -155,15 +157,30 @@ impl<'a> Runtime<'a> {
         match n {
             Node::If(i, e, s) => {},
             Node::Loop(l, s) => {},
-            Node::Procedure(n, p, s) => {
+            Node::Proc(n, p, s) => {
                 if let Some(_) = self.namespace.procs.iter().find(|p| p.0 == *n) {
                     return Err(RuntimeError::ProcRedefinition(s.clone(), n.to_string()));
                 }
                 self.namespace.procs.push(Procedure(n.to_string(), p));
             },
+            Node::Def(n, p, s) => {
+                if let Some(_) = self.namespace.defs.iter().find(|p| p.0 == *n) {
+                    return Err(RuntimeError::ProcRedefinition(s.clone(), n.to_string()));
+                }
+                // TODO: find a way to isolate the stack from the main stack
+                // so that the definition can be executed without affecting the main stack
+                // this is needed because the definition can be executed multiple times
+                // and we don't want to affect the main stack
+                self.run_block(p)?;
+                if let Some(result) = self.pop() {
+                    self.namespace.defs.push(Definition(n.to_string(), result));
+                } else {
+                    return Err(RuntimeError::EmptyDefinition(s.clone(), n.to_string()));
+                }
+            },
             Node::Number(n, s) => self.push_number(*n),
             Node::String(v, s) => self.push_string(v.to_string()),
-            Node::Operation(o, op, s) => {
+            Node::Operation(op, s) => {
                 let s = s.clone(); // TODO: this is a hack, fix it
                 match op {
                     OpKind::Add => self.binop_number(s, NumberBinaryOp::Add)?,
@@ -191,8 +208,13 @@ impl<'a> Runtime<'a> {
             Node::Word(w, s) => {
                 if let Some(p) = self.namespace.procs.iter().find(|p| p.0 == *w) {
                     self.run_block(&p.1)?;
+                } else if let Some(d) = self.namespace.defs.iter().find(|p| p.0 == *w) {
+                    match &d.1 {
+                        Data::Number(n) => self.push_number(*n),
+                        Data::String(s) => self.push_string(String::from(s)),
+                    }
                 } else {
-                    return Err(RuntimeError::InvalidName(s.clone(), w.to_string()));
+                    return Err(RuntimeError::InvalidWord(s.clone(), w.to_string()));
                 }
             }
         }
@@ -219,6 +241,10 @@ impl<'a> Runtime<'a> {
 
     fn push_string(&mut self, s: String) {
         self.stack.push_front(Data::String(s));
+    }
+
+    fn push_data(&mut self, d: Data) {
+        self.stack.push_front(d);
     }
 
     fn pop(&mut self) -> Option<Data> {
