@@ -39,10 +39,11 @@ pub enum OpKind {
 pub enum Node {
     Number(f64, TokenSpan),
     String(String, TokenSpan),
-    Procedure(String, Vec<Node>, TokenSpan),
+    Proc(String, Vec<Node>, TokenSpan),
+    Def(String, Vec<Node>, TokenSpan),
     If(Vec<Node>, Option<Vec<Node>>, TokenSpan),
     Loop(Vec<Node>, TokenSpan),
-    Operation(String, OpKind, TokenSpan),
+    Operation(OpKind, TokenSpan),
     Word(String, TokenSpan)
 }
 
@@ -83,6 +84,7 @@ impl<'a> Parser<'a> {
             TokenKind::Number => Ok(Node::Number(token.value.parse().unwrap(), token.span)),
             TokenKind::Word => match token.value.as_str() {
                 "proc" => self.parse_proc(),
+                "def" => self.parse_def(),
                 "if" => self.parse_if(),
                 "loop" => self.parse_loop(),
                 "end" => Err(ParseError::UnmatchedBlock(
@@ -90,26 +92,26 @@ impl<'a> Parser<'a> {
                         .clone()
                         .unwrap_or_else(|| token.span.clone()),
                 )),
-                "+" => Ok(Node::Operation(token.value, OpKind::Add, token.span)),
-                "-" => Ok(Node::Operation(token.value, OpKind::Sub, token.span)),
-                "*" => Ok(Node::Operation(token.value, OpKind::Mul, token.span)),
-                "/" => Ok(Node::Operation(token.value, OpKind::Div, token.span)),
-                "=" => Ok(Node::Operation(token.value, OpKind::Eq, token.span)),
-                "!=" => Ok(Node::Operation(token.value, OpKind::Ne, token.span)),
-                ">" => Ok(Node::Operation(token.value, OpKind::Gt, token.span)),
-                "<" => Ok(Node::Operation(token.value, OpKind::Lt, token.span)),
-                "<=" => Ok(Node::Operation(token.value, OpKind::Le, token.span)),
-                ">=" => Ok(Node::Operation(token.value, OpKind::Ge, token.span)),
-                "|" => Ok(Node::Operation(token.value, OpKind::Bor, token.span)),
-                "&" => Ok(Node::Operation(token.value, OpKind::Band, token.span)),
-                ">>" => Ok(Node::Operation(token.value, OpKind::Shr, token.span)),
-                "<<" => Ok(Node::Operation(token.value, OpKind::Shl, token.span)),
-                "dup" => Ok(Node::Operation(token.value, OpKind::Dup, token.span)),
-                "drop" => Ok(Node::Operation(token.value, OpKind::Drop, token.span)),
-                "swap" => Ok(Node::Operation(token.value, OpKind::Swap, token.span)),
-                "over" => Ok(Node::Operation(token.value, OpKind::Over, token.span)),
-                "rot" => Ok(Node::Operation(token.value, OpKind::Rot, token.span)),
-                "print" => Ok(Node::Operation(token.value, OpKind::Print, token.span)),
+                "+" => Ok(Node::Operation(OpKind::Add, token.span)),
+                "-" => Ok(Node::Operation(OpKind::Sub, token.span)),
+                "*" => Ok(Node::Operation(OpKind::Mul, token.span)),
+                "/" => Ok(Node::Operation(OpKind::Div, token.span)),
+                "=" => Ok(Node::Operation(OpKind::Eq, token.span)),
+                "!=" => Ok(Node::Operation(OpKind::Ne, token.span)),
+                ">" => Ok(Node::Operation(OpKind::Gt, token.span)),
+                "<" => Ok(Node::Operation(OpKind::Lt, token.span)),
+                "<=" => Ok(Node::Operation(OpKind::Le, token.span)),
+                ">=" => Ok(Node::Operation(OpKind::Ge, token.span)),
+                "|" => Ok(Node::Operation(OpKind::Bor, token.span)),
+                "&" => Ok(Node::Operation(OpKind::Band, token.span)),
+                ">>" => Ok(Node::Operation(OpKind::Shr, token.span)),
+                "<<" => Ok(Node::Operation(OpKind::Shl, token.span)),
+                "dup" => Ok(Node::Operation(OpKind::Dup, token.span)),
+                "drop" => Ok(Node::Operation(OpKind::Drop, token.span)),
+                "swap" => Ok(Node::Operation(OpKind::Swap, token.span)),
+                "over" => Ok(Node::Operation(OpKind::Over, token.span)),
+                "rot" => Ok(Node::Operation(OpKind::Rot, token.span)),
+                "print" => Ok(Node::Operation(OpKind::Print, token.span)),
                 x if is_valid_identifier(x) => Ok(Node::Word(token.value, token.span)),
                 _ => Err(ParseError::UnexpectedToken(
                     token.span.clone(),
@@ -144,7 +146,7 @@ impl<'a> Parser<'a> {
         while let Some(token) = self.lexer.next() {
             self.current_span = Some(token.span.clone());
             if token.value == "end" {
-                return Ok(Node::Procedure(proc_name.value, body, token.span));
+                return Ok(Node::Proc(proc_name.value, body, token.span));
             }
             body.push(self.parse_expr(token)?);
         }
@@ -153,6 +155,42 @@ impl<'a> Parser<'a> {
             self.current_span
                 .clone()
                 .unwrap_or_else(|| proc_name.span.clone()),
+            "proc".to_string(),
+        ))
+    }
+    
+    fn parse_def(&mut self) -> Result<Node, ParseError> {
+        let def_name = self.lexer.next().ok_or_else(|| {
+            let span = self.current_span.clone().unwrap_or_else(|| TokenSpan {
+                filename: "unknown".to_string(),
+                line: 0,
+                col: 0,
+            });
+            ParseError::UnexpectedEOF(span, "valid identifier".to_string())
+        })?;
+
+        if !is_valid_identifier(&def_name.value) {
+            return Err(ParseError::UnexpectedToken(
+                def_name.span.clone(),
+                def_name.value,
+                "valid identifier".to_string(),
+            ));
+        }
+
+        let mut body = Vec::new();
+
+        while let Some(token) = self.lexer.next() {
+            self.current_span = Some(token.span.clone());
+            if token.value == "end" {
+                return Ok(Node::Def(def_name.value, body, token.span));
+            }
+            body.push(self.parse_expr(token)?);
+        }
+
+        Err(ParseError::UnterminatedBlock(
+            self.current_span
+                .clone()
+                .unwrap_or_else(|| def_name.span.clone()),
             "proc".to_string(),
         ))
     }
