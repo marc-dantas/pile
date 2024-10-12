@@ -108,7 +108,9 @@ impl<'a> Runtime<'a> {
                         self.push_number(n);
                         self.push_number(n);
                     },
-                    NumberUnaryOp::Drop => self.drop(),
+                    // NOTE: this actually drops twice because of the pop at the if let above that already removed the value
+                    // NumberUnaryOp::Drop => self.drop(),
+                    NumberUnaryOp::Drop => {},
                 },
                 Data::String(_) => return Err(RuntimeError::UnexpectedType(span, numberunaryop_readable(x), "(number)".to_string(), "(string)".to_string())),
             }
@@ -244,10 +246,6 @@ impl<'a> Runtime<'a> {
 
     fn push_string(&mut self, s: String) {
         self.stack.push_front(Data::String(s));
-    }
-
-    fn push_data(&mut self, d: Data) {
-        self.stack.push_front(d);
     }
 
     fn pop(&mut self) -> Option<Data> {
