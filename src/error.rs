@@ -2,10 +2,10 @@ use crate::{parser::ParseError, RuntimeError};
 
 pub fn runtime_error(e: RuntimeError) {
     match e {
-        RuntimeError::InvalidName(span, x) => {
+        RuntimeError::InvalidWord(span, x) => {
             throw(
                 "runtime error",
-                &format!("identifier `{x}` not a valid name referred to anything."),
+                &format!("`{x}` is not defined."),
                 &span.filename,
                 span.line,
                 span.col,
@@ -30,6 +30,16 @@ pub fn runtime_error(e: RuntimeError) {
                 span.line,
                 span.col,
                 Some("use `drop` operation to remove values.")
+            );
+        }
+        RuntimeError::EmptyDefinition(span, x) => {
+            throw(
+                "runtime error",
+                &format!("definition `{x}` is empty."),
+                &span.filename,
+                span.line,
+                span.col,
+                Some("add operations to the definition body.")
             );
         }
         RuntimeError::StackUnderflow(span, n, x) => {
