@@ -77,7 +77,8 @@ pub enum RuntimeError {
     UnexpectedType(TokenSpan, String, String, String), // when there's an operation tries to operate with an unsupported or an invalid datatype
     InvalidOp(TokenSpan, String),                      // used when a word doesn't correspond a valid operation
     InvalidWord(TokenSpan, String),                    // used when a word doesn't correspond a valid identifier
-    ProcRedefinition(TokenSpan, String),               // used when a name is already taken
+    ProcRedefinition(TokenSpan, String),               // used when a procedure name is already taken
+    DefRedefinition(TokenSpan, String),                // used when a definition name is already taken
     EmptyDefinition(TokenSpan, String),                // used when a definition has empty body
 }
 
@@ -170,7 +171,7 @@ impl<'a> Runtime<'a> {
             },
             Node::Def(n, p, s) => {
                 if let Some(_) = self.namespace.defs.iter().find(|p| p.0 == *n) {
-                    return Err(RuntimeError::ProcRedefinition(s.clone(), n.to_string()));
+                    return Err(RuntimeError::DefRedefinition(s.clone(), n.to_string()));
                 }
                 // TODO: find a way to isolate the stack from the main stack
                 // so that the definition can be executed without affecting the main stack

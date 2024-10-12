@@ -72,6 +72,16 @@ pub fn runtime_error(e: RuntimeError) {
                 None
             );
         }
+        RuntimeError::DefRedefinition(span, x) => {
+            throw(
+                "runtime error",
+                &format!("tried to redefine the definition `{x}` (this name is already taken)."),
+                &span.filename,
+                span.line,
+                span.col,
+                None
+            );
+        }
     }
 }
 
