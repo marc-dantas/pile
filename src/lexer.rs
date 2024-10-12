@@ -92,6 +92,17 @@ impl<'a> Iterator for Lexer<'a> {
                     let mut buffer = String::from(c);
                     while let Some(d) = self.input.content.peek() {
                         if !Token::is_number(&d) {
+                            if !Token::is_whitespace(&d) {
+                                throw(
+                                    "token error",
+                                    &format!("invalid character `{d}` found in number literal."),
+                                    &self.input.name,
+                                    self.span.line,
+                                    // add the len of buffer to get the exact position of the illegal character
+                                    self.span.col + buffer.len(),
+                                    None,
+                                );
+                            }
                             break;
                         }
                         buffer.push(*d);
@@ -112,8 +123,18 @@ impl<'a> Iterator for Lexer<'a> {
                     let col: usize = self.span.col;
                     let mut buffer = String::new();
                     while let Some(d) = self.input.content.next() {
+                        // TODO: Check syntax errors with the quote marks
                         if Token::is_string(&d) {
                             break;
+                        } else if self.input.content.peek().is_none() {
+                            throw(
+                                "token error",
+                                &format!("unterminated string literal of \"{}\".", buffer.clone()+&String::from(d)),
+                                &self.input.name,
+                                self.span.line,
+                                self.span.col,
+                                Some("try adding a `\"` at the end of the string."),
+                            );
                         }
                         buffer.push(d);
                     }
@@ -164,6 +185,3 @@ impl<'a> Iterator for Lexer<'a> {
         None
     }
 }
-
-
-
