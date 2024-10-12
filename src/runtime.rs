@@ -104,7 +104,10 @@ impl<'a> Runtime<'a> {
             match a {
                 Data::Number(n) => match x {
                     NumberUnaryOp::Print => println!("{}", n),
-                    NumberUnaryOp::Dup => self.push_number(n),
+                    NumberUnaryOp::Dup => {
+                        self.push_number(n);
+                        self.push_number(n);
+                    },
                     NumberUnaryOp::Drop => self.drop(),
                 },
                 Data::String(_) => return Err(RuntimeError::UnexpectedType(span, numberunaryop_readable(x), "(number)".to_string(), "(string)".to_string())),
