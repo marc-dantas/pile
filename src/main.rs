@@ -39,9 +39,11 @@ fn from_command_line(argv: &mut Args) {
             // let l = Lexer::new(f, Span { line: 1, col: 1 });
             // for i in l {println!("{i:?}")}
             match parse(name.to_string(), source) {
-                Ok(p) => if let Err(e) = run(p) {
-                    error::runtime_error(e);
-                },
+                Ok(p) => {
+                    if let Err(e) = run(p) {
+                        error::runtime_error(e);
+                    }
+                }
                 Err(e) => error::parse_error(e),
             }
         } else {

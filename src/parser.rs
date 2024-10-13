@@ -32,7 +32,7 @@ pub enum OpKind {
     Print,
     Dup,
     Rot,
-    Drop
+    Drop,
 }
 
 #[derive(Debug)]
@@ -44,7 +44,7 @@ pub enum Node {
     If(Vec<Node>, Option<Vec<Node>>, TokenSpan),
     Loop(Vec<Node>, TokenSpan),
     Operation(OpKind, TokenSpan),
-    Word(String, TokenSpan)
+    Word(String, TokenSpan),
 }
 
 pub type ProgramTree = Vec<Node>;
@@ -158,7 +158,7 @@ impl<'a> Parser<'a> {
             "proc".to_string(),
         ))
     }
-    
+
     fn parse_def(&mut self) -> Result<Node, ParseError> {
         let def_name = self.lexer.next().ok_or_else(|| {
             let span = self.current_span.clone().unwrap_or_else(|| TokenSpan {

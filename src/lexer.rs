@@ -129,7 +129,10 @@ impl<'a> Iterator for Lexer<'a> {
                         } else if self.input.content.peek().is_none() {
                             throw(
                                 "token error",
-                                &format!("unterminated string literal of \"{}\".", buffer.clone()+&String::from(d)),
+                                &format!(
+                                    "unterminated string literal of \"{}\".",
+                                    buffer.clone() + &String::from(d)
+                                ),
                                 &self.input.name,
                                 self.span.line,
                                 self.span.col,

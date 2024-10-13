@@ -1,4 +1,7 @@
-use crate::{parser::{ProgramTree, OpKind, Node}, lexer::TokenSpan};
+use crate::{
+    lexer::TokenSpan,
+    parser::{Node, OpKind, ProgramTree},
+};
 use std::{clone, collections::VecDeque};
 
 #[derive(Debug)]
@@ -27,10 +30,22 @@ pub struct Namespace<'a> {
 // rot (a b c -- b c a)
 
 pub enum BinaryOp {
-    Add, Sub, Mul, Div,
-    Gt, Lt, Eq, Ge, Le, Ne,
-    Shl, Shr, Bor, Band,
-    Swap, Over
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Gt,
+    Lt,
+    Eq,
+    Ge,
+    Le,
+    Ne,
+    Shl,
+    Shr,
+    Bor,
+    Band,
+    Swap,
+    Over,
 }
 
 pub fn binaryop_readable(x: BinaryOp) -> String {
@@ -55,7 +70,9 @@ pub fn binaryop_readable(x: BinaryOp) -> String {
 }
 
 pub enum UnaryOp {
-    Print, Dup, Drop
+    Print,
+    Dup,
+    Drop,
 }
 
 pub fn unaryop_readable(x: UnaryOp) -> String {
@@ -66,19 +83,18 @@ pub fn unaryop_readable(x: UnaryOp) -> String {
     }
 }
 
-
 pub type Stack = VecDeque<Data>;
 
 #[derive(Debug)]
 pub enum RuntimeError {
-    StackUnderflow(TokenSpan, String, usize),          // when there's too few data on the stack to perform operation
-    StackOverflow(TokenSpan, usize),                   // when there's too much data on the stack (leftover unhandled data)
+    StackUnderflow(TokenSpan, String, usize), // when there's too few data on the stack to perform operation
+    StackOverflow(TokenSpan, usize), // when there's too much data on the stack (leftover unhandled data)
     UnexpectedType(TokenSpan, String, String, String), // when there's an operation tries to operate with an unsupported or an invalid datatype
-    InvalidOp(TokenSpan, String),                      // used when a word doesn't correspond a valid operation
-    InvalidWord(TokenSpan, String),                    // used when a word doesn't correspond a valid identifier
-    ProcRedefinition(TokenSpan, String),               // used when a procedure name is already taken
-    DefRedefinition(TokenSpan, String),                // used when a definition name is already taken
-    EmptyDefinition(TokenSpan, String),                // used when a definition has empty body
+    InvalidOp(TokenSpan, String), // used when a word doesn't correspond a valid operation
+    InvalidWord(TokenSpan, String), // used when a word doesn't correspond a valid identifier
+    ProcRedefinition(TokenSpan, String), // used when a procedure name is already taken
+    DefRedefinition(TokenSpan, String), // used when a definition name is already taken
+    EmptyDefinition(TokenSpan, String), // used when a definition has empty body
 }
 
 pub struct Runtime<'a> {
@@ -95,7 +111,7 @@ impl<'a> Runtime<'a> {
             namespace: Namespace {
                 procs: Vec::new(),
                 defs: Vec::new(),
-            }
+            },
         }
     }
 
@@ -107,17 +123,17 @@ impl<'a> Runtime<'a> {
                     UnaryOp::Dup => {
                         self.push_number(n);
                         self.push_number(n);
-                    },
-                    UnaryOp::Drop => {},
+                    }
+                    UnaryOp::Drop => {}
                 },
                 Data::String(s) => match x {
                     UnaryOp::Print => println!("{}", s),
                     UnaryOp::Dup => {
                         self.push_string(s.clone());
                         self.push_string(s);
-                    },
-                    UnaryOp::Drop => {},
-                }
+                    }
+                    UnaryOp::Drop => {}
+                },
             }
         } else {
             return Err(RuntimeError::StackUnderflow(span, unaryop_readable(x), 1));
@@ -146,12 +162,12 @@ impl<'a> Runtime<'a> {
                     BinaryOp::Swap => {
                         self.push_number(n1);
                         self.push_number(n2);
-                    },
+                    }
                     BinaryOp::Over => {
                         self.push_number(n2);
                         self.push_number(n1);
                         self.push_number(n2);
-                    },
+                    }
                 },
                 (Data::String(s1), Data::String(s2)) => match x {
                     BinaryOp::Add => self.push_string(s1 + &s2),
@@ -165,18 +181,20 @@ impl<'a> Runtime<'a> {
                     BinaryOp::Swap => {
                         self.push_string(s1);
                         self.push_string(s2);
-                    },
+                    }
                     BinaryOp::Over => {
                         self.push_string(s2.clone());
                         self.push_string(s1.clone());
                         self.push_string(s2);
-                    },
-                    _ => return Err(RuntimeError::UnexpectedType(
-                        span,
-                        binaryop_readable(x),
-                        "(number, number)".to_string(),
-                        "(string, string)".to_string(),
-                    )),
+                    }
+                    _ => {
+                        return Err(RuntimeError::UnexpectedType(
+                            span,
+                            binaryop_readable(x),
+                            "(number, number)".to_string(),
+                            "(string, string)".to_string(),
+                        ))
+                    }
                 },
                 (Data::String(_), Data::Number(_)) => {
                     return Err(RuntimeError::UnexpectedType(
@@ -185,7 +203,7 @@ impl<'a> Runtime<'a> {
                         "(number, number) or (string, string)".to_string(),
                         "(number, string)".to_string(),
                     ));
-                },
+                }
                 (Data::Number(_), Data::String(_)) => {
                     return Err(RuntimeError::UnexpectedType(
                         span,
@@ -193,7 +211,7 @@ impl<'a> Runtime<'a> {
                         "(number, number) or (string, string)".to_string(),
                         "(string, number)".to_string(),
                     ));
-                },
+                }
             }
         } else {
             return Err(RuntimeError::StackUnderflow(span, binaryop_readable(x), 2));
@@ -203,14 +221,14 @@ impl<'a> Runtime<'a> {
 
     fn run_node(&mut self, n: &'a Node) -> Result<(), RuntimeError> {
         match n {
-            Node::If(i, e, s) => {},
-            Node::Loop(l, s) => {},
+            Node::If(i, e, s) => {}
+            Node::Loop(l, s) => {}
             Node::Proc(n, p, s) => {
                 if let Some(_) = self.namespace.procs.iter().find(|p| p.0 == *n) {
                     return Err(RuntimeError::ProcRedefinition(s.clone(), n.to_string()));
                 }
                 self.namespace.procs.push(Procedure(n.to_string(), p));
-            },
+            }
             Node::Def(n, p, s) => {
                 if let Some(_) = self.namespace.defs.iter().find(|p| p.0 == *n) {
                     return Err(RuntimeError::DefRedefinition(s.clone(), n.to_string()));
@@ -225,7 +243,7 @@ impl<'a> Runtime<'a> {
                 } else {
                     return Err(RuntimeError::EmptyDefinition(s.clone(), n.to_string()));
                 }
-            },
+            }
             Node::Number(n, s) => self.push_number(*n),
             Node::String(v, s) => self.push_string(v.to_string()),
             Node::Operation(op, s) => {
@@ -250,9 +268,11 @@ impl<'a> Runtime<'a> {
                     OpKind::Dup => self.unop(s, UnaryOp::Dup)?,
                     OpKind::Drop => self.unop(s, UnaryOp::Drop)?,
                     OpKind::Print => self.unop(s, UnaryOp::Print)?,
-                    OpKind::Rot => { todo!() },
+                    OpKind::Rot => {
+                        todo!()
+                    }
                 }
-            },
+            }
             Node::Word(w, s) => {
                 if let Some(p) = self.namespace.procs.iter().find(|p| p.0 == *w) {
                     self.run_block(&p.1)?;

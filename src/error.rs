@@ -9,7 +9,7 @@ pub fn runtime_error(e: RuntimeError) {
                 &span.filename,
                 span.line,
                 span.col,
-                Some("maybe a typo?")
+                Some("maybe a typo?"),
             );
         }
         RuntimeError::InvalidOp(span, x) => {
@@ -19,7 +19,7 @@ pub fn runtime_error(e: RuntimeError) {
                 &span.filename,
                 span.line,
                 span.col,
-                None
+                None,
             );
         }
         RuntimeError::StackOverflow(span, x) => {
@@ -29,7 +29,7 @@ pub fn runtime_error(e: RuntimeError) {
                 &span.filename,
                 span.line,
                 span.col,
-                Some("use `drop` operation to remove values.")
+                Some("use `drop` operation to remove values."),
             );
         }
         RuntimeError::EmptyDefinition(span, x) => {
@@ -39,7 +39,7 @@ pub fn runtime_error(e: RuntimeError) {
                 &span.filename,
                 span.line,
                 span.col,
-                Some("add operations to the definition body.")
+                Some("add operations to the definition body."),
             );
         }
         RuntimeError::StackUnderflow(span, n, x) => {
@@ -55,11 +55,13 @@ pub fn runtime_error(e: RuntimeError) {
         RuntimeError::UnexpectedType(span, n, x, y) => {
             throw(
                 "runtime error",
-                &format!("operation `{n}` expects {x} datatype(s) on the stack to work, but got {y}."),
+                &format!(
+                    "operation `{n}` expects {x} datatype(s) on the stack to work, but got {y}."
+                ),
                 &span.filename,
                 span.line,
                 span.col,
-                Some("try checking the values before the operation.")
+                Some("try checking the values before the operation."),
             );
         }
         RuntimeError::ProcRedefinition(span, x) => {
@@ -69,7 +71,7 @@ pub fn runtime_error(e: RuntimeError) {
                 &span.filename,
                 span.line,
                 span.col,
-                None
+                None,
             );
         }
         RuntimeError::DefRedefinition(span, x) => {
@@ -79,7 +81,7 @@ pub fn runtime_error(e: RuntimeError) {
                 &span.filename,
                 span.line,
                 span.col,
-                None
+                None,
             );
         }
     }
