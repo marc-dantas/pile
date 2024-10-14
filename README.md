@@ -51,7 +51,7 @@ You can read the file [`basics.pile`](./basics.pile) in the root of this reposit
     # this is a comment
     "Hello World" print
     ```
-2. **Circle Circumference**
+2. **Circle Area**
     ```
     def pi 3.14159265359 end
 
