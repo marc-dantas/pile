@@ -1,133 +1,133 @@
-// (c) 2024 Marcio Dantas. All Rights reserved
-// For more information, see the official GitHub repository
-// at https://github.com/marc-dantas/pile
+# (c) 2024 Marcio Dantas. All Rights reserved
+# For more information, see the official GitHub repository
+# at https:#github.com/marc-dantas/pile
 
-// **NOTE**: This file is meant to be read by more experienced programmers.
-//           If you aren't really into that or you're just new to all this,
-//           it's recommended to read the actual documentation of Pile.
+# **NOTE**: This file is meant to be read by more experienced programmers.
+#           If you aren't really into that or you're just new to all this,
+#           it's recommended to read the actual documentation of Pile.
 
-// **WARNING**: This language is not finished yet. Most part of this file
-//              contains unimplemented stuff and may change without advice.
+# **WARNING**: This language is not finished yet. Most part of this file
+#              contains unimplemented stuff and may change without advice.
 
-// Welcome to Pile programming language
-//
-// Pile is an educational stack-based programming language.
+# Welcome to Pile programming language
+#
+# Pile is an educational stack-based programming language.
 
-// This file introduces the language to the reader in a fast and direct way.
-// Follow the simple introductory explanation and topics below.
+# This file introduces the language to the reader in a fast and direct way.
+# Follow the simple introductory explanation and topics below.
 
-// By its definition, Pile relies on a stack to be able to manipulate data and create algorithms.
-// A stack can be considered as an "infinite" array that you can push, duplicate
-// and remove items from it. This is how Pile works.
-//
-// While a Pile program is running, there's always ONE stack running and this stack
-// cannot be divided or substituted by another one. It doesn't mater what you're doing, you're
-// always dealing with the SAME STACK.
+# By its definition, Pile relies on a stack to be able to manipulate data and create algorithms.
+# A stack can be considered as an "infinite" array that you can push, duplicate
+# and remove items from it. This is how Pile works.
+#
+# While a Pile program is running, there's always ONE stack running and this stack
+# cannot be divided or substituted by another one. It doesn't mater what you're doing, you're
+# always dealing with the SAME STACK.
 
-// Topics
+# Topics
 
-// 1. Maths and logic
-//
-// The next lines will show you some mathematical and
-// logical expressions
+# 1. Maths and logic
+#
+# The next lines will show you some mathematical and
+# logical expressions
 
-1 1  +     // Sums 1 plus 1 (2)
-1 1  + 1 - // Sums 1 plus 1 and then subtracts 1 from it (0)
-2 10 / 1 + // Halves 10 and then adds one to it (6)
-4 4  * 2 - // Multiplies 4 by 4 and then subtracts 2 from it (14)
+1 1  +     # Sums 1 plus 1 (2)
+1 1  + 1 - # Sums 1 plus 1 and then subtracts 1 from it (0)
+2 10 / 1 + # Halves 10 and then adds one to it (6)
+4 4  * 2 - # Multiplies 4 by 4 and then subtracts 2 from it (14)
 
-10 10 =    // checks if 10 is equal to ten (true)
-10 11 !=   // checks if 10 and 11 are different (true)
-10 12 <=   // checks if 10 is less than OR equal to ten (false)
-10 12 >=   // checks if 10 is greater than OR equal to ten (true)
-10 12 >    // checks if 10 is greater than 12 (false)
-10 12 <    // checks if 10 is less than 12 (true)
+10 10 =    # checks if 10 is equal to ten (true)
+10 11 !=   # checks if 10 and 11 are different (true)
+10 12 <=   # checks if 10 is less than OR equal to ten (false)
+10 12 >=   # checks if 10 is greater than OR equal to ten (true)
+10 12 >    # checks if 10 is greater than 12 (false)
+10 12 <    # checks if 10 is less than 12 (true)
 
-1     !    // bitwise NOT for 1 (0)
-1 0   |    // bitwise OR for 1 and 0 (1)
-1 0   &    // bitwise AND for 1 and 0 (0)
-1 0   >>   // bitwise SHIFT LEFT for 1 and 0 (0)
-1 0   <<   // bitwise SHIFT RIGHT for 1 and 0 (0)
+1     !    # bitwise NOT for 1 (0)
+1 0   |    # bitwise OR for 1 and 0 (1)
+1 0   &    # bitwise AND for 1 and 0 (0)
+1 0   >>   # bitwise SHIFT LEFT for 1 and 0 (0)
+1 0   <<   # bitwise SHIFT RIGHT for 1 and 0 (0)
 
 
-// 2. Stack manipulation
-//
-// The next lines will show you some stack operations that you
-// can use to manipulate data in Pile
+# 2. Stack manipulation
+#
+# The next lines will show you some stack operations that you
+# can use to manipulate data in Pile
 
-// Any literal value that you write in pile is ALWAYS interpreted as a "push" operation onto the stack,
-// like numbers (e.g. 5, 7, 10, 69)
-// like strings (e.g. "hello world", "foo bar baz")
-// etc.
+# Any literal value that you write in pile is ALWAYS interpreted as a "push" operation onto the stack,
+# like numbers (e.g. 5, 7, 10, 69)
+# like strings (e.g. "hello world", "foo bar baz")
+# etc.
 
-420     drop  // deletes (drops) the last item on the stack
-45      dup   // duplicates (copies) the last item on the stack
-45 5    swap  // swaps the last pair of items on the stack (45 5 to 5 45)
-45 5    over  // copies the second last item and pushes onto the stack (45 5 to 45 5 45)
-45 5 12 rot   // copies the third last item and pushes onto the stack (45 5 12 to 5 12 45)
+420     drop  # deletes (drops) the last item on the stack
+45      dup   # duplicates (copies) the last item on the stack
+45 5    swap  # swaps the last pair of items on the stack (45 5 to 5 45)
+45 5    over  # copies the second last item and pushes onto the stack (45 5 to 45 5 45)
+45 5 12 rot   # copies the third last item and pushes onto the stack (45 5 12 to 5 12 45)
 
-// 3. Control flow
-//
-// The next lines will show you some control flow operations
+# 3. Control flow
+#
+# The next lines will show you some control flow operations
 
-// If expressions
+# If expressions
 
 10 10 = if
     "true case" print
-else  // This is optional
+else  # This is optional
     "false case" print
 end
 
-// Loop expressions
+# Loop expressions
 
 loop
     "this will print forever" print
-    // you can use `stop` to break the loop
+    # you can use `stop` to break the loop
 end
 
 
-// 4. Procedures
-//
-// The next lines will show you how you can create
-// procedures in pile
+# 4. Procedures
+#
+# The next lines will show you how you can create
+# procedures in pile
 
-// In Pile's procedures there are no arguments or return values.
-// Stack that is changed inside procedures is maintained, that way you
-// can use the stack itself to store what could be called a "return value".
+# In Pile's procedures there are no arguments or return values.
+# Stack that is changed inside procedures is maintained, that way you
+# can use the stack itself to store what could be called a "return value".
 
-// Example 1
+# Example 1
 proc print_hello
     "hello" print
 end
 
-print_hello // output: hello
+print_hello # output: hello
 
-// Example 2
+# Example 2
 proc add_1
-    1 + // implies that there's already a value before call of procedure
+    1 + # implies that there's already a value before call of procedure
 end
 
-add_1 // error!
-1 add_1 // 2
+add_1 # error!
+1 add_1 # 2
 
-// 4. Definitions
-//
-// The next lines will show you how you can create
-// definitions (a.k.a. macros) in pile
+# 4. Definitions
+#
+# The next lines will show you how you can create
+# definitions (a.k.a. macros) in pile
 
-// In pile, you can create "definitions".
-// A Definition in Pile can be understood as a constant macro.
-// When you use a definition, you just "copy-paste" the tokens inside
-// the definition to the exact point where you used it.
+# In pile, you can create "definitions".
+# A Definition in Pile can be understood as a constant macro.
+# When you use a definition, you just "copy-paste" the tokens inside
+# the definition to the exact point where you used it.
 
-// Example 1
+# Example 1
 def dup_twice
     dup dup
 end
 
-2 dup_twice // same as `2 dup dup`
+2 dup_twice # same as `2 dup dup`
 
-// Example 2
+# Example 2
 def author "marc-dantas" end
 
-author print // output: marc-dantas
+author print # output: marc-dantas

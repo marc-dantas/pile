@@ -59,6 +59,10 @@ impl<'a> Token {
     fn is_whitespace(target: &char) -> bool {
         target.is_whitespace()
     }
+
+    fn is_comment(target: &char) -> bool {
+        target == &'#'
+    }
 }
 
 pub struct Lexer<'a> {
@@ -86,6 +90,13 @@ impl<'a> Iterator for Lexer<'a> {
                 _ if Token::is_whitespace(&c) => {
                     self.span.col += 1;
                     continue;
+                }
+                _ if Token::is_comment(&c) => {
+                    while let Some(d) = self.input.content.next() {
+                        if Token::is_newline(&d) {
+                            break;
+                        }
+                    }
                 }
                 _ if Token::is_number(&c) => {
                     let col = self.span.col;
