@@ -1,7 +1,20 @@
 use crate::lexer::{Lexer, Token, TokenKind, TokenSpan};
 
 fn is_reserved_word(value: &str) -> bool {
-    matches!(value, "if" | "loop" | "proc" | "end" | "else" | "def")
+    matches!(
+        value,
+        "if" |
+        "loop" |
+        "proc" |
+        "end" |
+        "else" |
+        "def" |
+        "dup" |
+        "drop" |
+        "swap" |
+        "over" |
+        "rot"
+    )
 }
 
 // don't know if this really works in all possibilities, i have to test it
