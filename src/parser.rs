@@ -33,6 +33,7 @@ pub enum OpKind {
     Dup,
     Rot,
     Drop,
+    Stop,
 }
 
 #[derive(Debug)]
@@ -112,6 +113,7 @@ impl<'a> Parser<'a> {
                 "over" => Ok(Node::Operation(OpKind::Over, token.span)),
                 "rot" => Ok(Node::Operation(OpKind::Rot, token.span)),
                 "print" => Ok(Node::Operation(OpKind::Print, token.span)),
+                "stop" => Ok(Node::Operation(OpKind::Stop, token.span)),
                 x if is_valid_identifier(x) => Ok(Node::Word(token.value, token.span)),
                 _ => Err(ParseError::UnexpectedToken(
                     token.span.clone(),

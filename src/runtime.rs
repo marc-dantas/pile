@@ -97,10 +97,17 @@ pub enum RuntimeError {
     EmptyDefinition(TokenSpan, String), // used when a definition has empty body
 }
 
+
+pub struct Context {
+    span: TokenSpan,
+    rep: usize
+}
+
 pub struct Runtime<'a> {
     input: &'a ProgramTree,
     stack: Stack,
     namespace: Namespace<'a>,
+    stop: bool
 }
 
 impl<'a> Runtime<'a> {
@@ -112,6 +119,7 @@ impl<'a> Runtime<'a> {
                 procs: Vec::new(),
                 defs: Vec::new(),
             },
+            stop: false
         }
     }
 
@@ -251,7 +259,18 @@ impl<'a> Runtime<'a> {
                     ));
                 }
             }
-            Node::Loop(l, s) => {}
+            Node::Loop(l, _) => {
+                while !self.stop {
+                    self.run_block(l)?;
+
+                    // Verifica a flag de stop
+                    if self.stop {
+                        // Resetar a flag para que não afete loops subsequentes
+                        self.stop = false;
+                        break;
+                    }
+                }
+            }
             Node::Proc(n, p, s) => {
                 if let Some(_) = self.namespace.procs.iter().find(|p| p.0 == *n) {
                     return Err(RuntimeError::ProcRedefinition(s.clone(), n.to_string()));
@@ -297,6 +316,7 @@ impl<'a> Runtime<'a> {
                     OpKind::Dup => self.unop(s, UnaryOp::Dup)?,
                     OpKind::Drop => self.unop(s, UnaryOp::Drop)?,
                     OpKind::Print => self.unop(s, UnaryOp::Print)?,
+                    OpKind::Stop => { self.stop = true; }
                     OpKind::Rot => {
                         todo!()
                     }
