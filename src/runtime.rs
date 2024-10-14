@@ -221,7 +221,36 @@ impl<'a> Runtime<'a> {
 
     fn run_node(&mut self, n: &'a Node) -> Result<(), RuntimeError> {
         match n {
-            Node::If(i, e, s) => {}
+            Node::If(i, e, s) => {
+                if let Some(a) = self.pop() {
+                    match a {
+                        Data::Number(n) => {
+                            if n != 0.0 {
+                                self.run_block(i)?;
+                            } else {
+                                if let Some(els) = e {
+                                    self.run_block(els)?;
+                                }
+                            }
+                        }
+                        // TODO: Add bool type and maybe truthy values
+                        Data::String(_) => {
+                            return Err(RuntimeError::UnexpectedType(
+                                s.clone(),
+                                "if".to_string(),
+                                "(number)".to_string(),
+                                "(string)".to_string(),
+                            ));
+                        }
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(
+                        s.clone(),
+                        "if".to_string(),
+                        1
+                    ));
+                }
+            }
             Node::Loop(l, s) => {}
             Node::Proc(n, p, s) => {
                 if let Some(_) = self.namespace.procs.iter().find(|p| p.0 == *n) {
