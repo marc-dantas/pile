@@ -19,15 +19,60 @@ Pile uses this notation as it's syntax base, since it's way more intuitive to ex
 RPN also simplifies expression evaluation, eliminating the need for parentheses and operator precedence.
 
 ## Getting started
-Pile doesn't really exit yet, I just wrote some random code and called it a day.
-But I have some nice ideas!
 
-You can read the file [`basics.pile`](./basics.pile) in the root of this repository to take a look at some ideas that I have for this language.
+Pile is implemented in Rust programming language, for now it's just a simple CLI program that interprets Pile code.
+
+### Using pile
+You can run the program using `cargo` following the steps below:
+
+- Windows:
+    ```console
+    > git clone https://github.com/marc-dantas/pile.git
+    > cd .\pile\
+    > cargo build
+    > cargo run -- [your pile program]
+    ```
+- Linux/UNIX
+    ```console
+    $ git clone https://github.com/marc-dantas/pile.git
+    $ cd ./pile/
+    $ cargo build
+    $ cargo run -- [your pile program]
+    ```
+
+You can read the file [`basics.pile`](./basics.pile) in the root of this repository to take a look at a compact "reference" file of everything you can do in this language.
 
 > **NOTE**: Documentation isn't done yet.
 
-For now I don't recommend you to run any code that's in this repository.
-For now I'm just keeping the code here for history and documentation purposes.
+## Examples
+
+1. **Hello World**
+    ```
+    # this is a comment
+    "Hello World" print
+    ```
+2. **Circle Circumference**
+    ```
+    def pi 3.14159265359 end
+
+    proc circle_area
+        dup * pi *
+    end
+
+    10 circle_area print
+    4 circle_area print
+    4.5 circle_area print
+    ```
+3. **Count to ten** 
+    ```
+    0 loop
+        dup print
+        dup 10 = if stop end
+        1 +
+    end
+    ```
+
+You can find more examples in the [`./examples`](./examples) folder at the root of the repository.
 
 ---
 
