@@ -1,0 +1,9 @@
+def pi 3.14159265359 end
+
+proc circle_area
+    dup * pi *
+end
+
+10 circle_area print
+4 circle_area print
+4.5 circle_area print
