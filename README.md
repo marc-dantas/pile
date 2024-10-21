@@ -8,12 +8,12 @@ Pile allows users to write stack-based algorithms in an intuitive way thanks to 
 The language is based on stack-based data structures and **reverse Polish notation** (a.k.a. Infix notation).
 Reverse Polish notation is a way to write mathematical and algorithmic operations in a way that the operands are expressed **before** the operation itself. Here are some examples of mathematical expressions:
 
-| **Infix notation (normal)** | **Reverse Polish notation** |
-| --------------------------- | --------------------------- |
-| `4 + 4`                     | `4 4 +`                     |
-| `2 - 2 + 1`                 | `2 2 - 1 +`                 |
-| `(6 + 1) * 2`               | `6 1 + 2 *`                 |
-| `6 + 1 * 2`                 | `2 1 * 6 +`                 |
+| **Infix notation (normal)** | **Reverse Polish notation** | **Evaluated result** |
+| --------------------------- | --------------------------- | -------------------- |
+| `4 + 4`                     | `4 4 +`                     | `8`                  |
+| `2 - 2 + 1`                 | `2 2 - 1 +`                 | `1`                  |
+| `(6 + 1) * 2`               | `6 1 + 2 *`                 | `14`                 |
+| `6 + 1 * 2`                 | `2 1 * 6 +`                 | `8`                  |
 
 Pile uses this notation as it's syntax base, since it's way more intuitive to express stack-based algorithms.
 RPN also simplifies expression evaluation, eliminating the need for parentheses and operator precedence.
