@@ -1,55 +1,54 @@
-use crate::{parser::ParseError, RuntimeError};
+use std::borrow::Borrow;
 
-pub fn runtime_error(e: RuntimeError) {
+use crate::{parser::ParseError, runtime::RuntimeError, lexer::TokenSpan};
+
+fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
+    let e= e.clone();
     match e {
+        RuntimeError::ProcedureError { .. } => unreachable!(),
         RuntimeError::InvalidWord(span, x) => {
             throw(
                 "runtime error",
                 &format!("`{x}` is not defined."),
-                &span.filename,
-                span.line,
-                span.col,
+                span.clone(),
                 Some("maybe a typo?"),
+                call,
             );
         }
         RuntimeError::InvalidOp(span, x) => {
             throw(
                 "runtime error",
                 &format!("tried to use inexistent operation `{x}`."),
-                &span.filename,
-                span.line,
-                span.col,
+                span.clone(),
                 None,
+                call,
             );
         }
         RuntimeError::StackOverflow(span, x) => {
             throw(
                 "runtime error",
                 &format!("program ended with {x} unhandled element(s) on the stack."),
-                &span.filename,
-                span.line,
-                span.col,
+                span.clone(),
                 Some("use `drop` operation to remove values."),
+                call,
             );
         }
         RuntimeError::EmptyDefinition(span, x) => {
             throw(
                 "runtime error",
                 &format!("definition `{x}` is empty."),
-                &span.filename,
-                span.line,
-                span.col,
+                span.clone(),
                 Some("add operations to the definition body."),
+                call,
             );
         }
         RuntimeError::StackUnderflow(span, n, x) => {
             throw(
                 "runtime error",
                 &format!("operation `{n}` expects {x} element(s) on top of the stack but got a different amount."),
-                &span.filename,
-                span.line,
-                span.col,
-                Some("try checking the values before the operation.")
+                span.clone(),
+                Some("try checking the values before the operation."),
+                call,
             );
         }
         RuntimeError::UnexpectedType(span, n, x, y) => {
@@ -58,32 +57,38 @@ pub fn runtime_error(e: RuntimeError) {
                 &format!(
                     "operation `{n}` expects {x} datatype(s) on the stack to work, but got {y}."
                 ),
-                &span.filename,
-                span.line,
-                span.col,
+                span.clone(),
                 Some("try checking the values before the operation."),
+                call,
             );
         }
         RuntimeError::ProcRedefinition(span, x) => {
             throw(
                 "runtime error",
                 &format!("tried to redefine the procedure `{x}` (this name is already taken)."),
-                &span.filename,
-                span.line,
-                span.col,
+                span.clone(),
                 None,
+                call,
             );
         }
         RuntimeError::DefRedefinition(span, x) => {
             throw(
                 "runtime error",
                 &format!("tried to redefine the definition `{x}` (this name is already taken)."),
-                &span.filename,
-                span.line,
-                span.col,
+                span.clone(),
                 None,
+                call,
             );
         }
+    }
+}
+
+pub fn runtime_error(e: RuntimeError) {
+    match e {
+        RuntimeError::ProcedureError { call: c, inner: i } => {
+            match_runtime_error(i.as_ref(), Some(c));
+        }
+        x=> match_runtime_error(&x, None),
     }
 }
 
@@ -93,20 +98,18 @@ pub fn parse_error(e: ParseError) {
             throw(
                 "parse error",
                 "syntax error: found unmatched block: termination of block (end) provided without a beginning (`if`, `else`, `proc`, or `loop`)",
-                &span.filename,
-                span.line,
-                span.col,
-                None
+                span,
+                None,
+                None,
             );
         }
         ParseError::UnterminatedBlock(span, x) => {
             throw(
                 "parse error",
                 &format!("syntax error: found unterminated block: termination of block not provided from `{x}` block"),
-                &span.filename,
-                span.line,
-                span.col,
-                Some("perhaps you forgot to write `end`?")
+                span,
+                Some("perhaps you forgot to write `end`?"),
+                None,
             );
         }
         ParseError::UnexpectedEOF(span, x) => {
@@ -115,9 +118,8 @@ pub fn parse_error(e: ParseError) {
                 &format!(
                     "syntax error: unexpected end of file while parsing: expected {x} but got the end of the file (nothing)"
                 ),
-                &span.filename,
-                span.line,
-                span.col,
+                span,
+                None,
                 None,
             );
         }
@@ -125,9 +127,8 @@ pub fn parse_error(e: ParseError) {
             throw(
                 "parse error",
                 &format!("syntax error: unexpected token while parsing: expected {y} but got {x}"),
-                &span.filename,
-                span.line,
-                span.col,
+                span,
+                None,
                 None,
             );
         }
@@ -150,12 +151,14 @@ pub fn warning(message: &str) {
 pub fn throw(
     error: &str,
     message: &str,
-    file: &String,
-    line: usize,
-    col: usize,
+    span: TokenSpan,
     help: Option<&str>,
+    call: Option<TokenSpan>
 ) {
-    eprintln!("pile: error at {file}:{line}:{col}:");
+    eprintln!("pile: error at {}:{}:{}:", span.filename, span.line, span.col);
+    if let Some(c) = call {
+        eprintln!("    > from procedure call at {}:{}:{}:", c.filename, c.line, c.col);
+    }
     eprintln!("    |    {error}:");
     for line in break_line_at(message.to_string(), 50) {
         eprintln!("    |        {line}");

@@ -107,10 +107,12 @@ impl<'a> Iterator for Lexer<'a> {
                                 throw(
                                     "token error",
                                     &format!("invalid character `{d}` found in number literal."),
-                                    &self.input.name,
-                                    self.span.line,
-                                    // add the len of buffer to get the exact position of the illegal character
-                                    self.span.col + buffer.len(),
+                                    TokenSpan {
+                                        filename: self.input.name.clone(),
+                                        line: self.span.line,
+                                        col: self.span.col + buffer.len()    
+                                    },
+                                    None,
                                     None,
                                 );
                             }
@@ -144,10 +146,13 @@ impl<'a> Iterator for Lexer<'a> {
                                     "unterminated string literal of \"{}\".",
                                     buffer.clone() + &String::from(d)
                                 ),
-                                &self.input.name,
-                                self.span.line,
-                                self.span.col,
+                                TokenSpan {
+                                    filename: self.input.name.clone(),
+                                    line: self.span.line,
+                                    col: self.span.col + 2    
+                                },
                                 Some("try adding a `\"` at the end of the string."),
+                                None,
                             );
                         }
                         buffer.push(d);
@@ -188,9 +193,12 @@ impl<'a> Iterator for Lexer<'a> {
                     throw(
                         "token error",
                         &format!("illegal character `{c}` found in file."),
-                        &self.input.name,
-                        self.span.line,
-                        self.span.col,
+                        TokenSpan {
+                            filename: self.input.name.clone(),
+                            line: self.span.line,
+                            col: self.span.col    
+                        },
+                        None,
                         None,
                     );
                 }

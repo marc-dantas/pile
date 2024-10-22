@@ -87,6 +87,10 @@ pub type Stack = VecDeque<Data>;
 
 #[derive(Debug)]
 pub enum RuntimeError {
+    ProcedureError {
+        call: TokenSpan, // TokenSpan where the procedure was called
+        inner: Box<RuntimeError>, // the original error inside the procedure
+    },
     StackUnderflow(TokenSpan, String, usize), // when there's too few data on the stack to perform operation
     StackOverflow(TokenSpan, usize), // when there's too much data on the stack (leftover unhandled data)
     UnexpectedType(TokenSpan, String, String, String), // when there's an operation tries to operate with an unsupported or an invalid datatype
@@ -324,7 +328,9 @@ impl<'a> Runtime<'a> {
             }
             Node::Word(w, s) => {
                 if let Some(p) = self.namespace.procs.iter().find(|p| p.0 == *w) {
-                    self.run_block(&p.1)?;
+                    if let Err(e) = self.run_block(&p.1) {
+                        return Err(RuntimeError::ProcedureError { call: s.clone(), inner: Box::new(e) })
+                    }
                 } else if let Some(d) = self.namespace.defs.iter().find(|p| p.0 == *w) {
                     match &d.1 {
                         Data::Number(n) => self.push_number(*n),
