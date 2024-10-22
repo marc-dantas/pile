@@ -73,15 +73,15 @@
 # If expressions
 
 10 10 = if
-    "true case" print
+    "true case" dump
 else  # This is optional
-    "false case" print
+    "false case" dump
 end
 
 # Loop expressions
 
 loop
-    "this will print forever" print
+    "this will dump forever" dump
     # you can use `stop` to break the loop
 end
 
@@ -96,11 +96,11 @@ end
 # can use the stack itself to store what could be called a "return value".
 
 # Example 1
-proc print_hello
-    "hello" print
+proc dump_hello
+    "hello" dump
 end
 
-print_hello # output: hello
+dump_hello # output: hello
 
 # Example 2
 proc add_1
@@ -130,4 +130,4 @@ end
 # Example 2
 def author "marc-dantas" end
 
-author print # output: marc-dantas
+author dump # output: marc-dantas

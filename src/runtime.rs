@@ -70,14 +70,14 @@ pub fn binaryop_readable(x: BinaryOp) -> String {
 }
 
 pub enum UnaryOp {
-    Print,
+    Dump,
     Dup,
     Drop,
 }
 
 pub fn unaryop_readable(x: UnaryOp) -> String {
     match x {
-        UnaryOp::Print => String::from("print"),
+        UnaryOp::Dump => String::from("print"),
         UnaryOp::Dup => String::from("dup"),
         UnaryOp::Drop => String::from("drop"),
     }
@@ -131,7 +131,7 @@ impl<'a> Runtime<'a> {
         if let Some(a) = self.pop() {
             match a {
                 Data::Number(n) => match x {
-                    UnaryOp::Print => println!("{}", n),
+                    UnaryOp::Dump => println!("{}", n),
                     UnaryOp::Dup => {
                         self.push_number(n);
                         self.push_number(n);
@@ -139,7 +139,7 @@ impl<'a> Runtime<'a> {
                     UnaryOp::Drop => {}
                 },
                 Data::String(s) => match x {
-                    UnaryOp::Print => println!("{}", s),
+                    UnaryOp::Dump => println!("{}", s),
                     UnaryOp::Dup => {
                         self.push_string(s.clone());
                         self.push_string(s);
@@ -319,7 +319,7 @@ impl<'a> Runtime<'a> {
                     OpKind::Over => self.binop(s, BinaryOp::Over)?,
                     OpKind::Dup => self.unop(s, UnaryOp::Dup)?,
                     OpKind::Drop => self.unop(s, UnaryOp::Drop)?,
-                    OpKind::Print => self.unop(s, UnaryOp::Print)?,
+                    OpKind::Dump => self.unop(s, UnaryOp::Dump)?,
                     OpKind::Stop => { self.stop = true; }
                     OpKind::Rot => {
                         todo!()

@@ -4,6 +4,6 @@ proc circle_area
     dup * pi *
 end
 
-10 circle_area print
-4 circle_area print
-4.5 circle_area print
+10 circle_area dump
+4 circle_area dump
+4.5 circle_area dump
