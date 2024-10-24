@@ -2,7 +2,7 @@ use crate::{
     lexer::TokenSpan,
     parser::{Node, OpKind, ProgramTree},
 };
-use std::{clone, collections::VecDeque};
+use std::collections::VecDeque;
 
 #[derive(Debug)]
 pub enum Data {
@@ -92,9 +92,7 @@ pub enum RuntimeError {
         inner: Box<RuntimeError>, // the original error inside the procedure
     },
     StackUnderflow(TokenSpan, String, usize), // when there's too few data on the stack to perform operation
-    StackOverflow(TokenSpan, usize), // when there's too much data on the stack (leftover unhandled data)
     UnexpectedType(TokenSpan, String, String, String), // when there's an operation tries to operate with an unsupported or an invalid datatype
-    InvalidOp(TokenSpan, String), // used when a word doesn't correspond a valid operation
     InvalidWord(TokenSpan, String), // used when a word doesn't correspond a valid identifier
     ProcRedefinition(TokenSpan, String), // used when a procedure name is already taken
     DefRedefinition(TokenSpan, String), // used when a definition name is already taken
@@ -374,9 +372,5 @@ impl<'a> Runtime<'a> {
 
     fn pop(&mut self) -> Option<Data> {
         self.stack.pop_front()
-    }
-
-    fn drop(&mut self) {
-        self.stack.remove(0);
     }
 }

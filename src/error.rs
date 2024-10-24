@@ -1,9 +1,6 @@
-use std::borrow::Borrow;
-
 use crate::{parser::ParseError, runtime::RuntimeError, lexer::TokenSpan};
 
 fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
-    let e= e.clone();
     match e {
         RuntimeError::ProcedureError { .. } => unreachable!(),
         RuntimeError::InvalidWord(span, x) => {
@@ -12,24 +9,6 @@ fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
                 &format!("`{x}` is not defined."),
                 span.clone(),
                 Some("maybe a typo?"),
-                call,
-            );
-        }
-        RuntimeError::InvalidOp(span, x) => {
-            throw(
-                "runtime error",
-                &format!("tried to use inexistent operation `{x}`."),
-                span.clone(),
-                None,
-                call,
-            );
-        }
-        RuntimeError::StackOverflow(span, x) => {
-            throw(
-                "runtime error",
-                &format!("program ended with {x} unhandled element(s) on the stack."),
-                span.clone(),
-                Some("use `drop` operation to remove values."),
                 call,
             );
         }
@@ -142,10 +121,6 @@ pub fn usage(program: &str) {
 pub fn fatal(message: &str) {
     eprintln!("pile: fatal: {message}");
     std::process::exit(1);
-}
-
-pub fn warning(message: &str) {
-    eprintln!("pile: warning: {message}");
 }
 
 pub fn throw(
