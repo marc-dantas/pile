@@ -101,12 +101,6 @@ pub enum RuntimeError {
     EmptyDefinition(TokenSpan, String), // used when a definition has empty body
 }
 
-
-pub struct Context {
-    span: TokenSpan,
-    rep: usize
-}
-
 pub struct Runtime<'a> {
     input: &'a ProgramTree,
     stack: Stack,
@@ -127,6 +121,36 @@ impl<'a> Runtime<'a> {
         }
     }
 
+    fn pre_execution_scan(&mut self) -> Result<(), RuntimeError> {
+        for n in self.input {
+            match n {
+                Node::Proc(n, p, s) => {
+                    if let Some(_) = self.namespace.procs.iter().find(|p| p.0 == *n) {
+                        return Err(RuntimeError::ProcRedefinition(s.clone(), n.to_string()));
+                    }
+                    self.namespace.procs.push(Procedure(n.to_string(), p));
+                }
+                Node::Def(n, p, s) => {
+                    if let Some(_) = self.namespace.defs.iter().find(|p| p.0 == *n) {
+                        return Err(RuntimeError::DefRedefinition(s.clone(), n.to_string()));
+                    }
+                    // TODO: find a way to isolate the stack from the main stack
+                    // so that the definition can be executed without affecting the main stack
+                    // this is needed because the definition can be executed multiple times
+                    // and we don't want to affect the main stack
+                    self.run_block(p)?;
+                    if let Some(result) = self.pop() {
+                        self.namespace.defs.push(Definition(n.to_string(), result));
+                    } else {
+                        return Err(RuntimeError::EmptyDefinition(s.clone(), n.to_string()));
+                    }
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+    
     fn unop(&mut self, span: TokenSpan, x: UnaryOp) -> Result<(), RuntimeError> {
         if let Some(a) = self.pop() {
             match a {
@@ -275,29 +299,8 @@ impl<'a> Runtime<'a> {
                     }
                 }
             }
-            Node::Proc(n, p, s) => {
-                if let Some(_) = self.namespace.procs.iter().find(|p| p.0 == *n) {
-                    return Err(RuntimeError::ProcRedefinition(s.clone(), n.to_string()));
-                }
-                self.namespace.procs.push(Procedure(n.to_string(), p));
-            }
-            Node::Def(n, p, s) => {
-                if let Some(_) = self.namespace.defs.iter().find(|p| p.0 == *n) {
-                    return Err(RuntimeError::DefRedefinition(s.clone(), n.to_string()));
-                }
-                // TODO: find a way to isolate the stack from the main stack
-                // so that the definition can be executed without affecting the main stack
-                // this is needed because the definition can be executed multiple times
-                // and we don't want to affect the main stack
-                self.run_block(p)?;
-                if let Some(result) = self.pop() {
-                    self.namespace.defs.push(Definition(n.to_string(), result));
-                } else {
-                    return Err(RuntimeError::EmptyDefinition(s.clone(), n.to_string()));
-                }
-            }
-            Node::Number(n, s) => self.push_number(*n),
-            Node::String(v, s) => self.push_string(v.to_string()),
+            Node::Number(n, _) => self.push_number(*n),
+            Node::String(v, _) => self.push_string(v.to_string()),
             Node::Operation(op, s) => {
                 let s = s.clone(); // TODO: this is a hack, fix it
                 match op {
@@ -340,11 +343,14 @@ impl<'a> Runtime<'a> {
                     return Err(RuntimeError::InvalidWord(s.clone(), w.to_string()));
                 }
             }
+            Node::Proc(..) => {}
+            Node::Def(..) => {}
         }
         Ok(())
     }
 
     pub fn run(&mut self) -> Result<(), RuntimeError> {
+        self.pre_execution_scan()?;
         for n in self.input {
             self.run_node(n)?;
         }
