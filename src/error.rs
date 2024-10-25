@@ -15,9 +15,9 @@ fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
         RuntimeError::EmptyDefinition(span, x) => {
             throw(
                 "runtime error",
-                &format!("definition `{x}` is empty."),
+                &format!("definition `{x}` has no value to be associated with. `x` can't be bound to anything."),
                 span.clone(),
-                Some("add operations to the definition body."),
+                Some("add values to the definition body."),
                 call,
             );
         }
