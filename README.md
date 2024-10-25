@@ -49,7 +49,7 @@ You can read the file [`basics.pile`](./basics.pile) in the root of this reposit
 1. **Hello World**
     ```
     # this is a comment
-    "Hello World" print
+    "Hello World" dump
     ```
 2. **Circle Area**
     ```
@@ -59,14 +59,14 @@ You can read the file [`basics.pile`](./basics.pile) in the root of this reposit
         dup * pi *
     end
 
-    10 circle_area print
-    4 circle_area print
-    4.5 circle_area print
+    10 circle_area dump
+    4 circle_area dump
+    4.5 circle_area dump
     ```
 3. **Count to ten** 
     ```
     0 loop
-        dup print
+        dup dump
         dup 10 = if stop end
         1 +
     end
