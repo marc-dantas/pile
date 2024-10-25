@@ -113,19 +113,35 @@ add_1 # error!
 # 4. Definitions
 #
 # The next lines will show you how you can create
-# definitions (a.k.a. macros) in pile
+# definitions in pile
 
-# In pile, you can create "definitions".
-# A Definition in Pile can be understood as a constant macro.
-# When you use a definition, you just "copy-paste" the tokens inside
-# the definition to the exact point where you used it.
+# In pile, you can create what it's called a "definition".
+# A Definition in Pile can be understood as a constant value bound to a name.
+# When you use a definition, Pile just pushes the value of the definition on
+# top of the stack.
+
+# NOTE: Do not confuse definitions with macros.
+#       They are different concepts.
 
 # Example 1
-def dup_twice
-    dup dup
+def SUN 1 end
+def MON 1 end
+def TUE 1 end
+def WED 1 end
+def THU 1 end
+def FRI 1 end
+def SAT 1 end
+def TOTAL
+    SUN
+    MON +
+    TUE +
+    WED +
+    THU +
+    FRI +
+    SAT +
 end
 
-2 dup_twice # same as `2 dup dup`
+TOTAL dump
 
 # Example 2
 def author "marc-dantas" end
