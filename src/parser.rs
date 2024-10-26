@@ -159,7 +159,6 @@ impl<'a> Parser<'a> {
         let mut body = Vec::new();
 
         while let Some(token) = self.lexer.next() {
-            self.current_span = Some(token.span.clone());
             if token.value == "end" {
                 return Ok(Node::Proc(proc_name.value, body, token.span));
             }
@@ -195,7 +194,6 @@ impl<'a> Parser<'a> {
         let mut body = Vec::new();
 
         while let Some(token) = self.lexer.next() {
-            self.current_span = Some(token.span.clone());
             if token.value == "end" {
                 return Ok(Node::Def(def_name.value, body, token.span));
             }
@@ -215,11 +213,9 @@ impl<'a> Parser<'a> {
         let else_body = None;
 
         while let Some(token) = self.lexer.next() {
-            self.current_span = Some(token.span.clone());
             if token.value == "else" {
                 let mut else_block = Vec::new();
                 while let Some(token) = self.lexer.next() {
-                    self.current_span = Some(token.span.clone());
                     if token.value == "end" {
                         return Ok(Node::If(if_body, Some(else_block), token.span));
                     }
@@ -251,7 +247,6 @@ impl<'a> Parser<'a> {
         let mut body = Vec::new();
 
         while let Some(token) = self.lexer.next() {
-            self.current_span = Some(token.span.clone());
             if token.value == "end" {
                 return Ok(Node::Loop(body, token.span));
             }
