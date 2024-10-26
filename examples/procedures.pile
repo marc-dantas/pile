@@ -1,0 +1,11 @@
+proc greet
+    "Hi" dump
+end
+
+greet
+
+proc add_one
+    1 +
+end
+
+5 add_one dump

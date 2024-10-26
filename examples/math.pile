@@ -1,0 +1,4 @@
+1 1 + dump
+10 5 - dump
+3 3 * dump
+10 2 / dump

@@ -1,0 +1,5 @@
+5 dup dump
+10 5 drop dump
+5 7 swap dump
+7 5 over dump
+# 5 6 7 rot

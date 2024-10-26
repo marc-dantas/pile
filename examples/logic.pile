@@ -1,0 +1,6 @@
+10 10 = dump
+10 5 != dump
+5 10 < dump
+10 5 > dump
+5 5 <= dump
+10 10 >= dump

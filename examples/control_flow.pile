@@ -1,0 +1,10 @@
+10 10 = if
+    "equal" dump
+else
+    "not equal" dump
+end
+
+loop
+    "looping" dump
+    stop
+end
