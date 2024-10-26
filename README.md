@@ -1,38 +1,36 @@
 <h1 align="center">pile</h1>
-<p align="center">Educational stack-based and concatenative computer programming language.</p>
+<p align="center">Educational stack-based and concatenative programming language.</p>
 
-## Introduction to pile (please read if you are new)
-**Pile is an educational programming language designed to teach programming logic, stack-based concepts and logic for computer science students and software developers**.
-Pile allows users to write stack-based algorithms in an intuitive way thanks to reverse Polish notation.
+---
 
-The language is based on stack-based data structures and **reverse Polish notation** (a.k.a. Infix notation).
-Reverse Polish notation is a way to write mathematical and algorithmic operations in a way that the operands are expressed **before** the operation itself. Here are some examples of mathematical expressions:
+## Introduction to Pile
+**Pile is an educational programming language designed to teach programming logic, stack-based concepts, and computer science fundamentals.**  
+It provides an intuitive way to write stack-based algorithms, using **reverse Polish notation (RPN)**, where operands appear before the operation itself. Here are some RPN examples:
 
-| **Infix notation (normal)** | **Reverse Polish notation** | **Evaluated result** |
-| --------------------------- | --------------------------- | -------------------- |
-| `4 + 4`                     | `4 4 +`                     | `8`                  |
-| `2 - 2 + 1`                 | `2 2 - 1 +`                 | `1`                  |
-| `(6 + 1) * 2`               | `6 1 + 2 *`                 | `14`                 |
-| `6 + 1 * 2`                 | `2 1 * 6 +`                 | `8`                  |
+| **Infix notation (standard)** | **Reverse Polish notation** | **Evaluated result** |
+| ----------------------------- | --------------------------- | -------------------- |
+| `4 + 4`                       | `4 4 +`                     | `8`                  |
+| `2 - 2 + 1`                   | `2 2 - 1 +`                 | `1`                  |
+| `(6 + 1) * 2`                 | `6 1 + 2 *`                 | `14`                 |
+| `6 + 1 * 2`                   | `2 1 * 6 +`                 | `8`                  |
 
-Pile uses this notation as it's syntax base, since it's way more intuitive to express stack-based algorithms.
-RPN also simplifies expression evaluation, eliminating the need for parentheses and operator precedence.
+Using RPN simplifies expression evaluation, eliminating the need for parentheses and operator precedence, which is ideal for stack-based algorithms.
 
-## Getting started
+## Getting Started
 
-Pile is implemented in Rust programming language, for now it's just a simple CLI program that interprets Pile code.
+Pile is implemented in Rust as a CLI program that interprets Pile code.
 
-### Using pile
-You can run the program using `cargo` following the steps below:
+### Using Pile
 
-- Windows:
+Clone the repository and build the project:
+- **Windows**
     ```console
     > git clone https://github.com/marc-dantas/pile.git
     > cd .\pile\
     > cargo build
     > cargo run -- [your pile program]
     ```
-- Linux/UNIX
+- **Linux/UNIX**
     ```console
     $ git clone https://github.com/marc-dantas/pile.git
     $ cd ./pile/
@@ -40,9 +38,9 @@ You can run the program using `cargo` following the steps below:
     $ cargo run -- [your pile program]
     ```
 
-You can read the file [`basics.pile`](./basics.pile) in the root of this repository to take a look at a compact "reference" file of everything you can do in this language.
+For a quick reference, read [`basics.pile`](./basics.pile) file, which includes some examples and a compact overview of the language.
 
-> **NOTE**: Documentation isn't done yet.
+> **NOTE**: Full documentation is coming soon.
 
 ## Examples
 
@@ -53,17 +51,17 @@ You can read the file [`basics.pile`](./basics.pile) in the root of this reposit
     ```
 2. **Circle Area**
     ```
-    def pi 3.14159265359 end
+    def PI 3.14159265359 end
 
     proc circle_area
-        dup * pi *
+        dup * PI *
     end
 
     10 circle_area dump
     4 circle_area dump
     4.5 circle_area dump
     ```
-3. **Count to ten** 
+3. **Count to Ten**
     ```
     0 loop
         dup dump
@@ -72,10 +70,10 @@ You can read the file [`basics.pile`](./basics.pile) in the root of this reposit
     end
     ```
 
-You can find more examples in the [`./examples`](./examples) folder at the root of the repository.
+For additional examples, explore the [`./examples`](./examples) folder.
 
 ---
 
-> Licensed under **GPL 3.0**, see [`LICENCE`](./LICENSE) for more information.
+> Licensed under **GPL 3.0**. See [`LICENSE`](./LICENSE) for details.
 
-> By [Marcio Dantas](https://github.com/marc-dantas)
+> Developed by [Marcio Dantas](https://github.com/marc-dantas)
