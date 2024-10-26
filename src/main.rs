@@ -12,7 +12,7 @@ fn read_from_path(filename: &str) -> std::io::Result<String> {
     read_to_string(filename) // this will be improved to something fancier, don't worry
 }
 
-fn parse(filename: String, source: String) -> Result<ProgramTree, ParseError> {
+fn parse(filename: &str, source: String) -> Result<ProgramTree, ParseError> {
     let f = InputFile {
         name: filename,
         content: source.chars().peekable(),
@@ -38,7 +38,7 @@ fn from_command_line(argv: &mut Args) {
             // };
             // let l = Lexer::new(f, Span { line: 1, col: 1 });
             // for i in l {println!("{i:?}")}
-            match parse(name.to_string(), source) {
+            match parse(&name, source) {
                 Ok(p) => {
                     if let Err(e) = run(p) {
                         error::runtime_error(e);

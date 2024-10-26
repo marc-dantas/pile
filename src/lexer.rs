@@ -18,7 +18,7 @@ pub struct Token {
 
 #[derive(Debug)]
 pub struct InputFile<'a> {
-    pub name: String,
+    pub name: &'a str,
     pub content: Peekable<Chars<'a>>,
 }
 
@@ -108,7 +108,7 @@ impl<'a> Iterator for Lexer<'a> {
                                     "token error",
                                     &format!("invalid character `{d}` found in number literal."),
                                     TokenSpan {
-                                        filename: self.input.name.clone(),
+                                        filename: self.input.name.to_string(),
                                         line: self.span.line,
                                         col: self.span.col + buffer.len()    
                                     },
@@ -126,7 +126,7 @@ impl<'a> Iterator for Lexer<'a> {
                         buffer,
                         TokenKind::Number,
                         TokenSpan {
-                            filename: self.input.name.clone(),
+                            filename: self.input.name.to_string(),
                             line: self.span.line,
                             col: col,
                         },
@@ -147,7 +147,7 @@ impl<'a> Iterator for Lexer<'a> {
                                     buffer.clone() + &String::from(d)
                                 ),
                                 TokenSpan {
-                                    filename: self.input.name.clone(),
+                                    filename: self.input.name.to_string(),
                                     line: self.span.line,
                                     col: self.span.col + 2    
                                 },
@@ -162,7 +162,7 @@ impl<'a> Iterator for Lexer<'a> {
                         buffer,
                         TokenKind::String,
                         TokenSpan {
-                            filename: self.input.name.clone(),
+                            filename: self.input.name.to_string(),
                             line: self.span.line,
                             col: col,
                         },
@@ -183,7 +183,7 @@ impl<'a> Iterator for Lexer<'a> {
                         buffer,
                         TokenKind::Word,
                         TokenSpan {
-                            filename: self.input.name.clone(),
+                            filename: self.input.name.to_string(),
                             line: self.span.line,
                             col: col,
                         },
@@ -194,7 +194,7 @@ impl<'a> Iterator for Lexer<'a> {
                         "token error",
                         &format!("illegal character `{c}` found in file."),
                         TokenSpan {
-                            filename: self.input.name.clone(),
+                            filename: self.input.name.to_string(),
                             line: self.span.line,
                             col: self.span.col    
                         },
