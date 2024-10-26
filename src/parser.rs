@@ -140,11 +140,7 @@ impl<'a> Parser<'a> {
 
     fn parse_proc(&mut self) -> Result<Node, ParseError> {
         let proc_name = self.lexer.next().ok_or_else(|| {
-            let span = self.current_span.clone().unwrap_or_else(|| TokenSpan {
-                filename: "unknown".to_string(),
-                line: 0,
-                col: 0,
-            });
+            let span = self.current_span.clone().unwrap();
             ParseError::UnexpectedEOF(span, "valid identifier".to_string())
         })?;
 
@@ -166,9 +162,7 @@ impl<'a> Parser<'a> {
         }
 
         Err(ParseError::UnterminatedBlock(
-            self.current_span
-                .clone()
-                .unwrap_or_else(|| proc_name.span.clone()),
+            proc_name.span.clone(),
             "proc".to_string(),
         ))
     }
@@ -201,9 +195,7 @@ impl<'a> Parser<'a> {
         }
 
         Err(ParseError::UnterminatedBlock(
-            self.current_span
-                .clone()
-                .unwrap_or_else(|| def_name.span.clone()),
+            def_name.span.clone(),
             "proc".to_string(),
         ))
     }
@@ -222,9 +214,7 @@ impl<'a> Parser<'a> {
                     else_block.push(self.parse_expr(token)?);
                 }
                 return Err(ParseError::UnterminatedBlock(
-                    self.current_span
-                        .clone()
-                        .unwrap_or_else(|| token.span.clone()),
+                    token.span.clone(),
                     "else".to_string(),
                 ));
             } else if token.value == "end" {
@@ -234,11 +224,7 @@ impl<'a> Parser<'a> {
         }
 
         Err(ParseError::UnterminatedBlock(
-            self.current_span.clone().unwrap_or_else(|| TokenSpan {
-                filename: "unknown".to_string(),
-                line: 0,
-                col: 0,
-            }),
+            self.current_span.clone().unwrap(),
             "if".to_string(),
         ))
     }
@@ -254,11 +240,7 @@ impl<'a> Parser<'a> {
         }
 
         Err(ParseError::UnterminatedBlock(
-            self.current_span.clone().unwrap_or_else(|| TokenSpan {
-                filename: "unknown".to_string(),
-                line: 0,
-                col: 0,
-            }),
+            self.current_span.clone().unwrap(),
             "loop".to_string(),
         ))
     }
