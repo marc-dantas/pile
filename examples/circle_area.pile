@@ -1,7 +1,7 @@
-def pi 3.14159265359 end
+def PI 3.14159265359 end
 
 proc circle_area
-    dup * pi *
+    dup * PI *
 end
 
 10 circle_area dump

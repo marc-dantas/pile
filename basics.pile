@@ -144,6 +144,6 @@ end
 TOTAL dump
 
 # Example 2
-def author "marc-dantas" end
+def AUTHOR "marc-dantas" end
 
-author dump # output: marc-dantas
+AUTHOR dump # output: marc-dantas
