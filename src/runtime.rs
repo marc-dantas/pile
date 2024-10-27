@@ -321,10 +321,17 @@ impl<'a> Runtime<'a> {
                     OpKind::Dup => self.unop(s, UnaryOp::Dup)?,
                     OpKind::Drop => self.unop(s, UnaryOp::Drop)?,
                     OpKind::Dump => self.unop(s, UnaryOp::Dump)?,
-                    OpKind::Stop => { self.stop = true; }
                     OpKind::Rot => {
-                        todo!()
-                    }
+                        if let (Some(a), Some(b), Some(c)) = (self.pop(), self.pop(), self.pop()) {
+                            self.stack.push_front(a);
+                            self.stack.push_front(c);
+                            self.stack.push_front(b);
+                        } else {
+                            return Err(RuntimeError::StackUnderflow(s, "rot".to_string(), 3));
+                        }
+                        Ok(())
+                    }?,
+                    OpKind::Stop => { self.stop = true; }
                 }
             }
             Node::Word(w, s) => {
