@@ -13,7 +13,9 @@ fn is_reserved_word(value: &str) -> bool {
         "drop" |
         "swap" |
         "over" |
-        "rot"
+        "rot" |
+        "stop" |
+        "dump"
     )
 }
 
