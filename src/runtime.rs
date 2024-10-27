@@ -77,7 +77,7 @@ pub enum UnaryOp {
 
 pub fn unaryop_readable(x: UnaryOp) -> String {
     match x {
-        UnaryOp::Dump => String::from("print"),
+        UnaryOp::Dump => String::from("dump"),
         UnaryOp::Dup => String::from("dup"),
         UnaryOp::Drop => String::from("drop"),
     }
