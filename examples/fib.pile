@@ -1,0 +1,12 @@
+proc fib
+    0 1
+    loop
+        dup N >= if
+            dup dump
+            over over +
+        else stop end
+    end
+end
+
+def N 400 end
+fib

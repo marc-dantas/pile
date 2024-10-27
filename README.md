@@ -69,6 +69,21 @@ For a quick reference, read [`basics.pile`](./basics.pile) file, which includes 
         1 +
     end
     ```
+4. **Fibonacci sequence**
+    ```
+    proc fib
+        0 1
+        loop
+            dup N >= if
+                dup dump
+                over over +
+            else stop end
+        end
+    end
+
+    def N 400 end
+    fib
+    ```
 
 For additional examples, explore the [`./examples`](./examples) folder.
 
