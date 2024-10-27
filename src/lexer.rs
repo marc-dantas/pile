@@ -94,6 +94,7 @@ impl<'a> Iterator for Lexer<'a> {
                 _ if Token::is_comment(&c) => {
                     while let Some(d) = self.input.content.next() {
                         if Token::is_newline(&d) {
+                            self.span.line += 1;
                             break;
                         }
                     }
