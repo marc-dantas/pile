@@ -132,10 +132,6 @@ impl<'a> Runtime<'a> {
                     if let Some(_) = self.namespace.defs.iter().find(|p| p.0 == *n) {
                         return Err(RuntimeError::DefRedefinition(s.clone(), n.to_string()));
                     }
-                    // TODO: find a way to isolate the stack from the main stack
-                    // so that the definition can be executed without affecting the main stack
-                    // this is needed because the definition can be executed multiple times
-                    // and we don't want to affect the main stack
                     self.run_block(p)?;
                     if let Some(result) = self.pop() {
                         self.namespace.defs.push(Definition(n.to_string(), result));

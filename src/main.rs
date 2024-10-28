@@ -6,15 +6,8 @@ use lexer::*;
 use parser::*;
 use runtime::*;
 use std::env::{args, Args};
-use std::str::Chars;
 use std::fs::File;
 use std::io::Read;
-
-pub enum InternalError {
-    CLIError(),
-    FileError(String),
-
-}
 
 fn read_file(path: &str) -> Option<String> {
     let mut file = File::open(path).unwrap();
