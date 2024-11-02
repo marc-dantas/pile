@@ -1,7 +1,9 @@
+mod cli;
 mod error;
 mod lexer;
 mod parser;
 mod runtime;
+use cli::*;
 use lexer::*;
 use parser::*;
 use runtime::*;
@@ -10,14 +12,16 @@ use std::fs::File;
 use std::io::Read;
 
 fn read_file(path: &str) -> Option<String> {
-    let mut file = File::open(path).unwrap();
-    let mut xs = Vec::new();
-    file.read_to_end(&mut xs).unwrap();
-    match String::from_utf8(xs) {
-        Ok(x) => Some(x),
-        Err(_) => {
-            None
+    match File::open(path) {
+        Ok(mut f) => {
+            let mut xs = Vec::new();
+            f.read_to_end(&mut xs).unwrap();
+            match String::from_utf8(xs) {
+                Ok(x) => return Some(x),
+                Err(_) => return None,
+            }
         }
+        Err(_) => None
     }
 }
 
@@ -47,22 +51,18 @@ fn run(filename: &str, source: String) {
     }
 }
 
-fn from_command_line(argv: &mut Args) {
-    let program = argv.next().unwrap();
-    if let Some(name) = argv.next() {
-        if let Some(source) = read_file(&name) {
-            run(&name, source);
-        } else {
-            error::usage(&program);
-            error::fatal(&format!("couldn't read file {}.", name));
-        }
-    } else {
-        error::usage(&program);
-        error::fatal("expected positional argument FILENAME");
-    }
-}
-
 fn main() {
-    let mut argv = args();
-    from_command_line(&mut argv);
+    match parse_arguments() {
+        Ok(a) => {
+            if let Some(source) = read_file(&a.filename) {
+                run(&a.filename, source);
+            } else {
+                error::usage("pile");
+                error::fatal(&format!("couldn't read file {}.", a.filename));
+            }
+        }
+        Err(e) => {
+            error::cli_error(e);
+        }
+    }
 }

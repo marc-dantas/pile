@@ -1,4 +1,4 @@
-use crate::{parser::ParseError, runtime::RuntimeError, lexer::TokenSpan};
+use crate::{lexer::TokenSpan, parser::ParseError, runtime::RuntimeError, CLIError};
 
 fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
     match e {
@@ -112,6 +112,19 @@ pub fn parse_error(e: ParseError) {
             );
         }
     };
+}
+
+pub fn cli_error(e: CLIError) {
+    match e {
+        CLIError::UnexpectedFlag(x) => {
+            usage("pile");
+            fatal(&format!("unexpected flag: {x}"));
+        }
+        CLIError::ExpectedArgument(x) => {
+            usage("pile");
+            fatal(&format!("expected argument: {x}"));
+        }
+    }
 }
 
 pub fn usage(program: &str) {
