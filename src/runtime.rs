@@ -319,9 +319,9 @@ impl<'a> Runtime<'a> {
                     OpKind::Dump => self.unop(s, UnaryOp::Dump)?,
                     OpKind::Rot => {
                         if let (Some(a), Some(b), Some(c)) = (self.pop(), self.pop(), self.pop()) {
+                            self.stack.push_front(b);
                             self.stack.push_front(a);
                             self.stack.push_front(c);
-                            self.stack.push_front(b);
                         } else {
                             return Err(RuntimeError::StackUnderflow(s, "rot".to_string(), 3));
                         }
