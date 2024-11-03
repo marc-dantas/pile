@@ -76,7 +76,7 @@ pub fn parse_error(e: ParseError) {
         ParseError::UnmatchedBlock(span) => {
             throw(
                 "parse error",
-                "syntax error: found unmatched block: termination of block (end) provided without a beginning (`if`, `else`, `proc`, or `loop`)",
+                "syntax error: found unmatched block: termination of block (end) provided without a beginning (`if`, `else`, `proc`, `def`, or `loop`)",
                 span,
                 None,
                 None,
