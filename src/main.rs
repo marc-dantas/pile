@@ -7,7 +7,6 @@ use cli::*;
 use lexer::*;
 use parser::*;
 use runtime::*;
-use std::env::{args, Args};
 use std::fs::File;
 use std::io::Read;
 

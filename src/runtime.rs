@@ -285,9 +285,7 @@ impl<'a> Runtime<'a> {
                 while !self.stop {
                     self.run_block(l)?;
 
-                    // Verifica a flag de stop
                     if self.stop {
-                        // Resetar a flag para que não afete loops subsequentes
                         self.stop = false;
                         break;
                     }
