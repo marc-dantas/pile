@@ -1,7 +1,7 @@
-<h1 align="center">pile</h1>
-<p align="center">Educational stack-based and concatenative programming language.</p>
-
----
+<p align="center">
+    <img width="200" src="./res/logo_text.svg" alt="pile"></img>
+</p>
+<h3 align="center">Educational stack-based and concatenative programming language.</h3>
 
 ## Introduction to Pile
 **Pile is an educational programming language designed to teach programming logic, stack-based concepts, and computer science fundamentals.**  
