@@ -17,6 +17,7 @@ It provides an intuitive way to write stack-based algorithms, using **reverse Po
 Using RPN simplifies expression evaluation, eliminating the need for parentheses and operator precedence, which is ideal for stack-based algorithms.
 
 ## Getting Started
+> **WARNING**: This language is not finished yet, there's no warranty of this software in any way. **Use it at your own risk**!.
 
 Pile is implemented in Rust as a CLI program that interprets Pile code.
 
@@ -40,7 +41,7 @@ Clone the repository and build the project:
 
 For a quick reference, read [`basics.pile`](./basics.pile) file, which includes some examples and a compact overview of the language.
 
-> **NOTE**: Full documentation is coming soon.
+> **NOTE**: Full documentation and it's website is being developed at the [marc-dantas/pile-online](https://github.com/marc-dantas/pile-online) repository.
 
 ## Examples
 
