@@ -149,7 +149,7 @@ impl<'a> Runtime<'a> {
         if let Some(a) = self.pop() {
             match a {
                 Data::Number(n) => match x {
-                    UnaryOp::Dump => println!("{}", n),
+                    UnaryOp::Dump => println!("number {}", n),
                     UnaryOp::Dup => {
                         self.push_number(n);
                         self.push_number(n);
@@ -157,7 +157,7 @@ impl<'a> Runtime<'a> {
                     UnaryOp::Drop => {}
                 },
                 Data::String(s) => match x {
-                    UnaryOp::Dump => println!("{}", s),
+                    UnaryOp::Dump => println!("string \"{}\"", s),
                     UnaryOp::Dup => {
                         self.push_string(s.clone());
                         self.push_string(s);
