@@ -48,7 +48,7 @@ For a quick reference, read [`basics.pile`](./basics.pile) file, which includes 
 1. **Hello World**
     ```
     # this is a comment
-    "Hello World" dump
+    "Hello World" println
     ```
 2. **Circle Area**
     ```
@@ -58,14 +58,14 @@ For a quick reference, read [`basics.pile`](./basics.pile) file, which includes 
         dup * PI *
     end
 
-    10 circle_area dump
-    4 circle_area dump
-    4.5 circle_area dump
+    10 circle_area println
+    4 circle_area println
+    4.5 circle_area println
     ```
 3. **Count to Ten**
     ```
     0 loop
-        dup dump
+        dup println
         dup 10 = if stop end
         1 +
     end
@@ -76,7 +76,7 @@ For a quick reference, read [`basics.pile`](./basics.pile) file, which includes 
         0 1
         loop
             dup N >= if
-                dup dump
+                dup println
                 over over +
             else stop end
         end
