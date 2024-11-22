@@ -2,7 +2,7 @@ use crate::{
     lexer::TokenSpan,
     parser::{Node, OpKind, ProgramTree},
 };
-use std::collections::VecDeque;
+use std::{collections::VecDeque, io::Write};
 
 #[derive(Debug)]
 pub enum Data {
@@ -83,6 +83,13 @@ pub fn unaryop_readable(x: UnaryOp) -> String {
     }
 }
 
+pub enum Builtin {
+    Print,
+    Println,
+    EPrintln,
+    EPrint,
+}
+
 pub type Stack = VecDeque<Data>;
 
 #[derive(Debug)]
@@ -145,6 +152,72 @@ impl<'a> Runtime<'a> {
         Ok(())
     }
     
+    fn builtin(&mut self, span: TokenSpan, x: Builtin) -> Result<(), RuntimeError> {
+        match x {
+            Builtin::Println => {
+                if let Some(a) = self.pop() {
+                    match a {
+                        Data::String(s) => {
+                            println!("{}", s);
+                        }
+                        Data::Number(n) => {
+                            println!("{}", n);
+                        }
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(span, "println".to_string(), 1))
+                }
+            },
+            Builtin::EPrintln => {
+                if let Some(a) = self.pop() {
+                    match a {
+                        Data::String(s) => {
+                            eprintln!("{}", s);
+                        }
+                        Data::Number(n) => {
+                            eprintln!("{}", n);
+                        }
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(span, "eprintln".to_string(), 1))
+                }
+            },
+            Builtin::EPrint => {
+                if let Some(a) = self.pop() {
+                    match a {
+                        Data::String(s) => {
+                            eprint!("{}", s);
+                            std::io::stderr().flush().unwrap();
+                        }
+                        Data::Number(n) => {
+                            eprint!("{}", n);
+                            std::io::stderr().flush().unwrap();
+                        }
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(span, "eprint".to_string(), 1))
+                }
+            },
+            Builtin::Print => {
+                if let Some(a) = self.pop() {
+                    match a {
+                        Data::String(s) => {
+                            print!("{}", s);
+                            std::io::stdout().flush().unwrap();
+                        }
+                        Data::Number(n) => {
+                            print!("{}", n);
+                            std::io::stdout().flush().unwrap();
+                        }
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(span, "print".to_string(), 1))
+                }
+            },
+        }
+        Ok(())
+    }
+
     fn unop(&mut self, span: TokenSpan, x: UnaryOp) -> Result<(), RuntimeError> {
         if let Some(a) = self.pop() {
             match a {
@@ -329,18 +402,28 @@ impl<'a> Runtime<'a> {
                 }
             }
             Node::Word(w, s) => {
-                if let Some(p) = self.namespace.procs.iter().find(|p| p.0 == *w) {
-                    if let Err(e) = self.run_block(&p.1) {
-                        return Err(RuntimeError::ProcedureError { call: s.clone(), inner: Box::new(e) })
+                let s = s.clone();
+                match w.as_str() {
+                    "println" => self.builtin(s, Builtin::Println)?,
+                    "print" => self.builtin(s, Builtin::Print)?,
+                    "eprint" => self.builtin(s, Builtin::EPrint)?,
+                    "eprintln" => self.builtin(s, Builtin::EPrintln)?,
+                    _ => {
+                        if let Some(p) = self.namespace.procs.iter().find(|p| p.0 == *w) {
+                            if let Err(e) = self.run_block(&p.1) {
+                                return Err(RuntimeError::ProcedureError { call: s, inner: Box::new(e) })
+                            }
+                        } else if let Some(d) = self.namespace.defs.iter().find(|p| p.0 == *w) {
+                            match &d.1 {
+                                Data::Number(n) => self.push_number(*n),
+                                Data::String(s) => self.push_string(String::from(s)),
+                            }
+                        } else  {
+                            return Err(RuntimeError::InvalidWord(s, w.to_string()));
+                        }
                     }
-                } else if let Some(d) = self.namespace.defs.iter().find(|p| p.0 == *w) {
-                    match &d.1 {
-                        Data::Number(n) => self.push_number(*n),
-                        Data::String(s) => self.push_string(String::from(s)),
-                    }
-                } else {
-                    return Err(RuntimeError::InvalidWord(s.clone(), w.to_string()));
                 }
+                
             }
             Node::Proc(..) => {}
             Node::Def(..) => {}
