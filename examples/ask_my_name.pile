@@ -1,0 +1,3 @@
+"What is your name? " print
+readln
+"Your name is " print print "." println

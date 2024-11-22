@@ -85,6 +85,12 @@ For a quick reference, read [`basics.pile`](./basics.pile) file, which includes 
     def N 400 end
     fib
     ```
+5. **Ask my name**
+   ```
+   "What is your name? " print
+   readln
+   "Your name is " print print "." println
+   ```
 
 For additional examples, explore the [`./examples`](./examples) folder.
 
