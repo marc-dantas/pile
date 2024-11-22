@@ -328,7 +328,7 @@ impl<'a> Runtime<'a> {
                 if let Some(a) = self.pop() {
                     match a {
                         Data::Number(n) => {
-                            if n != 0.0 {
+                            if n > 0.0 { // negative values or zero = false
                                 self.run_block(i)?;
                             } else {
                                 if let Some(els) = e {
@@ -336,14 +336,14 @@ impl<'a> Runtime<'a> {
                                 }
                             }
                         }
-                        // TODO: Add bool type and maybe truthy values
-                        Data::String(_) => {
-                            return Err(RuntimeError::UnexpectedType(
-                                s.clone(),
-                                "if".to_string(),
-                                "(number)".to_string(),
-                                "(string)".to_string(),
-                            ));
+                        Data::String(x) => {
+                            if x.len() > 0 { // empty string = false
+                                self.run_block(i)?;
+                            } else {
+                                if let Some(els) = e {
+                                    self.run_block(els)?;
+                                }
+                            }
                         }
                     }
                 } else {
