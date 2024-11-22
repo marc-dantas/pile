@@ -2,7 +2,7 @@ use crate::{
     lexer::TokenSpan,
     parser::{Node, OpKind, ProgramTree},
 };
-use std::{collections::VecDeque, io::Write};
+use std::{collections::VecDeque, io::{Read, Write}};
 
 #[derive(Debug)]
 pub enum Data {
@@ -88,6 +88,8 @@ pub enum Builtin {
     Println,
     EPrintln,
     EPrint,
+    Read,
+    Readln,
 }
 
 pub type Stack = VecDeque<Data>;
@@ -214,6 +216,22 @@ impl<'a> Runtime<'a> {
                     return Err(RuntimeError::StackUnderflow(span, "print".to_string(), 1))
                 }
             },
+            Builtin::Readln => {
+                let mut xs = String::new();
+                if let Ok(_) = std::io::stdin().read_line(&mut xs) {
+                    self.push_string(xs.trim().to_string());
+                } else {
+                    self.push_number(-1.0);
+                }
+            }
+            Builtin::Read => {
+                let mut xs = String::new();
+                if let Ok(_) = std::io::stdin().read_to_string(&mut xs) {
+                    self.push_string(xs);
+                } else {
+                    self.push_number(-1.0);
+                }
+            }
         }
         Ok(())
     }
@@ -408,6 +426,8 @@ impl<'a> Runtime<'a> {
                     "print" => self.builtin(s, Builtin::Print)?,
                     "eprint" => self.builtin(s, Builtin::EPrint)?,
                     "eprintln" => self.builtin(s, Builtin::EPrintln)?,
+                    "readln" => self.builtin(s, Builtin::Readln)?,
+                    "read" => self.builtin(s, Builtin::Read)?,
                     _ => {
                         if let Some(p) = self.namespace.procs.iter().find(|p| p.0 == *w) {
                             if let Err(e) = self.run_block(&p.1) {
