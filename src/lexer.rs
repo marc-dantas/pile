@@ -40,9 +40,11 @@ impl<'a> Token {
         Self { value, kind, span }
     }
 
-    fn is_number_start(target: &char) -> bool {
-        matches!(target, '0'..='9' | '.' | '-')
-    }
+    fn is_number_start(target: &char, next: Option<&char>) -> bool {
+        // A number starts with a digit or a '-' followed by a digit
+        matches!(target, '0'..='9' | '.') ||
+        (*target == '-' && next.map_or(false, |c| c == &'.' || c.is_ascii_digit()))
+    }    
 
     fn is_number(target: &char) -> bool {
         matches!(target, '0'..='9' | '.')
@@ -103,7 +105,42 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
                 }
-                _ if Token::is_number_start(&c) => {
+                _ if Token::is_string(&c) => {
+                    let col: usize = self.span.col;
+                    let mut buffer = String::new();
+                    while let Some(d) = self.input.content.next() {
+                        if Token::is_string(&d) {
+                            break;
+                        } else if self.input.content.peek().is_none() {
+                            throw(
+                                "token error",
+                                &format!(
+                                    "unterminated string literal of \"{}\".",
+                                    buffer.clone() + &String::from(d)
+                                ),
+                                TokenSpan {
+                                    filename: self.input.name.to_string(),
+                                    line: self.span.line,
+                                    col: self.span.col + 2    
+                                },
+                                Some("try adding a `\"` at the end of the string."),
+                                None,
+                            );
+                        }
+                        buffer.push(d);
+                    }
+                    self.span.col += buffer.len() + 2; // +2 to consider both quote marks
+                    return Some(Token::new(
+                        buffer,
+                        TokenKind::String,
+                        TokenSpan {
+                            filename: self.input.name.to_string(),
+                            line: self.span.line,
+                            col: col,
+                        },
+                    ));
+                }
+                _ if Token::is_number_start(&c, self.input.content.peek()) => {
                     let col = self.span.col;
                     let mut buffer = String::from(c);
                     while let Some(d) = self.input.content.peek() {
@@ -130,42 +167,6 @@ impl<'a> Iterator for Lexer<'a> {
                     return Some(Token::new(
                         buffer,
                         TokenKind::Number,
-                        TokenSpan {
-                            filename: self.input.name.to_string(),
-                            line: self.span.line,
-                            col: col,
-                        },
-                    ));
-                }
-                _ if Token::is_string(&c) => {
-                    let col: usize = self.span.col;
-                    let mut buffer = String::new();
-                    while let Some(d) = self.input.content.next() {
-                        // TODO: Check syntax errors with the quote marks
-                        if Token::is_string(&d) {
-                            break;
-                        } else if self.input.content.peek().is_none() {
-                            throw(
-                                "token error",
-                                &format!(
-                                    "unterminated string literal of \"{}\".",
-                                    buffer.clone() + &String::from(d)
-                                ),
-                                TokenSpan {
-                                    filename: self.input.name.to_string(),
-                                    line: self.span.line,
-                                    col: self.span.col + 2    
-                                },
-                                Some("try adding a `\"` at the end of the string."),
-                                None,
-                            );
-                        }
-                        buffer.push(d);
-                    }
-                    self.span.col += buffer.len() + 2; // +2 to consider both quote marks
-                    return Some(Token::new(
-                        buffer,
-                        TokenKind::String,
                         TokenSpan {
                             filename: self.input.name.to_string(),
                             line: self.span.line,
