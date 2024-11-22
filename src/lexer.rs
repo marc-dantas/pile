@@ -40,6 +40,10 @@ impl<'a> Token {
         Self { value, kind, span }
     }
 
+    fn is_number_start(target: &char) -> bool {
+        matches!(target, '0'..='9' | '.' | '-')
+    }
+
     fn is_number(target: &char) -> bool {
         matches!(target, '0'..='9' | '.')
     }
@@ -99,7 +103,7 @@ impl<'a> Iterator for Lexer<'a> {
                         }
                     }
                 }
-                _ if Token::is_number(&c) => {
+                _ if Token::is_number_start(&c) => {
                     let col = self.span.col;
                     let mut buffer = String::from(c);
                     while let Some(d) = self.input.content.peek() {
