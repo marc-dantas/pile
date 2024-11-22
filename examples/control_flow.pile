@@ -1,10 +1,10 @@
 10 10 = if
-    "equal" dump
+    "equal" println
 else
-    "not equal" dump
+    "not equal" println
 end
 
 loop
-    "looping" dump
+    "looping" println
     stop
 end

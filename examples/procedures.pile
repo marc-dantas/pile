@@ -8,4 +8,4 @@ proc add_one
     1 +
 end
 
-5 add_one dump
+5 add_one println

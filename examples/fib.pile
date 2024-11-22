@@ -2,7 +2,7 @@ proc fib
     0 1
     loop
         dup N >= if
-            dup dump
+            dup println
             over over +
         else stop end
     end

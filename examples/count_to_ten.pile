@@ -1,5 +1,5 @@
 0 loop
-    dup dump
+    dup println
     dup 10 = if stop end
     1 +
 end

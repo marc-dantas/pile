@@ -15,5 +15,5 @@ def TOTAL
     SAT +
 end
 
-"Days of the week:" dump 
-TOTAL dump
+"Days of the week: " print 
+TOTAL println
