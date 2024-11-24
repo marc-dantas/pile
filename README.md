@@ -28,15 +28,15 @@ Clone the repository and build the project:
     ```console
     > git clone https://github.com/marc-dantas/pile.git
     > cd .\pile\
-    > cargo build
-    > cargo run -- [your pile program]
+    > cargo build --release
+    > .\target\release\pile.exe [your pile program]
     ```
 - **Linux/UNIX**
     ```console
     $ git clone https://github.com/marc-dantas/pile.git
     $ cd ./pile/
-    $ cargo build
-    $ cargo run -- [your pile program]
+    $ cargo build --release
+    $ ./target/release/pile [your pile program]
     ```
 
 For a quick reference, read [`basics.pile`](./basics.pile) file, which includes some examples and a compact overview of the language.
