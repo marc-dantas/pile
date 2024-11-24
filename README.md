@@ -41,7 +41,10 @@ Clone the repository and build the project:
 
 For a quick reference, read [`basics.pile`](./basics.pile) file, which includes some examples and a compact overview of the language.
 
-> **NOTE**: Full documentation and it's website is being developed at the [marc-dantas/pile-online](https://github.com/marc-dantas/pile-online) repository.
+## Documentation
+**_(Still in development)_**
+
+Pile's full documentation and website is being developed at [marc-dantas/pile-online](https://github.com/marc-dantas/pile-online).
 
 ## Examples
 
