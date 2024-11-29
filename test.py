@@ -4,6 +4,8 @@ import sys
 import json
 from pathlib import Path
 
+DEFAULT_STDIN = "DEFAULT_STDIN"
+
 def log(t: str):
     print(f"{t}", file=sys.stderr)
 
@@ -23,15 +25,18 @@ def err(t: str):
 EXAMPLES_DIR = Path('./examples')
 TEST_DIR = EXAMPLES_DIR / 'test'
 
-
 def run_pile_program(filepath: Path):
     try:
         result = subprocess.run(
-            ["cargo", "run", "--quiet", "--", str(filepath)],
+            ["cargo", "run", "--", str(filepath)],
+            input=DEFAULT_STDIN,
             capture_output=True,
             text=True
         )
         return result.stdout, result.returncode
+    except subprocess.TimeoutExpired:
+        err(f"execution of {filepath} timed out")
+        return None, None
     except Exception as e:
         err(f"failed to execute {filepath}: {e}")
         return None, None
@@ -60,8 +65,17 @@ def write_mode(missing_files=None):
     log("\nTEST WRITE COMPLETED")
 
 
+def show_failed_test(name: str, t: tuple[tuple[str, str], tuple[str, str]]):
+    print(f"FAILED TEST {name}", file=sys.stderr)
+    print(f"stdout:", file=sys.stderr)
+    print(f"\texpected: {t[0][1]}", file=sys.stderr)
+    print(f"\tgot: {t[0][0]}", file=sys.stderr)
+    print(f"returncode: expected {t[1][1]} but got {t[1][0]}", file=sys.stderr)
+    print()
+
+
 def test_mode():
-    fail_count = 0
+    fails = 0
     success_count = 0
     missing_files = []
     
@@ -82,16 +96,18 @@ def test_mode():
                 assert stdout == xs["stdout"]
                 assert returncode == xs["returncode"]
             except AssertionError:
-                fail_count += 1
+                fails += 1
                 msg_fail(f"test file {f'{file.stem}.json'} for {file.name}")
+                show_failed_test(name=result_path, t=((stdout, xs["stdout"]), (returncode, xs["returncode"])))
                 continue
-                
+        
             success_count += 1
             msg_pass(f"test file {f'{file.stem}.json'} for {file.name}")
 
+    total = fails + success_count 
     log("\nTEST COMPLETED")
-    log(f"{fail_count} FAILED")
-    log(f"{success_count} PASSED")
+    log(f"{fails}/{total} FAILED")
+    log(f"{success_count}/{total} PASSED")
     
     if missing_files:
         if input(f"\n{len(missing_files)} test files are missing. Create them now? (y/n): ").lower() == 'y':
