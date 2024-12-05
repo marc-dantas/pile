@@ -44,7 +44,7 @@ impl<'a> Token {
         // A number starts with a digit or a '-' followed by a digit
         matches!(target, '0'..='9' | '.') ||
         (*target == '-' && next.map_or(false, |c| c == &'.' || c.is_ascii_digit()))
-    }    
+    }
 
     fn is_number(target: &char) -> bool {
         matches!(target, '0'..='9' | '.')
@@ -115,7 +115,7 @@ impl<'a> Iterator for Lexer<'a> {
                             throw(
                                 "token error",
                                 &format!(
-                                    "unterminated string literal of \"{}\".",
+                                    "expected closing quotation mark (\") for string literal \"{}\".",
                                     buffer.clone() + &String::from(d)
                                 ),
                                 TokenSpan {
@@ -123,7 +123,7 @@ impl<'a> Iterator for Lexer<'a> {
                                     line: self.span.line,
                                     col: self.span.col + 2    
                                 },
-                                Some("try adding a `\"` at the end of the string."),
+                                Some("check if the string was left open unintentionally."),
                                 None,
                             );
                         }
