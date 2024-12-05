@@ -101,6 +101,7 @@ impl<'a> Iterator for Lexer<'a> {
                     while let Some(d) = self.input.content.next() {
                         if Token::is_newline(&d) {
                             self.span.line += 1;
+                            self.span.col = 1;
                             break;
                         }
                     }
