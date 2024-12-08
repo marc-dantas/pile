@@ -10,6 +10,13 @@ pub enum Data {
     Number(f64),
 }
 
+pub fn data_readable(x: &Data) -> String {
+    return match x {
+        Data::String(_) => String::from("string"),
+        Data::Number(_) => String::from("number"),
+    };
+}
+
 #[derive(Debug)]
 pub struct Procedure<'a>(String, &'a Vec<Node>);
 
@@ -290,8 +297,8 @@ impl<'a> Runtime<'a> {
                         self.push_number(n2);
                     }
                 },
-                (Data::String(s1), Data::String(s2)) => match x {
-                    BinaryOp::Add => self.push_string(s1 + &s2),
+                (ref i@Data::String(ref s1), ref j@Data::String(ref s2)) => match x {
+                    BinaryOp::Add => self.push_string(s1.to_owned() + s2),
                     BinaryOp::Eq => self.push_number((s1 == s2) as i32 as f64),
                     BinaryOp::Ne => self.push_number((s1 != s2) as i32 as f64),
                     // other comparison operators are not (should not be) supported for strings
@@ -300,38 +307,25 @@ impl<'a> Runtime<'a> {
                     // BinaryOp::Le => self.push_number((s1 <= s2) as i32 as f64),
                     // BinaryOp::Ge => self.push_number((s1 >= s2) as i32 as f64),
                     BinaryOp::Swap => {
-                        self.push_string(s1);
-                        self.push_string(s2);
+                        self.push_string(s1.to_string());
+                        self.push_string(s2.to_string());
                     }
                     BinaryOp::Over => {
                         self.push_string(s2.clone());
                         self.push_string(s1.clone());
-                        self.push_string(s2);
+                        self.push_string(s2.to_string());
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
                             span,
                             binaryop_readable(x),
-                            "(number, number)".to_string(),
-                            "(string, string)".to_string(),
+                            "numbers".to_string(),
+                            format!("({}, {})", data_readable(i), data_readable(j)),
                         ))
                     }
                 },
-                (Data::String(_), Data::Number(_)) => {
-                    return Err(RuntimeError::UnexpectedType(
-                        span,
-                        binaryop_readable(x),
-                        "(number, number) or (string, string)".to_string(),
-                        "(number, string)".to_string(),
-                    ));
-                }
-                (Data::Number(_), Data::String(_)) => {
-                    return Err(RuntimeError::UnexpectedType(
-                        span,
-                        binaryop_readable(x),
-                        "(number, number) or (string, string)".to_string(),
-                        "(string, number)".to_string(),
-                    ));
+                (a, b) => {
+                    return Err(RuntimeError::UnexpectedType(span, binaryop_readable(x), "numbers or strings".to_string(), format!("({}, {})", data_readable(&a), data_readable(&b))));
                 }
             }
         } else {
