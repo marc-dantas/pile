@@ -97,6 +97,9 @@ Pile's full documentation and website is being developed at [marc-dantas/pile-on
 
 For additional examples, explore the [`./examples`](./examples) folder.
 
+## Goals and Ideas
+You can read the [`GOALS.md`](./GOALS.md) file to find out what I want to implement in the language in the future and some ideas.
+
 ---
 
 > Licensed under **GPL 3.0**. See [`LICENSE`](./LICENSE) for details.
