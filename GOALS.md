@@ -44,7 +44,7 @@ Definitely going to happen someday. Probably not exactly like described but it w
   * Idea: Make multiple errors appear at the same execution shot.
 - [ ] CLI Enhancements
   * Idea: Implement a REPL mode for testing code directly from the terminal.
-- [ ] Code linting and formatting
+- [ ] Code debugging
   * Idea: Introduce a debugging tool to help beginners track logical problems in the stack-based algorithm:
     ```console
     $ pile program.pile --debug
