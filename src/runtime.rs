@@ -10,11 +10,13 @@ pub enum Data {
     Number(f64),
 }
 
-pub fn data_readable(x: &Data) -> String {
-    return match x {
-        Data::String(_) => String::from("string"),
-        Data::Number(_) => String::from("number"),
-    };
+impl std::fmt::Display for Data {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Data::String(_) => write!(f, "string"),
+            Data::Number(_) => write!(f, "number"),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -55,24 +57,26 @@ pub enum BinaryOp {
     Over,
 }
 
-pub fn binaryop_readable(x: BinaryOp) -> String {
-    match x {
-        BinaryOp::Add => String::from("+"),
-        BinaryOp::Sub => String::from("-"),
-        BinaryOp::Mul => String::from("*"),
-        BinaryOp::Div => String::from("/"),
-        BinaryOp::Gt => String::from(">"),
-        BinaryOp::Lt => String::from("<"),
-        BinaryOp::Eq => String::from("="),
-        BinaryOp::Ge => String::from(">="),
-        BinaryOp::Le => String::from("<="),
-        BinaryOp::Ne => String::from("!="),
-        BinaryOp::Shl => String::from(">>"),
-        BinaryOp::Shr => String::from("<<"),
-        BinaryOp::Bor => String::from("|"),
-        BinaryOp::Band => String::from("&"),
-        BinaryOp::Swap => String::from("swap"),
-        BinaryOp::Over => String::from("over"),
+impl std::fmt::Display for BinaryOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            BinaryOp::Add => write!(f, "+"),
+            BinaryOp::Sub => write!(f, "-"),
+            BinaryOp::Mul => write!(f, "*"),
+            BinaryOp::Div => write!(f, "/"),
+            BinaryOp::Gt => write!(f, ">"),
+            BinaryOp::Lt => write!(f, "<"),
+            BinaryOp::Eq => write!(f, "="),
+            BinaryOp::Ge => write!(f, ">="),
+            BinaryOp::Le => write!(f, "<="),
+            BinaryOp::Ne => write!(f, "!="),
+            BinaryOp::Shl => write!(f, ">>"),
+            BinaryOp::Shr => write!(f, "<<"),
+            BinaryOp::Bor => write!(f, "|"),
+            BinaryOp::Band => write!(f, "&"),
+            BinaryOp::Swap => write!(f, "swap"),
+            BinaryOp::Over => write!(f, "over"),
+        }
     }
 }
 
@@ -82,11 +86,13 @@ pub enum UnaryOp {
     Drop,
 }
 
-pub fn unaryop_readable(x: UnaryOp) -> String {
-    match x {
-        UnaryOp::Dump => String::from("dump"),
-        UnaryOp::Dup => String::from("dup"),
-        UnaryOp::Drop => String::from("drop"),
+impl std::fmt::Display for UnaryOp {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            UnaryOp::Dump => write!(f, "dump"),
+            UnaryOp::Dup => write!(f, "dup"),
+            UnaryOp::Drop => write!(f, "drop"),
+        }
     }
 }
 
@@ -264,7 +270,7 @@ impl<'a> Runtime<'a> {
                 },
             }
         } else {
-            return Err(RuntimeError::StackUnderflow(span, unaryop_readable(x), 1));
+            return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
         }
         Ok(())
     }
@@ -318,18 +324,18 @@ impl<'a> Runtime<'a> {
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
                             span,
-                            binaryop_readable(x),
+                            format!("{}", x),
                             "numbers".to_string(),
-                            format!("({}, {})", data_readable(i), data_readable(j)),
+                            format!("({}, {})", i, j),
                         ))
                     }
                 },
                 (a, b) => {
-                    return Err(RuntimeError::UnexpectedType(span, binaryop_readable(x), "numbers or strings".to_string(), format!("({}, {})", data_readable(&a), data_readable(&b))));
+                    return Err(RuntimeError::UnexpectedType(span, format!("{}", x), "numbers or strings".to_string(), format!("({}, {})", &a, &b)));
                 }
             }
         } else {
-            return Err(RuntimeError::StackUnderflow(span, binaryop_readable(x), 2));
+            return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 2));
         }
         Ok(())
     }
