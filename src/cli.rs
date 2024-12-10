@@ -12,9 +12,7 @@ pub struct Arguments {
 
 impl Arguments {
     fn new(filename: String) -> Self {
-        Self {
-            filename,
-        }
+        Self { filename }
     }
 }
 

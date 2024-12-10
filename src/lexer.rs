@@ -42,8 +42,8 @@ impl<'a> Token {
 
     fn is_number_start(target: &char, next: Option<&char>) -> bool {
         // A number starts with a digit or a '-' followed by a digit
-        matches!(target, '0'..='9' | '.') ||
-        (*target == '-' && next.map_or(false, |c| c == &'.' || c.is_ascii_digit()))
+        matches!(target, '0'..='9' | '.')
+            || (*target == '-' && next.map_or(false, |c| c == &'.' || c.is_ascii_digit()))
     }
 
     fn is_number(target: &char) -> bool {
@@ -122,7 +122,7 @@ impl<'a> Iterator for Lexer<'a> {
                                 TokenSpan {
                                     filename: self.input.name.to_string(),
                                     line: self.span.line,
-                                    col: self.span.col + 2    
+                                    col: self.span.col + 2
                                 },
                                 Some("check if the string was left open unintentionally."),
                                 None,
@@ -153,7 +153,7 @@ impl<'a> Iterator for Lexer<'a> {
                                     TokenSpan {
                                         filename: self.input.name.to_string(),
                                         line: self.span.line,
-                                        col: self.span.col + buffer.len()    
+                                        col: self.span.col + buffer.len(),
                                     },
                                     None,
                                     None,
@@ -203,7 +203,7 @@ impl<'a> Iterator for Lexer<'a> {
                         TokenSpan {
                             filename: self.input.name.to_string(),
                             line: self.span.line,
-                            col: self.span.col    
+                            col: self.span.col,
                         },
                         None,
                         None,

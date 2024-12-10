@@ -2,7 +2,10 @@ use crate::{
     lexer::TokenSpan,
     parser::{Node, OpKind, ProgramTree},
 };
-use std::{collections::VecDeque, io::{Read, Write}};
+use std::{
+    collections::VecDeque,
+    io::{Read, Write},
+};
 
 #[derive(Debug)]
 pub enum Data {
@@ -110,7 +113,7 @@ pub type Stack = VecDeque<Data>;
 #[derive(Debug)]
 pub enum RuntimeError {
     ProcedureError {
-        call: TokenSpan, // TokenSpan where the procedure was called
+        call: TokenSpan,          // TokenSpan where the procedure was called
         inner: Box<RuntimeError>, // the original error inside the procedure
     },
     StackUnderflow(TokenSpan, String, usize), // when there's too few data on the stack to perform operation
@@ -125,7 +128,7 @@ pub struct Runtime<'a> {
     input: &'a ProgramTree,
     stack: Stack,
     namespace: Namespace<'a>,
-    stop: bool
+    stop: bool,
 }
 
 impl<'a> Runtime<'a> {
@@ -137,7 +140,7 @@ impl<'a> Runtime<'a> {
                 procs: Vec::new(),
                 defs: Vec::new(),
             },
-            stop: false
+            stop: false,
         }
     }
 
@@ -166,7 +169,7 @@ impl<'a> Runtime<'a> {
         }
         Ok(())
     }
-    
+
     fn builtin(&mut self, span: TokenSpan, x: Builtin) -> Result<(), RuntimeError> {
         match x {
             Builtin::Println => {
@@ -180,9 +183,9 @@ impl<'a> Runtime<'a> {
                         }
                     }
                 } else {
-                    return Err(RuntimeError::StackUnderflow(span, "println".to_string(), 1))
+                    return Err(RuntimeError::StackUnderflow(span, "println".to_string(), 1));
                 }
-            },
+            }
             Builtin::EPrintln => {
                 if let Some(a) = self.pop() {
                     match a {
@@ -194,9 +197,13 @@ impl<'a> Runtime<'a> {
                         }
                     }
                 } else {
-                    return Err(RuntimeError::StackUnderflow(span, "eprintln".to_string(), 1))
+                    return Err(RuntimeError::StackUnderflow(
+                        span,
+                        "eprintln".to_string(),
+                        1,
+                    ));
                 }
-            },
+            }
             Builtin::EPrint => {
                 if let Some(a) = self.pop() {
                     match a {
@@ -210,9 +217,9 @@ impl<'a> Runtime<'a> {
                         }
                     }
                 } else {
-                    return Err(RuntimeError::StackUnderflow(span, "eprint".to_string(), 1))
+                    return Err(RuntimeError::StackUnderflow(span, "eprint".to_string(), 1));
                 }
-            },
+            }
             Builtin::Print => {
                 if let Some(a) = self.pop() {
                     match a {
@@ -226,9 +233,9 @@ impl<'a> Runtime<'a> {
                         }
                     }
                 } else {
-                    return Err(RuntimeError::StackUnderflow(span, "print".to_string(), 1))
+                    return Err(RuntimeError::StackUnderflow(span, "print".to_string(), 1));
                 }
-            },
+            }
             Builtin::Readln => {
                 let mut xs = String::new();
                 if let Ok(_) = std::io::stdin().read_line(&mut xs) {
@@ -303,7 +310,7 @@ impl<'a> Runtime<'a> {
                         self.push_number(n2);
                     }
                 },
-                (ref i@Data::String(ref s1), ref j@Data::String(ref s2)) => match x {
+                (ref i @ Data::String(ref s1), ref j @ Data::String(ref s2)) => match x {
                     BinaryOp::Add => self.push_string(s1.to_owned() + s2),
                     BinaryOp::Eq => self.push_number((s1 == s2) as i32 as f64),
                     BinaryOp::Ne => self.push_number((s1 != s2) as i32 as f64),
@@ -331,7 +338,12 @@ impl<'a> Runtime<'a> {
                     }
                 },
                 (a, b) => {
-                    return Err(RuntimeError::UnexpectedType(span, format!("{}", x), "numbers or strings".to_string(), format!("({}, {})", &a, &b)));
+                    return Err(RuntimeError::UnexpectedType(
+                        span,
+                        format!("{}", x),
+                        "numbers or strings".to_string(),
+                        format!("({}, {})", &a, &b),
+                    ));
                 }
             }
         } else {
@@ -346,7 +358,8 @@ impl<'a> Runtime<'a> {
                 if let Some(a) = self.pop() {
                     match a {
                         Data::Number(n) => {
-                            if n > 0.0 { // negative values or zero = false
+                            if n > 0.0 {
+                                // negative values or zero = false
                                 self.run_block(i)?;
                             } else {
                                 if let Some(els) = e {
@@ -355,7 +368,8 @@ impl<'a> Runtime<'a> {
                             }
                         }
                         Data::String(x) => {
-                            if x.len() > 0 { // empty string = false
+                            if x.len() > 0 {
+                                // empty string = false
                                 self.run_block(i)?;
                             } else {
                                 if let Some(els) = e {
@@ -365,11 +379,7 @@ impl<'a> Runtime<'a> {
                         }
                     }
                 } else {
-                    return Err(RuntimeError::StackUnderflow(
-                        s.clone(),
-                        "if".to_string(),
-                        1
-                    ));
+                    return Err(RuntimeError::StackUnderflow(s.clone(), "if".to_string(), 1));
                 }
             }
             Node::Loop(l, _) => {
@@ -416,7 +426,9 @@ impl<'a> Runtime<'a> {
                         }
                         Ok(())
                     }?,
-                    OpKind::Stop => { self.stop = true; }
+                    OpKind::Stop => {
+                        self.stop = true;
+                    }
                 }
             }
             Node::Word(w, s) => {
@@ -431,19 +443,21 @@ impl<'a> Runtime<'a> {
                     _ => {
                         if let Some(p) = self.namespace.procs.iter().find(|p| p.0 == *w) {
                             if let Err(e) = self.run_block(&p.1) {
-                                return Err(RuntimeError::ProcedureError { call: s, inner: Box::new(e) })
+                                return Err(RuntimeError::ProcedureError {
+                                    call: s,
+                                    inner: Box::new(e),
+                                });
                             }
                         } else if let Some(d) = self.namespace.defs.iter().find(|p| p.0 == *w) {
                             match &d.1 {
                                 Data::Number(n) => self.push_number(*n),
                                 Data::String(s) => self.push_string(String::from(s)),
                             }
-                        } else  {
+                        } else {
                             return Err(RuntimeError::InvalidWord(s, w.to_string()));
                         }
                     }
                 }
-                
             }
             Node::Proc(..) => {}
             Node::Def(..) => {}

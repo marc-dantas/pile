@@ -20,7 +20,7 @@ fn read_file(path: &str) -> Option<String> {
                 Err(_) => return None,
             }
         }
-        Err(_) => None
+        Err(_) => None,
     }
 }
 

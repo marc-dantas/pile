@@ -67,7 +67,7 @@ pub fn runtime_error(e: RuntimeError) {
         RuntimeError::ProcedureError { call: c, inner: i } => {
             match_runtime_error(i.as_ref(), Some(c));
         }
-        x=> match_runtime_error(&x, None),
+        x => match_runtime_error(&x, None),
     }
 }
 
@@ -141,11 +141,17 @@ pub fn throw(
     message: &str,
     span: TokenSpan,
     help: Option<&str>,
-    call: Option<TokenSpan>
+    call: Option<TokenSpan>,
 ) {
-    eprintln!("pile: error at {}:{}:{}:", span.filename, span.line, span.col);
+    eprintln!(
+        "pile: error at {}:{}:{}:",
+        span.filename, span.line, span.col
+    );
     if let Some(c) = call {
-        eprintln!("    > from procedure call at {}:{}:{}:", c.filename, c.line, c.col);
+        eprintln!(
+            "    > from procedure call at {}:{}:{}:",
+            c.filename, c.line, c.col
+        );
     }
     eprintln!("    |    {error}:");
     for line in break_line_at(message.to_string(), 50) {

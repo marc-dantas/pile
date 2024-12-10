@@ -3,39 +3,33 @@ use crate::lexer::{Lexer, Token, TokenKind, TokenSpan};
 pub fn is_op(value: &str) -> bool {
     matches!(
         value,
-        "dup" |
-        "drop" |
-        "swap" |
-        "over" |
-        "rot" |
-        "dump" |
-        "+" |
-        "-" |
-        "*" |
-        "/" |
-        ">" |
-        "<" |
-        "=" |
-        ">=" |
-        "<=" |
-        "!=" |
-        ">>" |
-        "<<" |
-        "|" |
-        "&"
+        "dup"
+            | "drop"
+            | "swap"
+            | "over"
+            | "rot"
+            | "dump"
+            | "+"
+            | "-"
+            | "*"
+            | "/"
+            | ">"
+            | "<"
+            | "="
+            | ">="
+            | "<="
+            | "!="
+            | ">>"
+            | "<<"
+            | "|"
+            | "&"
     )
 }
 
 pub fn is_reserved_word(value: &str) -> bool {
     matches!(
         value,
-        "if" |
-        "loop" |
-        "proc" |
-        "end" |
-        "else" |
-        "def" |
-        "stop"
+        "if" | "loop" | "proc" | "end" | "else" | "def" | "stop"
     )
 }
 
@@ -43,7 +37,8 @@ pub fn is_reserved_word(value: &str) -> bool {
 pub fn is_valid_identifier(value: &str) -> bool {
     !value.chars().next().map_or(false, |c| c.is_digit(10))
         && value.chars().all(|c| c.is_alphanumeric() || c == '_')
-        && !is_reserved_word(value) && !is_op(value)
+        && !is_reserved_word(value)
+        && !is_op(value)
 }
 
 #[derive(Debug)]
