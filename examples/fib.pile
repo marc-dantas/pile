@@ -1,10 +1,12 @@
 proc fib
     0 1
     loop
-        dup N >= if
-            dup println
-            over over +
-        else stop end
+        dup println
+        over over +
+        
+        dup N < if
+            stop
+        end
     end
 end
 
