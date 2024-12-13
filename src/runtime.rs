@@ -106,6 +106,7 @@ pub enum Builtin {
     EPrint,
     Read,
     Readln,
+    Exit,
 }
 
 pub type Stack = VecDeque<Data>;
@@ -250,6 +251,25 @@ impl<'a> Runtime<'a> {
                     self.push_string(xs);
                 } else {
                     self.push_number(-1.0);
+                }
+            }
+            Builtin::Exit => {
+                if let Some(a) = self.pop() {
+                    match a {
+                        Data::Number(n) => {
+                            std::process::exit(n as i32);
+                        }
+                        _ => {
+                            return Err(RuntimeError::UnexpectedType(
+                                span,
+                                "exit".to_string(),
+                                "number".to_string(),
+                                format!("{}", a),
+                            ));
+                        }
+                    }
+                } else {
+                    std::process::exit(0);
                 }
             }
         }
@@ -440,6 +460,7 @@ impl<'a> Runtime<'a> {
                     "eprintln" => self.builtin(s, Builtin::EPrintln)?,
                     "readln" => self.builtin(s, Builtin::Readln)?,
                     "read" => self.builtin(s, Builtin::Read)?,
+                    "exit" => self.builtin(s, Builtin::Exit)?,
                     _ => {
                         if let Some(p) = self.namespace.procs.iter().find(|p| p.0 == *w) {
                             if let Err(e) = self.run_block(&p.1) {
