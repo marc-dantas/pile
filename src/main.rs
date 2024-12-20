@@ -10,6 +10,8 @@ use runtime::*;
 use std::fs::File;
 use std::io::Read;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn read_file(path: &str) -> Option<String> {
     match File::open(path) {
         Ok(mut f) => {
@@ -53,10 +55,21 @@ fn run(filename: &str, source: String) {
 fn main() {
     match parse_arguments() {
         Ok(a) => {
+            if a.show_help {
+                show_usage();
+                show_help();
+                std::process::exit(0);
+            }
+            
+            if a.show_version {
+                show_version(VERSION);
+                std::process::exit(0);
+            }
+            
             if let Some(source) = read_file(&a.filename) {
                 run(&a.filename, source);
             } else {
-                error::usage("pile");
+                show_usage();
                 error::fatal(&format!("couldn't read file {}.", a.filename));
             }
         }
