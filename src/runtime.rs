@@ -5,6 +5,7 @@ use crate::{
 use std::{
     collections::VecDeque,
     io::{Read, Write},
+    str::FromStr
 };
 
 #[derive(Debug)]
@@ -107,6 +108,24 @@ pub enum Builtin {
     Read,
     Readln,
     Exit,
+    ToNumber,
+    ToString
+}
+
+impl std::fmt::Display for Builtin {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Builtin::Print => write!(f, "print"),
+            Builtin::Println => write!(f, "println"),
+            Builtin::EPrintln => write!(f, "eprintln"),
+            Builtin::EPrint => write!(f, "eprint"),
+            Builtin::Read => write!(f, "read"),
+            Builtin::Readln => write!(f, "readln"),
+            Builtin::Exit => write!(f, "exit"),
+            Builtin::ToNumber => write!(f, "tonumber"),
+            Builtin::ToString => write!(f, "tostring"),
+        }
+    }
 }
 
 pub type Stack = VecDeque<Data>;
@@ -120,6 +139,7 @@ pub enum RuntimeError {
     StackUnderflow(TokenSpan, String, usize), // when there's too few data on the stack to perform operation
     UnexpectedType(TokenSpan, String, String, String), // when there's an operation tries to operate with an unsupported or an invalid datatype
     InvalidWord(TokenSpan, String), // used when a word doesn't correspond a valid identifier
+    ValueError(TokenSpan, String, String, String), // used when a value is invalid or can not be handled
     ProcRedefinition(TokenSpan, String), // used when a procedure name is already taken
     DefRedefinition(TokenSpan, String), // used when a definition name is already taken
     EmptyDefinition(TokenSpan, String), // used when a definition has empty body
@@ -270,6 +290,45 @@ impl<'a> Runtime<'a> {
                     }
                 } else {
                     std::process::exit(0);
+                }
+            }
+            Builtin::ToNumber => {
+                if let Some(a) = self.pop() {
+                    match a {
+                        Data::String(s) => {
+                            match f64::from_str(&s) {
+                                Ok(n) => self.push_number(n),
+                                Err(_) => {
+                                    return Err(RuntimeError::ValueError(
+                                        span,
+                                        format!("{}", x),
+                                        "number".to_string(),
+                                        s,
+                                    ));
+                                },
+                            }
+                        }
+                        a => {
+                            return Err(RuntimeError::UnexpectedType(
+                                span,
+                                format!("{}", x),
+                                "numbers or strings".to_string(),
+                                format!("({})", &a),
+                            ));
+                        }
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
+                }
+            }
+            Builtin::ToString => {
+                if let Some(a) = self.pop() {
+                    match a {
+                        Data::Number(n) => self.push_string(n.to_string()),
+                        Data::String(s) => self.push_string(s),
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
                 }
             }
         }
@@ -461,6 +520,8 @@ impl<'a> Runtime<'a> {
                     "readln" => self.builtin(s, Builtin::Readln)?,
                     "read" => self.builtin(s, Builtin::Read)?,
                     "exit" => self.builtin(s, Builtin::Exit)?,
+                    "tostring" => self.builtin(s, Builtin::ToString)?,
+                    "tonumber" => self.builtin(s, Builtin::ToNumber)?,
                     _ => {
                         if let Some(p) = self.namespace.procs.iter().find(|p| p.0 == *w) {
                             if let Err(e) = self.run_block(&p.1) {
