@@ -59,6 +59,15 @@ fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
                 call,
             );
         }
+        RuntimeError::ValueError(span, n, x, y) => {
+            throw(
+                "runtime error",
+                &format!("value error: operation `{n}` expected valid literal value for {x}, but got {y}."),
+                span.clone(),
+                Some(&format!("likely caused by an invalid conversion to a {x}.")),
+                call,
+            );
+        }
     }
 }
 
