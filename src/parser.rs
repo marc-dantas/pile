@@ -66,6 +66,7 @@ pub enum OpKind {
     Stop,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Node {
     Number(f64, TokenSpan),
