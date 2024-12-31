@@ -1,5 +1,5 @@
 <p align="center">
-    <img width="200" src="./res/logo_text.svg" alt="pile"></img>
+    <img width="300" src="./logo/readme_logo.png" alt="pile"></img>
 </p>
 <h3 align="center">Educational stack-based and concatenative programming language.</h3>
 
