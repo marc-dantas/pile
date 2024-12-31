@@ -39,12 +39,13 @@ Clone the repository and build the project:
     $ ./target/release/pile [your pile program]
     ```
 
-For a quick reference, read [`basics.pile`](./basics.pile) file, which includes some examples and a compact overview of the language.
-
 ## Documentation
-**_(Still in development)_**
+
+***(Still in development)***
 
 Pile's full documentation and website is being developed at [marc-dantas/pile-online](https://github.com/marc-dantas/pile-online).
+
+For a quick understanding of the language, try reading [`BASICS.md`](./BASICS.md) file, which includes some examples and a compact overview of the language.
 
 ## Examples
 
