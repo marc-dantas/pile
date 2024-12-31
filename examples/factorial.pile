@@ -1,0 +1,10 @@
+proc fact
+    dup 1 swap <= if
+        drop 1
+    else
+        dup 1 swap - fact *
+    end
+end
+
+10 fact println
+20 fact println
