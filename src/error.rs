@@ -127,6 +127,9 @@ pub fn cli_error(e: CLIError) {
     show_usage();
     show_help();
     match e {
+        CLIError::InvalidFlag(x) => {
+            fatal(&format!("invalid flag: {x}"));
+        }
         CLIError::ExpectedArgument(x) => {
             fatal(&format!("expected argument: {x}"));
         }

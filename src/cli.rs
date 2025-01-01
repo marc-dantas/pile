@@ -1,7 +1,8 @@
+use rustc_version::version_meta;
 use std::env::args;
-use rustc_version::version;
 
 pub enum CLIError {
+    InvalidFlag(String),
     ExpectedArgument(String),
     UnexpectedArgument(String),
 }
@@ -14,7 +15,11 @@ pub struct Arguments {
 
 impl Arguments {
     fn new(filename: String, show_help: bool, show_version: bool) -> Self {
-        Self { filename, show_help, show_version }
+        Self {
+            filename,
+            show_help,
+            show_version,
+        }
     }
 }
 
@@ -32,11 +37,12 @@ pub fn show_help() {
 }
 
 fn rustc_version() -> String {
-    version().unwrap().to_string()
+    let v = version_meta().unwrap();
+    return format!("{} {}", v.short_version_string, v.host);
 }
 
 pub fn show_version(v: &str) {
-    println!("pile programming language {} [RUSTC {}]", v, rustc_version());
+    println!("pile programming language {}\n{}", v, rustc_version());
 }
 
 pub fn parse_arguments() -> Result<Arguments, CLIError> {
@@ -47,8 +53,11 @@ pub fn parse_arguments() -> Result<Arguments, CLIError> {
 
     for arg in args.into_iter() {
         match arg.as_str() {
-            "-h" | "--help" => show_help = true,
-            "-v" | "--version" => show_version = true,
+            flag if arg.starts_with("-") => match flag {
+                "-h" | "--help" => show_help = true,
+                "-v" | "--version" => show_version = true,
+                _ => return Err(CLIError::InvalidFlag(flag.to_string())),
+            },
             _ => {
                 if let Some(_) = filename {
                     return Err(CLIError::UnexpectedArgument(arg));
@@ -57,7 +66,7 @@ pub fn parse_arguments() -> Result<Arguments, CLIError> {
             }
         }
     }
-    
+
     if let Some(f) = filename {
         Ok(Arguments::new(f, show_help, show_version))
     } else {
