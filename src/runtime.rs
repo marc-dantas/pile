@@ -5,7 +5,7 @@ use crate::{
 use std::{
     collections::VecDeque,
     io::{Read, Write},
-    str::FromStr
+    str::FromStr,
 };
 
 #[derive(Debug)]
@@ -109,7 +109,7 @@ pub enum Builtin {
     Readln,
     Exit,
     ToNumber,
-    ToString
+    ToString,
 }
 
 impl std::fmt::Display for Builtin {
@@ -140,9 +140,9 @@ pub enum RuntimeError {
     UnexpectedType(TokenSpan, String, String, String), // when there's an operation tries to operate with an unsupported or an invalid datatype
     InvalidWord(TokenSpan, String), // used when a word doesn't correspond a valid identifier
     ValueError(TokenSpan, String, String, String), // used when a value is invalid or can not be handled
-    ProcRedefinition(TokenSpan, String), // used when a procedure name is already taken
-    DefRedefinition(TokenSpan, String), // used when a definition name is already taken
-    EmptyDefinition(TokenSpan, String), // used when a definition has empty body
+    ProcRedefinition(TokenSpan, String),           // used when a procedure name is already taken
+    DefRedefinition(TokenSpan, String),            // used when a definition name is already taken
+    EmptyDefinition(TokenSpan, String),            // used when a definition has empty body
 }
 
 pub struct Runtime<'a> {
@@ -295,19 +295,17 @@ impl<'a> Runtime<'a> {
             Builtin::ToNumber => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(s) => {
-                            match f64::from_str(&s) {
-                                Ok(n) => self.push_number(n),
-                                Err(_) => {
-                                    return Err(RuntimeError::ValueError(
-                                        span,
-                                        format!("{}", x),
-                                        "number".to_string(),
-                                        s,
-                                    ));
-                                },
+                        Data::String(s) => match f64::from_str(&s) {
+                            Ok(n) => self.push_number(n),
+                            Err(_) => {
+                                return Err(RuntimeError::ValueError(
+                                    span,
+                                    format!("{}", x),
+                                    "number".to_string(),
+                                    s,
+                                ));
                             }
-                        }
+                        },
                         a => {
                             return Err(RuntimeError::UnexpectedType(
                                 span,

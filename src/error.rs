@@ -1,4 +1,10 @@
-use crate::{lexer::TokenSpan, cli::{show_usage, show_help}, parser::ParseError, runtime::RuntimeError, CLIError};
+use crate::{
+    cli::{show_help, show_usage},
+    lexer::TokenSpan,
+    parser::ParseError,
+    runtime::RuntimeError,
+    CLIError,
+};
 
 fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
     match e {

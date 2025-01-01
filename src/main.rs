@@ -60,12 +60,12 @@ fn main() {
                 show_help();
                 std::process::exit(0);
             }
-            
+
             if a.show_version {
                 show_version(VERSION);
                 std::process::exit(0);
             }
-            
+
             if let Some(source) = read_file(&a.filename) {
                 run(&a.filename, source);
             } else {
