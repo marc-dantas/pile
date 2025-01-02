@@ -89,7 +89,7 @@ impl std::fmt::Display for BinaryOp {
 }
 
 pub enum UnaryOp {
-    Dump,
+    Trace,
     Dup,
     Drop,
     BNot,
@@ -98,7 +98,7 @@ pub enum UnaryOp {
 impl std::fmt::Display for UnaryOp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            UnaryOp::Dump => write!(f, "dump"),
+            UnaryOp::Trace => write!(f, "trace"),
             UnaryOp::Dup => write!(f, "dup"),
             UnaryOp::Drop => write!(f, "drop"),
             UnaryOp::BNot => write!(f, "~"),
@@ -343,7 +343,7 @@ impl<'a> Runtime<'a> {
         if let Some(a) = self.pop() {
             match a {
                 Data::Number(n) => match x {
-                    UnaryOp::Dump => println!("number {}", n),
+                    UnaryOp::Trace => println!("number {}", n),
                     UnaryOp::Dup => {
                         self.push_number(n);
                         self.push_number(n);
@@ -352,7 +352,7 @@ impl<'a> Runtime<'a> {
                     UnaryOp::BNot => self.push_number(!(n as i32) as f64),
                 },
                 Data::String(s) => match x {
-                    UnaryOp::Dump => println!("string \"{}\"", s),
+                    UnaryOp::Trace => println!("string \"{}\"", s),
                     UnaryOp::Dup => {
                         self.push_string(s.clone());
                         self.push_string(s);
@@ -512,7 +512,7 @@ impl<'a> Runtime<'a> {
                     OpKind::BNot => self.unop(s, UnaryOp::BNot)?,
                     OpKind::Dup => self.unop(s, UnaryOp::Dup)?,
                     OpKind::Drop => self.unop(s, UnaryOp::Drop)?,
-                    OpKind::Dump => self.unop(s, UnaryOp::Dump)?,
+                    OpKind::Trace => self.unop(s, UnaryOp::Trace)?,
                     OpKind::Rot => {
                         if let (Some(a), Some(b), Some(c)) = (self.pop(), self.pop(), self.pop()) {
                             self.stack.push_front(b);

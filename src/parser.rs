@@ -8,7 +8,7 @@ pub fn is_op(value: &str) -> bool {
             | "swap"
             | "over"
             | "rot"
-            | "dump"
+            | "trace"
             | "+"
             | "-"
             | "*"
@@ -64,7 +64,7 @@ pub enum OpKind {
     BNot,
     Swap,
     Over,
-    Dump,
+    Trace,
     Dup,
     Rot,
     Drop,
@@ -151,7 +151,7 @@ impl<'a> Parser<'a> {
                 "swap" => Ok(Node::Operation(OpKind::Swap, token.span)),
                 "over" => Ok(Node::Operation(OpKind::Over, token.span)),
                 "rot" => Ok(Node::Operation(OpKind::Rot, token.span)),
-                "dump" => Ok(Node::Operation(OpKind::Dump, token.span)),
+                "trace" => Ok(Node::Operation(OpKind::Trace, token.span)),
                 "stop" => Ok(Node::Operation(OpKind::Stop, token.span)),
                 x if is_valid_identifier(x) => Ok(Node::Word(token.value, token.span)),
                 _ => Err(ParseError::UnexpectedToken(

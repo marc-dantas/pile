@@ -90,9 +90,9 @@ A literal value is any value that you can write (hardcode) into your program. Pi
 
 ```pile
 10 10 = if
-    "true case" dump
+    "true case" trace # Use trace as a debug operation to check values
 else  # Optional
-    "false case" dump
+    "false case" trace
 end
 ```
 
@@ -100,7 +100,7 @@ end
 
 ```pile
 loop
-    "this will dump forever" dump
+    "this will trace forever" trace
     # Use `stop` to break the loop
 end
 ```
@@ -116,10 +116,10 @@ end
 ### Examples
 
 ```pile
-proc dump_hello
-    "hello" dump
+proc trace_hello
+    "hello" trace
 end
-dump_hello # Output: hello
+trace_hello # Output: hello
 ```
 
 ```
@@ -156,12 +156,12 @@ def TOTAL
     FRI +
     SAT +
 end
-TOTAL dump
+TOTAL trace
 ```
 
 ```
 def AUTHOR "marc-dantas" end
-AUTHOR dump # Output: marc-dantas
+AUTHOR trace # Output: marc-dantas
 ```
 
 **More about Pile programming language can be found in the official documentation.**

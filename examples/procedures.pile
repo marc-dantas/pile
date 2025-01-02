@@ -1,5 +1,5 @@
 proc greet
-    "Hi" dump
+    "Hi" trace
 end
 
 greet
