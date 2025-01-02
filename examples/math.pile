@@ -2,3 +2,5 @@
 10 5 - dump
 3 3 * dump
 10 2 / dump
+2 10 % dump
+10 2 ** dump

@@ -23,6 +23,8 @@ pub fn is_op(value: &str) -> bool {
             | "<<"
             | "|"
             | "&"
+            | "~"
+            | "**"
     )
 }
 
@@ -47,6 +49,8 @@ pub enum OpKind {
     Sub,
     Mul,
     Div,
+    Mod,
+    Exp,
     Gt,
     Lt,
     Eq,
@@ -57,6 +61,7 @@ pub enum OpKind {
     Shr,
     Bor,
     Band,
+    BNot,
     Swap,
     Over,
     Dump,
@@ -128,6 +133,8 @@ impl<'a> Parser<'a> {
                 "-" => Ok(Node::Operation(OpKind::Sub, token.span)),
                 "*" => Ok(Node::Operation(OpKind::Mul, token.span)),
                 "/" => Ok(Node::Operation(OpKind::Div, token.span)),
+                "%" => Ok(Node::Operation(OpKind::Mod, token.span)),
+                "**" => Ok(Node::Operation(OpKind::Exp, token.span)),
                 "=" => Ok(Node::Operation(OpKind::Eq, token.span)),
                 "!=" => Ok(Node::Operation(OpKind::Ne, token.span)),
                 ">" => Ok(Node::Operation(OpKind::Gt, token.span)),
@@ -138,6 +145,7 @@ impl<'a> Parser<'a> {
                 "&" => Ok(Node::Operation(OpKind::Band, token.span)),
                 ">>" => Ok(Node::Operation(OpKind::Shr, token.span)),
                 "<<" => Ok(Node::Operation(OpKind::Shl, token.span)),
+                "~" => Ok(Node::Operation(OpKind::BNot, token.span)),
                 "dup" => Ok(Node::Operation(OpKind::Dup, token.span)),
                 "drop" => Ok(Node::Operation(OpKind::Drop, token.span)),
                 "swap" => Ok(Node::Operation(OpKind::Swap, token.span)),

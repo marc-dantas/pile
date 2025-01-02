@@ -47,6 +47,8 @@ pub enum BinaryOp {
     Sub,
     Mul,
     Div,
+    Mod,
+    Exp,
     Gt,
     Lt,
     Eq,
@@ -68,6 +70,8 @@ impl std::fmt::Display for BinaryOp {
             BinaryOp::Sub => write!(f, "-"),
             BinaryOp::Mul => write!(f, "*"),
             BinaryOp::Div => write!(f, "/"),
+            BinaryOp::Mod => write!(f, "%"),
+            BinaryOp::Exp => write!(f, "**"),
             BinaryOp::Gt => write!(f, ">"),
             BinaryOp::Lt => write!(f, "<"),
             BinaryOp::Eq => write!(f, "="),
@@ -88,6 +92,7 @@ pub enum UnaryOp {
     Dump,
     Dup,
     Drop,
+    BNot,
 }
 
 impl std::fmt::Display for UnaryOp {
@@ -96,6 +101,7 @@ impl std::fmt::Display for UnaryOp {
             UnaryOp::Dump => write!(f, "dump"),
             UnaryOp::Dup => write!(f, "dup"),
             UnaryOp::Drop => write!(f, "drop"),
+            UnaryOp::BNot => write!(f, "~"),
         }
     }
 }
@@ -342,7 +348,8 @@ impl<'a> Runtime<'a> {
                         self.push_number(n);
                         self.push_number(n);
                     }
-                    UnaryOp::Drop => {}
+                    UnaryOp::Drop => {},
+                    UnaryOp::BNot => self.push_number(!(n as i32) as f64),
                 },
                 Data::String(s) => match x {
                     UnaryOp::Dump => println!("string \"{}\"", s),
@@ -350,7 +357,15 @@ impl<'a> Runtime<'a> {
                         self.push_string(s.clone());
                         self.push_string(s);
                     }
-                    UnaryOp::Drop => {}
+                    UnaryOp::Drop => {},
+                    UnaryOp::BNot => {
+                        return Err(RuntimeError::UnexpectedType(
+                            span,
+                            format!("{}", x),
+                            "number".to_string(),
+                            "string".to_string(),
+                        ))
+                    },
                 },
             }
         } else {
@@ -367,6 +382,8 @@ impl<'a> Runtime<'a> {
                     BinaryOp::Sub => self.push_number(n1 - n2),
                     BinaryOp::Mul => self.push_number(n1 * n2),
                     BinaryOp::Div => self.push_number(n1 / n2),
+                    BinaryOp::Mod => self.push_number(n1 % n2),
+                    BinaryOp::Exp => self.push_number(n1.powf(n2)),
                     BinaryOp::Eq => self.push_number((n1 == n2) as i32 as f64),
                     BinaryOp::Ne => self.push_number((n1 != n2) as i32 as f64),
                     BinaryOp::Lt => self.push_number((n1 < n2) as i32 as f64),
@@ -478,6 +495,8 @@ impl<'a> Runtime<'a> {
                     OpKind::Sub => self.binop(s, BinaryOp::Sub)?,
                     OpKind::Mul => self.binop(s, BinaryOp::Mul)?,
                     OpKind::Div => self.binop(s, BinaryOp::Div)?,
+                    OpKind::Mod => self.binop(s, BinaryOp::Mod)?,
+                    OpKind::Exp => self.binop(s, BinaryOp::Exp)?,
                     OpKind::Gt => self.binop(s, BinaryOp::Gt)?,
                     OpKind::Lt => self.binop(s, BinaryOp::Lt)?,
                     OpKind::Eq => self.binop(s, BinaryOp::Eq)?,
@@ -490,6 +509,7 @@ impl<'a> Runtime<'a> {
                     OpKind::Band => self.binop(s, BinaryOp::Band)?,
                     OpKind::Swap => self.binop(s, BinaryOp::Swap)?,
                     OpKind::Over => self.binop(s, BinaryOp::Over)?,
+                    OpKind::BNot => self.unop(s, UnaryOp::BNot)?,
                     OpKind::Dup => self.unop(s, UnaryOp::Dup)?,
                     OpKind::Drop => self.unop(s, UnaryOp::Drop)?,
                     OpKind::Dump => self.unop(s, UnaryOp::Dump)?,

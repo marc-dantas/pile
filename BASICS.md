@@ -28,16 +28,18 @@ A stack in a stack-oriented paradigm is essentially an "infinite" array where yo
 
 ## Simple operations
 
-### Basic Operations:
+### Math
 
 ```pile
-1 1 +        # Adds 1 and 1 (Result: 2)
-1 1 + 1 -    # Adds 1 and 1, then subtracts 1 (Result: 0)
-2 10 / 1 +   # Divides 10 by 2, then adds 1 (Result: 6)
-4 4 * 2 -    # Multiplies 4 by 4, then subtracts 2 (Result: 14)
+1 1 +    # Adds 1 and 1 (Result: 2)
+1 1 -    # Adds 1 and 1, then subtracts 1 (Result: 0)
+2 2 *    # Multiplies 2 by 2 (Result: 4)
+2 10 /   # Divides 10 by 2 (Result: 5)
+2 10 %   # Modulo 10 by 2 (Result: 0)
+2 10 **  # Raises 10 to the 2nd power (Result: 100)
 ```
 
-### Comparisons:
+### Comparisons
 
 ```pile
 10 10 =    # Checks if 10 equals 10 (true)
@@ -48,10 +50,10 @@ A stack in a stack-oriented paradigm is essentially an "infinite" array where yo
 10 12 <    # Checks if 12 is less than 10 (false)
 ```
 
-### Bitwise Operations:
+### Bitwise
 
 ```pile
-1     !     # Bitwise NOT (Result: 0)
+1     ~     # Bitwise NOT (Result: 0)
 1 0   |     # Bitwise OR (Result: 1)
 1 0   &     # Bitwise AND (Result: 0)
 1 0   >>    # Bitwise SHIFT LEFT (Result: 0)
@@ -60,7 +62,7 @@ A stack in a stack-oriented paradigm is essentially an "infinite" array where yo
 
 ## Stack Manipulation
 
-### Operations:
+### Operations
 
 ```pile
 420     drop  # Deletes (drops) the last item on the stack
@@ -84,7 +86,7 @@ A literal value is any value that you can write (hardcode) into your program. Pi
 
 ## Control Flow
 
-### If Expressions:
+### If
 
 ```pile
 10 10 = if
@@ -94,7 +96,7 @@ else  # Optional
 end
 ```
 
-### Loop Expressions:
+### Loop
 
 ```pile
 loop
@@ -161,7 +163,6 @@ TOTAL dump
 def AUTHOR "marc-dantas" end
 AUTHOR dump # Output: marc-dantas
 ```
-
 
 **More about Pile programming language can be found in the official documentation.**
 

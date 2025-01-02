@@ -40,6 +40,13 @@ Definitely going to happen someday. Probably not exactly like described but it w
       ...
     end
     ```
+  * Idea 2: Use `?` operator to check if something is not nil and use if directly:
+    ```!?
+    "10" tonumber # could return nil if can't convert 
+    ? if # Checking if it is nil
+
+    end
+    ```
 - [ ] Error stack trace
   * Idea: Make multiple errors appear at the same execution shot.
 - [ ] CLI Enhancements
