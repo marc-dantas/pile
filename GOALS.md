@@ -1,14 +1,12 @@
 # Pile's Development Goals and Ideas for the Language
 
 ## Already Done
-(empty)
-
+- [X] Introduce more mathematical operations
+  * Final: Operations added: Modulo and Exponentiation.
 
 ## To Be Done
 Definitely going to happen someday. Probably not exactly like described but it will happen.
 
-- [ ] Introduce more mathematical operations
-  * Idea: Operations like Modulo, Integer division, Exponentiation, and Square root are nice additions.
 - [ ] Introduce `nil` datatype
   * Idea: Use `nil` to represent empty or undefined values for error handling and logic flow.
 - [ ] Introduce `bool` datatype
