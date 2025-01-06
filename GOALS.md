@@ -58,8 +58,27 @@ Definitely going to happen someday. Probably not exactly like described but it w
       x y z + +
     end # names x, y and z are undefined past this
     ```
-- [ ] Error stack trace
-  * Idea: Make multiple errors appear at the same execution shot.
+- [ ] More refined error messages
+  * Idea: Make language errors show the line and column visually to the use
+*   Also add useful information like error link to documentation.
+    
+    An error message that is like this:
+    ```
+    pile: error at .\test.pile:1:6:
+        |    parse error:
+        |        syntax error: unexpected token while parsing:
+        |        expected valid identifier but got 123
+    ```
+    could be like this:
+    ```
+    pile: parse error at .\test.pile:1:6:
+    syntax error: unexpected token while parsing:
+    
+     1  |    proc 123
+                  ^
+                  expected valid identifier but got 123                 
+    ```
+    Or any variation of this
 - [ ] CLI Enhancements
   * Idea: Implement a REPL mode for testing code directly from the terminal.
 - [ ] Code debugging
