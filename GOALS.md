@@ -38,12 +38,25 @@ Definitely going to happen someday. Probably not exactly like described but it w
       ...
     end
     ```
-  * Idea 2: Use `?` operator to check if something is not nil and use if directly:
-    ```!?
-    "10" tonumber # could return nil if can't convert 
-    ? if # Checking if it is nil
-
+- [ ] Let statement
+  * Idea: Implement a variable system using keyword `let`:
+    ```
+    10 let x # assigns the name to the last value on top of the stack
+    ```
+    Create a scope system that works inside an optional block syntax after the let.
+    ```
+    proc circle_area
+      # This way it's possible to bind the arguments of the proc
+      let radius do
+        radius dup * PI *
+      end # name radius is undefined past this
     end
+    
+    # Also be able to bind the values to more names
+    10 20 30
+    let x y z do
+      x y z + +
+    end # names x, y and z are undefined past this
     ```
 - [ ] Error stack trace
   * Idea: Make multiple errors appear at the same execution shot.
