@@ -3,9 +3,7 @@ use crate::{
     parser::{Node, OpKind, ProgramTree},
 };
 use std::{
-    collections::VecDeque,
-    io::{Read, Write},
-    str::FromStr,
+    collections::{HashMap, VecDeque}, io::{Read, Write}, ptr::write_unaligned, str::FromStr
 };
 
 #[derive(Debug)]
@@ -24,15 +22,15 @@ impl std::fmt::Display for Data {
 }
 
 #[derive(Debug)]
-pub struct Procedure<'a>(String, &'a Vec<Node>);
+pub struct Procedure<'a>(&'a Vec<Node>);
 
 #[derive(Debug)]
-pub struct Definition(String, Data);
+pub struct Definition(Data);
 
 #[derive(Debug)]
 pub struct Namespace<'a> {
-    pub procs: Vec<Procedure<'a>>,
-    pub defs: Vec<Definition>,
+    pub procs: HashMap<String, Procedure<'a>>,
+    pub defs: HashMap<String, Definition>,
 }
 
 // stack operations:
@@ -164,8 +162,8 @@ impl<'a> Runtime<'a> {
             input,
             stack: VecDeque::new(),
             namespace: Namespace {
-                procs: Vec::new(),
-                defs: Vec::new(),
+                procs: HashMap::new(),
+                defs: HashMap::new(),
             },
             stop: false,
         }
@@ -175,18 +173,18 @@ impl<'a> Runtime<'a> {
         for n in self.input {
             match n {
                 Node::Proc(n, p, s) => {
-                    if let Some(_) = self.namespace.procs.iter().find(|p| p.0 == *n) {
+                    if self.namespace.procs.contains_key(n) {
                         return Err(RuntimeError::ProcRedefinition(s.clone(), n.to_string()));
                     }
-                    self.namespace.procs.push(Procedure(n.to_string(), p));
+                    self.namespace.procs.insert(n.to_string(), Procedure(p));
                 }
                 Node::Def(n, p, s) => {
-                    if let Some(_) = self.namespace.defs.iter().find(|p| p.0 == *n) {
+                    if self.namespace.defs.contains_key(n) {
                         return Err(RuntimeError::DefRedefinition(s.clone(), n.to_string()));
                     }
                     self.run_block(p)?;
                     if let Some(result) = self.pop() {
-                        self.namespace.defs.push(Definition(n.to_string(), result));
+                        self.namespace.defs.insert(n.to_string(),Definition(result));
                     } else {
                         return Err(RuntimeError::EmptyDefinition(s.clone(), n.to_string()));
                     }
@@ -541,15 +539,15 @@ impl<'a> Runtime<'a> {
                     "tostring" => self.builtin(s, Builtin::ToString)?,
                     "tonumber" => self.builtin(s, Builtin::ToNumber)?,
                     _ => {
-                        if let Some(p) = self.namespace.procs.iter().find(|p| p.0 == *w) {
-                            if let Err(e) = self.run_block(&p.1) {
+                        if let Some(p) = self.namespace.procs.get(w) {
+                            if let Err(e) = self.run_block(p.0) {
                                 return Err(RuntimeError::ProcedureError {
                                     call: s,
                                     inner: Box::new(e),
                                 });
                             }
-                        } else if let Some(d) = self.namespace.defs.iter().find(|p| p.0 == *w) {
-                            match &d.1 {
+                        } else if let Some(d) = self.namespace.defs.get(w) {
+                            match &d.0 {
                                 Data::Number(n) => self.push_number(*n),
                                 Data::String(s) => self.push_string(String::from(s)),
                             }
