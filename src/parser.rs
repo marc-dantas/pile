@@ -74,8 +74,9 @@ pub enum OpKind {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum Node {
-    Number(f64, TokenSpan),
-    String(String, TokenSpan),
+    IntLit(i32, TokenSpan),
+    FloatLit(f64, TokenSpan),
+    StringLit(String, TokenSpan),
     Proc(String, Vec<Node>, TokenSpan),
     Def(String, Vec<Node>, TokenSpan),
     If(Vec<Node>, Option<Vec<Node>>, TokenSpan),
@@ -118,7 +119,8 @@ impl<'a> Parser<'a> {
 
     fn parse_expr(&mut self, token: Token) -> Result<Node, ParseError> {
         match token.kind {
-            TokenKind::Number => Ok(Node::Number(token.value.parse().unwrap(), token.span)),
+            TokenKind::Int => Ok(Node::IntLit(token.value.parse().unwrap(), token.span)),
+            TokenKind::Float => Ok(Node::FloatLit(token.value.parse().unwrap(), token.span)),
             TokenKind::Word => match token.value.as_str() {
                 "proc" => self.parse_proc(),
                 "def" => self.parse_def(),
@@ -157,10 +159,10 @@ impl<'a> Parser<'a> {
                 _ => Err(ParseError::UnexpectedToken(
                     token.span.clone(),
                     token.value,
-                    "number, word, string, or operation".to_string(),
+                    "int literal, float literal, word, string literal, or operation".to_string(),
                 )),
             },
-            TokenKind::String => Ok(Node::String(token.value, token.span)),
+            TokenKind::String => Ok(Node::StringLit(token.value, token.span)),
         }
     }
 

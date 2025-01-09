@@ -3,20 +3,24 @@ use crate::{
     parser::{Node, OpKind, ProgramTree},
 };
 use std::{
-    collections::{HashMap, VecDeque}, io::{Read, Write}, ptr::write_unaligned, str::FromStr
+    collections::{HashMap, VecDeque},
+    io::{Read, Write},
+    str::FromStr,
 };
 
 #[derive(Debug)]
 pub enum Data {
     String(String),
-    Number(f64),
+    Int(i32),
+    Float(f64),
 }
 
 impl std::fmt::Display for Data {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Data::String(_) => write!(f, "string"),
-            Data::Number(_) => write!(f, "number"),
+            Data::Int(_) => write!(f, "int"),
+            Data::Float(_) => write!(f, "float"),
         }
     }
 }
@@ -112,8 +116,9 @@ pub enum Builtin {
     Read,
     Readln,
     Exit,
-    ToNumber,
     ToString,
+    ToInt,
+    ToFloat,
 }
 
 impl std::fmt::Display for Builtin {
@@ -126,8 +131,9 @@ impl std::fmt::Display for Builtin {
             Builtin::Read => write!(f, "read"),
             Builtin::Readln => write!(f, "readln"),
             Builtin::Exit => write!(f, "exit"),
-            Builtin::ToNumber => write!(f, "tonumber"),
             Builtin::ToString => write!(f, "tostring"),
+            Builtin::ToInt => write!(f, "toint"),
+            Builtin::ToFloat => write!(f, "tofloat"),
         }
     }
 }
@@ -184,7 +190,9 @@ impl<'a> Runtime<'a> {
                     }
                     self.run_block(p)?;
                     if let Some(result) = self.pop() {
-                        self.namespace.defs.insert(n.to_string(),Definition(result));
+                        self.namespace
+                            .defs
+                            .insert(n.to_string(), Definition(result));
                     } else {
                         return Err(RuntimeError::EmptyDefinition(s.clone(), n.to_string()));
                     }
@@ -203,7 +211,10 @@ impl<'a> Runtime<'a> {
                         Data::String(s) => {
                             println!("{}", s);
                         }
-                        Data::Number(n) => {
+                        Data::Int(n) => {
+                            println!("{}", n);
+                        }
+                        Data::Float(n) => {
                             println!("{}", n);
                         }
                     }
@@ -217,7 +228,10 @@ impl<'a> Runtime<'a> {
                         Data::String(s) => {
                             eprintln!("{}", s);
                         }
-                        Data::Number(n) => {
+                        Data::Int(n) => {
+                            eprintln!("{}", n);
+                        }
+                        Data::Float(n) => {
                             eprintln!("{}", n);
                         }
                     }
@@ -236,7 +250,11 @@ impl<'a> Runtime<'a> {
                             eprint!("{}", s);
                             std::io::stderr().flush().unwrap();
                         }
-                        Data::Number(n) => {
+                        Data::Int(n) => {
+                            eprint!("{}", n);
+                            std::io::stderr().flush().unwrap();
+                        }
+                        Data::Float(n) => {
                             eprint!("{}", n);
                             std::io::stderr().flush().unwrap();
                         }
@@ -252,7 +270,11 @@ impl<'a> Runtime<'a> {
                             print!("{}", s);
                             std::io::stdout().flush().unwrap();
                         }
-                        Data::Number(n) => {
+                        Data::Int(n) => {
+                            print!("{}", n);
+                            std::io::stdout().flush().unwrap();
+                        }
+                        Data::Float(n) => {
                             print!("{}", n);
                             std::io::stdout().flush().unwrap();
                         }
@@ -266,7 +288,7 @@ impl<'a> Runtime<'a> {
                 if let Ok(_) = std::io::stdin().read_line(&mut xs) {
                     self.push_string(xs.trim().to_string());
                 } else {
-                    self.push_number(-1.0);
+                    self.push_int(-1);
                 }
             }
             Builtin::Read => {
@@ -274,20 +296,20 @@ impl<'a> Runtime<'a> {
                 if let Ok(_) = std::io::stdin().read_to_string(&mut xs) {
                     self.push_string(xs);
                 } else {
-                    self.push_number(-1.0);
+                    self.push_int(-1);
                 }
             }
             Builtin::Exit => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::Number(n) => {
-                            std::process::exit(n as i32);
+                        Data::Int(n) => {
+                            std::process::exit(n);
                         }
                         _ => {
                             return Err(RuntimeError::UnexpectedType(
                                 span,
                                 "exit".to_string(),
-                                "number".to_string(),
+                                "int".to_string(),
                                 format!("{}", a),
                             ));
                         }
@@ -296,25 +318,54 @@ impl<'a> Runtime<'a> {
                     std::process::exit(0);
                 }
             }
-            Builtin::ToNumber => {
+            Builtin::ToInt => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(s) => match f64::from_str(&s) {
-                            Ok(n) => self.push_number(n),
+                        Data::String(s) => match i32::from_str(&s) {
+                            Ok(n) => self.push_int(n),
                             Err(_) => {
                                 return Err(RuntimeError::ValueError(
                                     span,
                                     format!("{}", x),
-                                    "number".to_string(),
+                                    "int".to_string(),
                                     s,
                                 ));
                             }
                         },
+                        Data::Float(n) => self.push_int(n as i32),
                         a => {
                             return Err(RuntimeError::UnexpectedType(
                                 span,
                                 format!("{}", x),
-                                "numbers or strings".to_string(),
+                                "ints or strings".to_string(),
+                                format!("({})", &a),
+                            ));
+                        }
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
+                }
+            }
+            Builtin::ToFloat => {
+                if let Some(a) = self.pop() {
+                    match a {
+                        Data::String(s) => match f64::from_str(&s) {
+                            Ok(n) => self.push_float(n),
+                            Err(_) => {
+                                return Err(RuntimeError::ValueError(
+                                    span,
+                                    format!("{}", x),
+                                    "float".to_string(),
+                                    s,
+                                ));
+                            }
+                        },
+                        Data::Int(n) => self.push_float(n as f64),
+                        a => {
+                            return Err(RuntimeError::UnexpectedType(
+                                span,
+                                format!("{}", x),
+                                "floats or strings".to_string(),
                                 format!("({})", &a),
                             ));
                         }
@@ -326,7 +377,8 @@ impl<'a> Runtime<'a> {
             Builtin::ToString => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::Number(n) => self.push_string(n.to_string()),
+                        Data::Int(n) => self.push_string(n.to_string()),
+                        Data::Float(n) => self.push_string(n.to_string()),
                         Data::String(s) => self.push_string(s),
                     }
                 } else {
@@ -340,14 +392,23 @@ impl<'a> Runtime<'a> {
     fn unop(&mut self, span: TokenSpan, x: UnaryOp) -> Result<(), RuntimeError> {
         if let Some(a) = self.pop() {
             match a {
-                Data::Number(n) => match x {
-                    UnaryOp::Trace => println!("number {}", n),
+                Data::Int(n) => match x {
+                    UnaryOp::Trace => println!("int {}", n),
                     UnaryOp::Dup => {
-                        self.push_number(n);
-                        self.push_number(n);
+                        self.push_int(n);
+                        self.push_int(n);
                     }
-                    UnaryOp::Drop => {},
-                    UnaryOp::BNot => self.push_number(!(n as i32) as f64),
+                    UnaryOp::Drop => {}
+                    UnaryOp::BNot => self.push_int(!n),
+                },
+                Data::Float(n) => match x {
+                    UnaryOp::Trace => println!("float {}", n),
+                    UnaryOp::Dup => {
+                        self.push_float(n);
+                        self.push_float(n);
+                    }
+                    UnaryOp::Drop => {}
+                    UnaryOp::BNot => self.push_float(!(n as i32) as f64),
                 },
                 Data::String(s) => match x {
                     UnaryOp::Trace => println!("string \"{}\"", s),
@@ -355,15 +416,15 @@ impl<'a> Runtime<'a> {
                         self.push_string(s.clone());
                         self.push_string(s);
                     }
-                    UnaryOp::Drop => {},
+                    UnaryOp::Drop => {}
                     UnaryOp::BNot => {
                         return Err(RuntimeError::UnexpectedType(
                             span,
                             format!("{}", x),
-                            "number".to_string(),
+                            "int or float".to_string(),
                             "string".to_string(),
                         ))
-                    },
+                    }
                 },
             }
         } else {
@@ -375,42 +436,68 @@ impl<'a> Runtime<'a> {
     fn binop(&mut self, span: TokenSpan, x: BinaryOp) -> Result<(), RuntimeError> {
         if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
             match (a, b) {
-                (Data::Number(n1), Data::Number(n2)) => match x {
-                    BinaryOp::Add => self.push_number(n1 + n2),
-                    BinaryOp::Sub => self.push_number(n1 - n2),
-                    BinaryOp::Mul => self.push_number(n1 * n2),
-                    BinaryOp::Div => self.push_number(n1 / n2),
-                    BinaryOp::Mod => self.push_number(n1 % n2),
-                    BinaryOp::Exp => self.push_number(n1.powf(n2)),
-                    BinaryOp::Eq => self.push_number((n1 == n2) as i32 as f64),
-                    BinaryOp::Ne => self.push_number((n1 != n2) as i32 as f64),
-                    BinaryOp::Lt => self.push_number((n1 < n2) as i32 as f64),
-                    BinaryOp::Gt => self.push_number((n1 > n2) as i32 as f64),
-                    BinaryOp::Le => self.push_number((n1 <= n2) as i32 as f64),
-                    BinaryOp::Ge => self.push_number((n1 >= n2) as i32 as f64),
-                    BinaryOp::Shl => self.push_number(((n1 as i32) << (n2 as i32)) as f64),
-                    BinaryOp::Shr => self.push_number(((n1 as i32) >> (n2 as i32)) as f64),
-                    BinaryOp::Bor => self.push_number(((n1 as i32) | (n2 as i32)) as f64),
-                    BinaryOp::Band => self.push_number(((n1 as i32) & (n2 as i32)) as f64),
+                (Data::Int(n1), Data::Int(n2)) => match x {
+                    BinaryOp::Add => self.push_int(n1 + n2),
+                    BinaryOp::Sub => self.push_int(n1 - n2),
+                    BinaryOp::Mul => self.push_int(n1 * n2),
+                    BinaryOp::Div => self.push_int(n1 / n2),
+                    BinaryOp::Mod => self.push_int(n1 % n2),
+                    BinaryOp::Exp => self.push_int(n1.pow(n2 as u32)),
+                    BinaryOp::Eq => self.push_int((n1 == n2) as i32), // TODO: bool type
+                    BinaryOp::Ne => self.push_int((n1 != n2) as i32), // TODO: bool type
+                    BinaryOp::Lt => self.push_int((n1 < n2) as i32),  // TODO: bool type
+                    BinaryOp::Gt => self.push_int((n1 > n2) as i32),  // TODO: bool type
+                    BinaryOp::Le => self.push_int((n1 <= n2) as i32), // TODO: bool type
+                    BinaryOp::Ge => self.push_int((n1 >= n2) as i32), // TODO: bool type
+                    BinaryOp::Shl => self.push_int(n1 << n2),
+                    BinaryOp::Shr => self.push_int(n1 >> n2),
+                    BinaryOp::Bor => self.push_int(n1 | n2),
+                    BinaryOp::Band => self.push_int(n1 & n2),
                     BinaryOp::Swap => {
-                        self.push_number(n1);
-                        self.push_number(n2);
+                        self.push_int(n1);
+                        self.push_int(n2);
                     }
                     BinaryOp::Over => {
-                        self.push_number(n2);
-                        self.push_number(n1);
-                        self.push_number(n2);
+                        self.push_int(n2);
+                        self.push_int(n1);
+                        self.push_int(n2);
+                    }
+                },
+                (ref i @ Data::Float(ref n1), ref j @ Data::Float(ref n2)) => match x {
+                    BinaryOp::Add => self.push_float(n1 + n2),
+                    BinaryOp::Sub => self.push_float(n1 - n2),
+                    BinaryOp::Mul => self.push_float(n1 * n2),
+                    BinaryOp::Div => self.push_float(n1 / n2),
+                    BinaryOp::Mod => self.push_float(n1 % n2),
+                    BinaryOp::Exp => self.push_float(n1.powf(*n2)),
+                    BinaryOp::Eq => self.push_int((n1 == n2) as i32), // TODO: bool type
+                    BinaryOp::Ne => self.push_int((n1 != n2) as i32), // TODO: bool type
+                    BinaryOp::Lt => self.push_int((n1 < n2) as i32),  // TODO: bool type
+                    BinaryOp::Gt => self.push_int((n1 > n2) as i32),  // TODO: bool type
+                    BinaryOp::Le => self.push_int((n1 <= n2) as i32), // TODO: bool type
+                    BinaryOp::Ge => self.push_int((n1 >= n2) as i32), // TODO: bool type
+                    BinaryOp::Swap => {
+                        self.push_float(*n1);
+                        self.push_float(*n2);
+                    }
+                    BinaryOp::Over => {
+                        self.push_float(*n2);
+                        self.push_float(*n1);
+                        self.push_float(*n2);
+                    }
+                    _ => {
+                        return Err(RuntimeError::UnexpectedType(
+                            span,
+                            format!("{}", x),
+                            "ints".to_string(),
+                            format!("({}, {})", i, j),
+                        ))
                     }
                 },
                 (ref i @ Data::String(ref s1), ref j @ Data::String(ref s2)) => match x {
                     BinaryOp::Add => self.push_string(s1.to_owned() + s2),
-                    BinaryOp::Eq => self.push_number((s1 == s2) as i32 as f64),
-                    BinaryOp::Ne => self.push_number((s1 != s2) as i32 as f64),
-                    // other comparison operators are not (should not be) supported for strings
-                    // BinaryOp::Lt => self.push_number((s1 < s2) as i32 as f64),
-                    // BinaryOp::Gt => self.push_number((s1 > s2) as i32 as f64),
-                    // BinaryOp::Le => self.push_number((s1 <= s2) as i32 as f64),
-                    // BinaryOp::Ge => self.push_number((s1 >= s2) as i32 as f64),
+                    BinaryOp::Eq => self.push_int((s1 == s2) as i32), // TODO: bool type
+                    BinaryOp::Ne => self.push_int((s1 != s2) as i32), // TODO: bool type
                     BinaryOp::Swap => {
                         self.push_string(s1.to_string());
                         self.push_string(s2.to_string());
@@ -424,7 +511,7 @@ impl<'a> Runtime<'a> {
                         return Err(RuntimeError::UnexpectedType(
                             span,
                             format!("{}", x),
-                            "numbers".to_string(),
+                            "ints or floats".to_string(),
                             format!("({}, {})", i, j),
                         ))
                     }
@@ -433,7 +520,7 @@ impl<'a> Runtime<'a> {
                     return Err(RuntimeError::UnexpectedType(
                         span,
                         format!("{}", x),
-                        "numbers or strings".to_string(),
+                        "ints, floats or strings".to_string(),
                         format!("({}, {})", &a, &b),
                     ));
                 }
@@ -449,9 +536,11 @@ impl<'a> Runtime<'a> {
             Node::If(i, e, s) => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::Number(n) => {
-                            if n > 0.0 {
-                                // negative values or zero = false
+                        Data::Int(n) => {
+                            // TODO: bool datatype
+                            if n == 1 {
+                                // 1 = true
+                                // 0 = false
                                 self.run_block(i)?;
                             } else {
                                 if let Some(els) = e {
@@ -459,15 +548,13 @@ impl<'a> Runtime<'a> {
                                 }
                             }
                         }
-                        Data::String(x) => {
-                            if x.len() > 0 {
-                                // empty string = false
-                                self.run_block(i)?;
-                            } else {
-                                if let Some(els) = e {
-                                    self.run_block(els)?;
-                                }
-                            }
+                        _ => {
+                            return Err(RuntimeError::UnexpectedType(
+                                s.clone(),
+                                "if".to_string(),
+                                "int".to_string(),
+                                format!("({})", a),
+                            ))
                         }
                     }
                 } else {
@@ -484,8 +571,9 @@ impl<'a> Runtime<'a> {
                     }
                 }
             }
-            Node::Number(n, _) => self.push_number(*n),
-            Node::String(v, _) => self.push_string(v.to_string()),
+            Node::IntLit(n, _) => self.push_int(*n),
+            Node::FloatLit(n, _) => self.push_float(*n),
+            Node::StringLit(v, _) => self.push_string(v.to_string()),
             Node::Operation(op, s) => {
                 let s = s.clone(); // TODO: this is a hack, fix it
                 match op {
@@ -537,7 +625,8 @@ impl<'a> Runtime<'a> {
                     "read" => self.builtin(s, Builtin::Read)?,
                     "exit" => self.builtin(s, Builtin::Exit)?,
                     "tostring" => self.builtin(s, Builtin::ToString)?,
-                    "tonumber" => self.builtin(s, Builtin::ToNumber)?,
+                    "toint" => self.builtin(s, Builtin::ToInt)?,
+                    "tofloat" => self.builtin(s, Builtin::ToFloat)?,
                     _ => {
                         if let Some(p) = self.namespace.procs.get(w) {
                             if let Err(e) = self.run_block(p.0) {
@@ -548,7 +637,8 @@ impl<'a> Runtime<'a> {
                             }
                         } else if let Some(d) = self.namespace.defs.get(w) {
                             match &d.0 {
-                                Data::Number(n) => self.push_number(*n),
+                                Data::Int(n) => self.push_int(*n),
+                                Data::Float(n) => self.push_float(*n),
                                 Data::String(s) => self.push_string(String::from(s)),
                             }
                         } else {
@@ -578,8 +668,12 @@ impl<'a> Runtime<'a> {
         Ok(())
     }
 
-    fn push_number(&mut self, n: f64) {
-        self.stack.push_front(Data::Number(n));
+    fn push_int(&mut self, n: i32) {
+        self.stack.push_front(Data::Int(n));
+    }
+
+    fn push_float(&mut self, n: f64) {
+        self.stack.push_front(Data::Float(n));
     }
 
     fn push_string(&mut self, s: String) {

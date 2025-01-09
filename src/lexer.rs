@@ -5,7 +5,8 @@ use std::str::Chars;
 #[derive(Debug, PartialEq)]
 pub enum TokenKind {
     Word,
-    Number,
+    Int,
+    Float,
     String,
 }
 
@@ -40,13 +41,23 @@ impl<'a> Token {
         Self { value, kind, span }
     }
 
-    fn is_number_start(target: &char, next: Option<&char>) -> bool {
+    fn is_int_start(target: &char, next: Option<&char>) -> bool {
         // A number starts with a digit or a '-' followed by a digit
-        matches!(target, '0'..='9' | '.')
-            || (*target == '-' && next.map_or(false, |c| c == &'.' || c.is_ascii_digit()))
+        matches!(target, '0'..='9')
+            || (*target == '-' && next.map_or(false, |c| c.is_ascii_digit()))
     }
 
-    fn is_number(target: &char) -> bool {
+    fn is_int(target: &char) -> bool {
+        matches!(target, '0'..='9')
+    }
+
+    fn is_float_start(target: &char, next: Option<&char>) -> bool {
+        // A number starts with a digit or a '-' followed by a digit
+        matches!(target, '0'..='9' | '.')
+            || (*target == '-' && next.map_or(false, |c| c.is_ascii_digit() || c == &'.'))
+    }
+
+    fn is_float(target: &char) -> bool {
         matches!(target, '0'..='9' | '.')
     }
 
@@ -141,15 +152,66 @@ impl<'a> Iterator for Lexer<'a> {
                         },
                     ));
                 }
-                _ if Token::is_number_start(&c, self.input.content.peek()) => {
+                _ if Token::is_int_start(&c, self.input.content.peek()) => {
                     let col = self.span.col;
                     let mut buffer = String::from(c);
+                    let mut is_float = false;
                     while let Some(d) = self.input.content.peek() {
-                        if !Token::is_number(&d) {
+                        if !Token::is_int(&d) && Token::is_float(&d) {
+                            is_float = true;
+                        } else if !Token::is_int(&d) {
                             if !Token::is_whitespace(&d) {
                                 throw(
                                     "token error",
-                                    &format!("invalid character `{d}` found in number literal."),
+                                    &format!(
+                                        "invalid character `{d}` found in integer/float literal."
+                                    ),
+                                    TokenSpan {
+                                        filename: self.input.name.to_string(),
+                                        line: self.span.line,
+                                        col: self.span.col + buffer.len(),
+                                    },
+                                    None,
+                                    None,
+                                );
+                            }
+                            break;
+                        }
+                        buffer.push(*d);
+                        self.input.content.next();
+                    }
+                    self.span.col += buffer.len();
+                    if is_float {
+                        return Some(Token::new(
+                            buffer,
+                            TokenKind::Float,
+                            TokenSpan {
+                                filename: self.input.name.to_string(),
+                                line: self.span.line,
+                                col: col,
+                            },
+                        ));
+                    } else {
+                        return Some(Token::new(
+                            buffer,
+                            TokenKind::Int,
+                            TokenSpan {
+                                filename: self.input.name.to_string(),
+                                line: self.span.line,
+                                col: col,
+                            },
+                        ));
+                    }
+                }
+                _ if Token::is_float_start(&c, self.input.content.peek()) => {
+                    let col = self.span.col;
+                    let mut buffer = String::from(c);
+                    while let Some(d) = self.input.content.peek() {
+                        if !Token::is_float(&d) {
+                            if !Token::is_whitespace(&d) {
+                                throw(
+                                    "token error",
+                                    &format!("invalid character `{d}` found in float literal."),
                                     TokenSpan {
                                         filename: self.input.name.to_string(),
                                         line: self.span.line,
@@ -167,7 +229,7 @@ impl<'a> Iterator for Lexer<'a> {
                     self.span.col += buffer.len();
                     return Some(Token::new(
                         buffer,
-                        TokenKind::Number,
+                        TokenKind::Float,
                         TokenSpan {
                             filename: self.input.name.to_string(),
                             line: self.span.line,
