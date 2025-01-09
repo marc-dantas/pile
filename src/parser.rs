@@ -184,7 +184,7 @@ impl<'a> Parser<'a> {
 
         while let Some(token) = self.lexer.next() {
             if token.value == "end" {
-                return Ok(Node::Proc(proc_name.value, body, token.span));
+                return Ok(Node::Proc(proc_name.value, body, proc_name.span));
             }
             body.push(self.parse_expr(token)?);
         }
@@ -217,7 +217,7 @@ impl<'a> Parser<'a> {
 
         while let Some(token) = self.lexer.next() {
             if token.value == "end" {
-                return Ok(Node::Def(def_name.value, body, token.span));
+                return Ok(Node::Def(def_name.value, body, def_name.span));
             }
             body.push(self.parse_expr(token)?);
         }
