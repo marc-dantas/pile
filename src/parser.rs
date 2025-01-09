@@ -74,7 +74,7 @@ pub enum OpKind {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum Node {
-    IntLit(i32, TokenSpan),
+    IntLit(i64, TokenSpan),
     FloatLit(f64, TokenSpan),
     StringLit(String, TokenSpan),
     Proc(String, Vec<Node>, TokenSpan),

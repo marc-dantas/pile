@@ -11,7 +11,7 @@ use std::{
 #[derive(Debug)]
 pub enum Data {
     String(String),
-    Int(i32),
+    Int(i64),
     Float(f64),
 }
 
@@ -303,7 +303,7 @@ impl<'a> Runtime<'a> {
                 if let Some(a) = self.pop() {
                     match a {
                         Data::Int(n) => {
-                            std::process::exit(n);
+                            std::process::exit(n as i32);
                         }
                         _ => {
                             return Err(RuntimeError::UnexpectedType(
@@ -321,7 +321,7 @@ impl<'a> Runtime<'a> {
             Builtin::ToInt => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(s) => match i32::from_str(&s) {
+                        Data::String(s) => match i64::from_str(&s) {
                             Ok(n) => self.push_int(n),
                             Err(_) => {
                                 return Err(RuntimeError::ValueError(
@@ -332,7 +332,7 @@ impl<'a> Runtime<'a> {
                                 ));
                             }
                         },
-                        Data::Float(n) => self.push_int(n as i32),
+                        Data::Float(n) => self.push_int(n as i64),
                         Data::Int(n) => self.push_int(n),
                     }
                 } else {
@@ -394,7 +394,7 @@ impl<'a> Runtime<'a> {
                         self.push_float(n);
                     }
                     UnaryOp::Drop => {}
-                    UnaryOp::BNot => self.push_float(!(n as i32) as f64),
+                    UnaryOp::BNot => self.push_float(!(n as i64) as f64),
                 },
                 Data::String(s) => match x {
                     UnaryOp::Trace => println!("string \"{}\"", s),
@@ -422,19 +422,19 @@ impl<'a> Runtime<'a> {
     fn binop(&mut self, span: TokenSpan, x: BinaryOp) -> Result<(), RuntimeError> {
         if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
             match (a, b) {
-                (Data::Int(n1), Data::Int(n2)) => match x { // TODO: deal with i32 overflows
+                (Data::Int(n1), Data::Int(n2)) => match x { // TODO: deal with i64 overflows
                     BinaryOp::Add => self.push_int(n1 + n2),
                     BinaryOp::Sub => self.push_int(n1 - n2),
                     BinaryOp::Mul => self.push_int(n1 * n2),
                     BinaryOp::Div => self.push_int(n1 / n2),
                     BinaryOp::Mod => self.push_int(n1 % n2),
                     BinaryOp::Exp => self.push_int(n1.pow(n2 as u32)),
-                    BinaryOp::Eq => self.push_int((n1 == n2) as i32), // TODO: bool type
-                    BinaryOp::Ne => self.push_int((n1 != n2) as i32), // TODO: bool type
-                    BinaryOp::Lt => self.push_int((n1 < n2) as i32),  // TODO: bool type
-                    BinaryOp::Gt => self.push_int((n1 > n2) as i32),  // TODO: bool type
-                    BinaryOp::Le => self.push_int((n1 <= n2) as i32), // TODO: bool type
-                    BinaryOp::Ge => self.push_int((n1 >= n2) as i32), // TODO: bool type
+                    BinaryOp::Eq => self.push_int((n1 == n2) as i64), // TODO: bool type
+                    BinaryOp::Ne => self.push_int((n1 != n2) as i64), // TODO: bool type
+                    BinaryOp::Lt => self.push_int((n1 < n2) as i64),  // TODO: bool type
+                    BinaryOp::Gt => self.push_int((n1 > n2) as i64),  // TODO: bool type
+                    BinaryOp::Le => self.push_int((n1 <= n2) as i64), // TODO: bool type
+                    BinaryOp::Ge => self.push_int((n1 >= n2) as i64), // TODO: bool type
                     BinaryOp::Shl => self.push_int(n1 << n2),
                     BinaryOp::Shr => self.push_int(n1 >> n2),
                     BinaryOp::Bor => self.push_int(n1 | n2),
@@ -456,12 +456,12 @@ impl<'a> Runtime<'a> {
                     BinaryOp::Div => self.push_float(n1 / n2),
                     BinaryOp::Mod => self.push_float(n1 % n2),
                     BinaryOp::Exp => self.push_float(n1.powf(*n2)),
-                    BinaryOp::Eq => self.push_int((n1 == n2) as i32), // TODO: bool type
-                    BinaryOp::Ne => self.push_int((n1 != n2) as i32), // TODO: bool type
-                    BinaryOp::Lt => self.push_int((n1 < n2) as i32),  // TODO: bool type
-                    BinaryOp::Gt => self.push_int((n1 > n2) as i32),  // TODO: bool type
-                    BinaryOp::Le => self.push_int((n1 <= n2) as i32), // TODO: bool type
-                    BinaryOp::Ge => self.push_int((n1 >= n2) as i32), // TODO: bool type
+                    BinaryOp::Eq => self.push_int((n1 == n2) as i64), // TODO: bool type
+                    BinaryOp::Ne => self.push_int((n1 != n2) as i64), // TODO: bool type
+                    BinaryOp::Lt => self.push_int((n1 < n2) as i64),  // TODO: bool type
+                    BinaryOp::Gt => self.push_int((n1 > n2) as i64),  // TODO: bool type
+                    BinaryOp::Le => self.push_int((n1 <= n2) as i64), // TODO: bool type
+                    BinaryOp::Ge => self.push_int((n1 >= n2) as i64), // TODO: bool type
                     BinaryOp::Swap => {
                         self.push_float(*n1);
                         self.push_float(*n2);
@@ -482,8 +482,8 @@ impl<'a> Runtime<'a> {
                 },
                 (ref i @ Data::String(ref s1), ref j @ Data::String(ref s2)) => match x {
                     BinaryOp::Add => self.push_string(s1.to_owned() + s2),
-                    BinaryOp::Eq => self.push_int((s1 == s2) as i32), // TODO: bool type
-                    BinaryOp::Ne => self.push_int((s1 != s2) as i32), // TODO: bool type
+                    BinaryOp::Eq => self.push_int((s1 == s2) as i64), // TODO: bool type
+                    BinaryOp::Ne => self.push_int((s1 != s2) as i64), // TODO: bool type
                     BinaryOp::Swap => {
                         self.push_string(s1.to_string());
                         self.push_string(s2.to_string());
@@ -654,7 +654,7 @@ impl<'a> Runtime<'a> {
         Ok(())
     }
 
-    fn push_int(&mut self, n: i32) {
+    fn push_int(&mut self, n: i64) {
         self.stack.push_front(Data::Int(n));
     }
 
