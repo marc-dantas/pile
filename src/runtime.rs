@@ -333,14 +333,7 @@ impl<'a> Runtime<'a> {
                             }
                         },
                         Data::Float(n) => self.push_int(n as i32),
-                        a => {
-                            return Err(RuntimeError::UnexpectedType(
-                                span,
-                                format!("{}", x),
-                                "ints or strings".to_string(),
-                                format!("({})", &a),
-                            ));
-                        }
+                        Data::Int(n) => self.push_int(n),
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
@@ -361,14 +354,7 @@ impl<'a> Runtime<'a> {
                             }
                         },
                         Data::Int(n) => self.push_float(n as f64),
-                        a => {
-                            return Err(RuntimeError::UnexpectedType(
-                                span,
-                                format!("{}", x),
-                                "floats or strings".to_string(),
-                                format!("({})", &a),
-                            ));
-                        }
+                        Data::Float(n) => self.push_float(n),
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
@@ -436,7 +422,7 @@ impl<'a> Runtime<'a> {
     fn binop(&mut self, span: TokenSpan, x: BinaryOp) -> Result<(), RuntimeError> {
         if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
             match (a, b) {
-                (Data::Int(n1), Data::Int(n2)) => match x {
+                (Data::Int(n1), Data::Int(n2)) => match x { // TODO: deal with i32 overflows
                     BinaryOp::Add => self.push_int(n1 + n2),
                     BinaryOp::Sub => self.push_int(n1 - n2),
                     BinaryOp::Mul => self.push_int(n1 * n2),
