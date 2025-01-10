@@ -119,6 +119,7 @@ pub enum Builtin {
     ToString,
     ToInt,
     ToFloat,
+    TypeOf,
 }
 
 impl std::fmt::Display for Builtin {
@@ -134,6 +135,7 @@ impl std::fmt::Display for Builtin {
             Builtin::ToString => write!(f, "tostring"),
             Builtin::ToInt => write!(f, "toint"),
             Builtin::ToFloat => write!(f, "tofloat"),
+            Builtin::TypeOf => write!(f, "typeof"),
         }
     }
 }
@@ -367,6 +369,13 @@ impl<'a> Runtime<'a> {
                         Data::Float(n) => self.push_string(n.to_string()),
                         Data::String(s) => self.push_string(s),
                     }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
+                }
+            }
+            Builtin::TypeOf => {
+                if let Some(a) = self.pop() {
+                    self.push_string(format!("{}", a));
                 } else {
                     return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
                 }
@@ -613,6 +622,7 @@ impl<'a> Runtime<'a> {
                     "tostring" => self.builtin(s, Builtin::ToString)?,
                     "toint" => self.builtin(s, Builtin::ToInt)?,
                     "tofloat" => self.builtin(s, Builtin::ToFloat)?,
+                    "typeof" => self.builtin(s, Builtin::TypeOf)?,
                     _ => {
                         if let Some(p) = self.namespace.procs.get(w) {
                             if let Err(e) = self.run_block(p.0) {
