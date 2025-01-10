@@ -11,14 +11,16 @@ pub struct Arguments {
     pub filename: String,
     pub show_help: bool,
     pub show_version: bool,
+    pub parse_only: bool,
 }
 
 impl Arguments {
-    fn new(filename: String, show_help: bool, show_version: bool) -> Self {
+    fn new(filename: String, show_help: bool, show_version: bool, parse_only: bool) -> Self {
         Self {
             filename,
             show_help,
             show_version,
+            parse_only,
         }
     }
 }
@@ -30,10 +32,11 @@ pub fn show_usage() {
 pub fn show_help() {
     println!("pile help:");
     println!("  positional arguments:");
-    println!("    FILENAME         File path of Pile code");
+    println!("    FILENAME          File path of Pile code");
     println!("  flags:");
-    println!("    -h, --help       Show this help message and exit");
-    println!("    -v, --version    Show the version information and exit");
+    println!("    -h, --help        Show this help message and exit");
+    println!("    -v, --version     Show the version information and exit");
+    println!("    -P, --parse-only  Parse FILENAME and write parser result to stdout");
 }
 
 fn rustc_version() -> String {
@@ -50,12 +53,14 @@ pub fn parse_arguments() -> Result<Arguments, CLIError> {
     let mut filename = None;
     let mut show_help = false;
     let mut show_version = false;
+    let mut parse_only = false;
 
     for arg in args.into_iter() {
         match arg.as_str() {
             flag if arg.starts_with("-") => match flag {
                 "-h" | "--help" => show_help = true,
                 "-v" | "--version" => show_version = true,
+                "-P" | "--parse-only" => parse_only = true,
                 _ => return Err(CLIError::InvalidFlag(flag.to_string())),
             },
             _ => {
@@ -68,10 +73,10 @@ pub fn parse_arguments() -> Result<Arguments, CLIError> {
     }
 
     if let Some(f) = filename {
-        Ok(Arguments::new(f, show_help, show_version))
+        Ok(Arguments::new(f, show_help, show_version, parse_only))
     } else {
         if show_help || show_version {
-            return Ok(Arguments::new("".to_string(), show_help, show_version));
+            return Ok(Arguments::new("".to_string(), show_help, show_version, parse_only));
         }
         Err(CLIError::ExpectedArgument("FILENAME".to_string()))
     }

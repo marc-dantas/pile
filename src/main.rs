@@ -67,6 +67,13 @@ fn main() {
             }
 
             if let Some(source) = read_file(&a.filename) {
+                if a.parse_only {
+                    match parse(&a.filename, source) {
+                        Ok(p) => println!("{:#?}", p),
+                        Err(e) => error::parse_error(e),
+                    }
+                    std::process::exit(0);
+                }
                 run(&a.filename, source);
             } else {
                 show_usage();
