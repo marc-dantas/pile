@@ -43,6 +43,8 @@ def run_pile_program(filepath: Path):
 
 
 def write_mode(missing_files=None):
+    log("WRITE MODE")
+    
     TEST_DIR.mkdir(exist_ok=True)
     files_to_process = missing_files if missing_files else EXAMPLES_DIR.glob("*.pile")
 
@@ -67,20 +69,28 @@ def write_mode(missing_files=None):
 
 def show_failed_test(name: str, t: tuple[tuple[str, str], tuple[str, str]]):
     print(f"FAILED TEST {name}", file=sys.stderr)
-    print(f"stdout:", file=sys.stderr)
-    print(f"\texpected: {t[0][1]}", file=sys.stderr)
-    print(f"\tgot: {t[0][0]}", file=sys.stderr)
-    print(f"returncode: expected {t[1][1]} but got {t[1][0]}", file=sys.stderr)
+    print("stdout:", file=sys.stderr)
+    print(f"  expected: {t[0][1].replace('\n', "\\n")}", file=sys.stderr)
+    print(f"  got: {t[0][0].replace('\n', "\\n")}", file=sys.stderr)
+    print(f"returncode:", file=sys.stderr)
+    print(f"  expected: {t[1][1]}", file=sys.stderr)
+    print(f"  got: {t[1][0]}", file=sys.stderr)
     print()
 
 
 def test_mode():
+    log("TEST MODE")
+    
     fails = 0
     success_count = 0
     missing_files = []
     
+    
+    log(f"TESTING FILES IN DIRECTORY: {EXAMPLES_DIR}\n")
+    
     for file in EXAMPLES_DIR.glob("*.pile"):
         stdout, returncode = run_pile_program(file)
+        
         
         if stdout is not None:
             result_path = TEST_DIR / f"{file.stem}.json"
@@ -102,10 +112,10 @@ def test_mode():
                 continue
         
             success_count += 1
-            msg_pass(f"test file {f'{file.stem}.json'} for {file.name}")
 
     total = fails + success_count 
-    log("\nTEST COMPLETED")
+
+    log("TEST COMPLETED")
     log(f"{fails}/{total} FAILED")
     log(f"{success_count}/{total} PASSED")
     
