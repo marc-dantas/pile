@@ -82,7 +82,7 @@ pub enum Node {
     If(Vec<Node>, Option<Vec<Node>>, TokenSpan),
     Loop(Vec<Node>, TokenSpan),
     Operation(OpKind, TokenSpan),
-    Word(String, TokenSpan),
+    Symbol(String, TokenSpan),
 }
 
 pub type ProgramTree = Vec<Node>;
@@ -155,12 +155,7 @@ impl<'a> Parser<'a> {
                 "rot" => Ok(Node::Operation(OpKind::Rot, token.span)),
                 "trace" => Ok(Node::Operation(OpKind::Trace, token.span)),
                 "stop" => Ok(Node::Operation(OpKind::Stop, token.span)),
-                x if is_valid_identifier(x) => Ok(Node::Word(token.value, token.span)),
-                _ => Err(ParseError::UnexpectedToken(
-                    token.span.clone(),
-                    token.value,
-                    "int literal, float literal, word, string literal, or operation".to_string(),
-                )),
+                _ => Ok(Node::Symbol(token.value, token.span)),
             },
             TokenKind::String => Ok(Node::StringLit(token.value, token.span)),
         }

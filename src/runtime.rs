@@ -609,7 +609,7 @@ impl<'a> Runtime<'a> {
                     }
                 }
             }
-            Node::Word(w, s) => {
+            Node::Symbol(w, s) => {
                 let s = s.clone();
                 match w.as_str() {
                     "println" => self.builtin(s, Builtin::Println)?,
