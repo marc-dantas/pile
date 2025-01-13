@@ -1,10 +1,13 @@
 proc even_odd
   2 swap % 0 = if
-    "Even" println
+    "even"
   else
-    "Odd" println
+    "odd"
   end
 end
 
-4 even_odd
-7 even_odd
+"Number input: " print readln
+
+toint even_odd
+
+"The number is " print println
