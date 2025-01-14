@@ -3,14 +3,15 @@
 ## Already Done
 - [X] Introduce more mathematical operations
   * Final: Operations added: Modulo and Exponentiation.
+- [X] Introduce `bool` datatype
+  * Final: Type `true`or `false` for the respective variants of the type.
+           `if` statements only accept boolean values. 
 
 ## To Be Done
 Definitely going to happen someday. Probably not exactly like described but it will happen.
 
 - [ ] Introduce `nil` datatype
   * Idea: Use `nil` to represent empty or undefined values for error handling and logic flow.
-- [ ] Introduce `bool` datatype
-  * Idea: Make `if` statements only accept boolean values: `true` or `false`. 
 - [ ] More builtins
   * Idea: Include type conversion and additional I/O builtins.
 - [ ] String formatting
