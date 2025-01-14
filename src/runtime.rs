@@ -13,6 +13,7 @@ pub enum Data {
     String(String),
     Int(i64),
     Float(f64),
+    Bool(bool),
 }
 
 impl std::fmt::Display for Data {
@@ -21,6 +22,7 @@ impl std::fmt::Display for Data {
             Data::String(_) => write!(f, "string"),
             Data::Int(_) => write!(f, "int"),
             Data::Float(_) => write!(f, "float"),
+            Data::Bool(_) => write!(f, "bool"),
         }
     }
 }
@@ -219,6 +221,9 @@ impl<'a> Runtime<'a> {
                         Data::Float(n) => {
                             println!("{}", n);
                         }
+                        Data::Bool(n) => {
+                            println!("{}", n);
+                        }
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(span, "println".to_string(), 1));
@@ -234,6 +239,9 @@ impl<'a> Runtime<'a> {
                             eprintln!("{}", n);
                         }
                         Data::Float(n) => {
+                            eprintln!("{}", n);
+                        }
+                        Data::Bool(n) => {
                             eprintln!("{}", n);
                         }
                     }
@@ -260,6 +268,10 @@ impl<'a> Runtime<'a> {
                             eprint!("{}", n);
                             std::io::stderr().flush().unwrap();
                         }
+                        Data::Bool(n) => {
+                            eprint!("{}", n);
+                            std::io::stderr().flush().unwrap();
+                        }
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(span, "eprint".to_string(), 1));
@@ -277,6 +289,10 @@ impl<'a> Runtime<'a> {
                             std::io::stdout().flush().unwrap();
                         }
                         Data::Float(n) => {
+                            print!("{}", n);
+                            std::io::stdout().flush().unwrap();
+                        }
+                        Data::Bool(n) => {
                             print!("{}", n);
                             std::io::stdout().flush().unwrap();
                         }
@@ -335,6 +351,7 @@ impl<'a> Runtime<'a> {
                             }
                         },
                         Data::Float(n) => self.push_int(n as i64),
+                        Data::Bool(n) => self.push_int(n as i64),
                         Data::Int(n) => self.push_int(n),
                     }
                 } else {
@@ -356,6 +373,7 @@ impl<'a> Runtime<'a> {
                             }
                         },
                         Data::Int(n) => self.push_float(n as f64),
+                        Data::Bool(n) => self.push_float(n as i64 as f64),
                         Data::Float(n) => self.push_float(n),
                     }
                 } else {
@@ -367,6 +385,7 @@ impl<'a> Runtime<'a> {
                     match a {
                         Data::Int(n) => self.push_string(n.to_string()),
                         Data::Float(n) => self.push_string(n.to_string()),
+                        Data::Bool(s) => self.push_string((s as i32).to_string()),
                         Data::String(s) => self.push_string(s),
                     }
                 } else {
@@ -395,6 +414,15 @@ impl<'a> Runtime<'a> {
                     }
                     UnaryOp::Drop => {}
                     UnaryOp::BNot => self.push_int(!n),
+                },
+                Data::Bool(n) => match x {
+                    UnaryOp::Trace => println!("bool {}", n),
+                    UnaryOp::Dup => {
+                        self.push_bool(n);
+                        self.push_bool(n);
+                    }
+                    UnaryOp::Drop => {}
+                    UnaryOp::BNot => self.push_bool(!n),
                 },
                 Data::Float(n) => match x {
                     UnaryOp::Trace => println!("float {}", n),
@@ -438,12 +466,12 @@ impl<'a> Runtime<'a> {
                     BinaryOp::Div => self.push_int(n1 / n2),
                     BinaryOp::Mod => self.push_int(n1 % n2),
                     BinaryOp::Exp => self.push_int(n1.pow(n2 as u32)),
-                    BinaryOp::Eq => self.push_int((n1 == n2) as i64), // TODO: bool type
-                    BinaryOp::Ne => self.push_int((n1 != n2) as i64), // TODO: bool type
-                    BinaryOp::Lt => self.push_int((n1 < n2) as i64),  // TODO: bool type
-                    BinaryOp::Gt => self.push_int((n1 > n2) as i64),  // TODO: bool type
-                    BinaryOp::Le => self.push_int((n1 <= n2) as i64), // TODO: bool type
-                    BinaryOp::Ge => self.push_int((n1 >= n2) as i64), // TODO: bool type
+                    BinaryOp::Eq => self.push_bool(n1 == n2),
+                    BinaryOp::Ne => self.push_bool(n1 != n2),
+                    BinaryOp::Lt => self.push_bool(n1 < n2),
+                    BinaryOp::Gt => self.push_bool(n1 > n2),
+                    BinaryOp::Le => self.push_bool(n1 <= n2),
+                    BinaryOp::Ge => self.push_bool(n1 >= n2),
                     BinaryOp::Shl => self.push_int(n1 << n2),
                     BinaryOp::Shr => self.push_int(n1 >> n2),
                     BinaryOp::Bor => self.push_int(n1 | n2),
@@ -465,12 +493,12 @@ impl<'a> Runtime<'a> {
                     BinaryOp::Div => self.push_float(n1 / n2),
                     BinaryOp::Mod => self.push_float(n1 % n2),
                     BinaryOp::Exp => self.push_float(n1.powf(*n2)),
-                    BinaryOp::Eq => self.push_int((n1 == n2) as i64), // TODO: bool type
-                    BinaryOp::Ne => self.push_int((n1 != n2) as i64), // TODO: bool type
-                    BinaryOp::Lt => self.push_int((n1 < n2) as i64),  // TODO: bool type
-                    BinaryOp::Gt => self.push_int((n1 > n2) as i64),  // TODO: bool type
-                    BinaryOp::Le => self.push_int((n1 <= n2) as i64), // TODO: bool type
-                    BinaryOp::Ge => self.push_int((n1 >= n2) as i64), // TODO: bool type
+                    BinaryOp::Eq => self.push_bool(n1 == n2),
+                    BinaryOp::Ne => self.push_bool(n1 != n2),
+                    BinaryOp::Lt => self.push_bool(n1 < n2),
+                    BinaryOp::Gt => self.push_bool(n1 > n2),
+                    BinaryOp::Le => self.push_bool(n1 <= n2),
+                    BinaryOp::Ge => self.push_bool(n1 >= n2),
                     BinaryOp::Swap => {
                         self.push_float(*n1);
                         self.push_float(*n2);
@@ -491,8 +519,8 @@ impl<'a> Runtime<'a> {
                 },
                 (ref i @ Data::String(ref s1), ref j @ Data::String(ref s2)) => match x {
                     BinaryOp::Add => self.push_string(s1.to_owned() + s2),
-                    BinaryOp::Eq => self.push_int((s1 == s2) as i64), // TODO: bool type
-                    BinaryOp::Ne => self.push_int((s1 != s2) as i64), // TODO: bool type
+                    BinaryOp::Eq => self.push_bool(s1 == s2),
+                    BinaryOp::Ne => self.push_bool(s1 != s2),
                     BinaryOp::Swap => {
                         self.push_string(s1.to_string());
                         self.push_string(s2.to_string());
@@ -507,6 +535,27 @@ impl<'a> Runtime<'a> {
                             span,
                             format!("{}", x),
                             "ints or floats".to_string(),
+                            format!("({}, {})", i, j),
+                        ))
+                    }
+                },
+                (ref i @ Data::Bool(ref b1), ref j @ Data::Bool(ref b2)) => match x {
+                    BinaryOp::Eq => self.push_bool(b1 == b2),
+                    BinaryOp::Ne => self.push_bool(b1 != b2),
+                    BinaryOp::Swap => {
+                        self.push_bool(*b1);
+                        self.push_bool(*b2);
+                    }
+                    BinaryOp::Over => {
+                        self.push_bool(*b2);
+                        self.push_bool(*b1);
+                        self.push_bool(*b2);
+                    }
+                    _ => {
+                        return Err(RuntimeError::UnexpectedType(
+                            span,
+                            format!("{}", x),
+                            "ints, floats or strings".to_string(),
                             format!("({}, {})", i, j),
                         ))
                     }
@@ -531,11 +580,8 @@ impl<'a> Runtime<'a> {
             Node::If(i, e, s) => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::Int(n) => {
-                            // TODO: bool datatype
-                            if n == 1 {
-                                // 1 = true
-                                // 0 = false
+                        Data::Bool(b) => {
+                            if b {
                                 self.run_block(i)?;
                             } else {
                                 if let Some(els) = e {
@@ -547,7 +593,7 @@ impl<'a> Runtime<'a> {
                             return Err(RuntimeError::UnexpectedType(
                                 s.clone(),
                                 "if".to_string(),
-                                "int".to_string(),
+                                "bool".to_string(),
                                 format!("({})", a),
                             ))
                         }
@@ -607,6 +653,8 @@ impl<'a> Runtime<'a> {
                     OpKind::Stop => {
                         self.stop = true;
                     }
+                    OpKind::True => self.push_bool(true),
+                    OpKind::False => self.push_bool(false),
                 }
             }
             Node::Symbol(w, s) => {
@@ -636,6 +684,7 @@ impl<'a> Runtime<'a> {
                                 Data::Int(n) => self.push_int(*n),
                                 Data::Float(n) => self.push_float(*n),
                                 Data::String(s) => self.push_string(String::from(s)),
+                                Data::Bool(b) => self.push_bool(*b),
                             }
                         } else {
                             return Err(RuntimeError::InvalidWord(s, w.to_string()));
@@ -674,6 +723,10 @@ impl<'a> Runtime<'a> {
 
     fn push_string(&mut self, s: String) {
         self.stack.push_front(Data::String(s));
+    }
+    
+    fn push_bool(&mut self, b: bool) {
+        self.stack.push_front(Data::Bool(b));
     }
 
     fn pop(&mut self) -> Option<Data> {
