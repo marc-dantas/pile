@@ -31,7 +31,7 @@ pub fn is_op(value: &str) -> bool {
 pub fn is_reserved_word(value: &str) -> bool {
     matches!(
         value,
-        "if" | "loop" | "proc" | "end" | "else" | "def" | "stop" | "true" | "false"
+        "if" | "loop" | "proc" | "end" | "else" | "def" | "stop" | "true" | "false" | "nil"
     )
 }
 
@@ -71,6 +71,8 @@ pub enum OpKind {
     Stop,
     True,
     False,
+    Nil,
+    IsNil,
 }
 
 #[allow(dead_code)]
@@ -159,6 +161,8 @@ impl<'a> Parser<'a> {
                 "stop" => Ok(Node::Operation(OpKind::Stop, token.span)),
                 "true" => Ok(Node::Operation(OpKind::True, token.span)),
                 "false" => Ok(Node::Operation(OpKind::False, token.span)),
+                "nil" => Ok(Node::Operation(OpKind::Nil, token.span)),
+                "?" => Ok(Node::Operation(OpKind::IsNil, token.span)),
                 _ => Ok(Node::Symbol(token.value, token.span)),
             },
             TokenKind::String => Ok(Node::StringLit(token.value, token.span)),

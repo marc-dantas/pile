@@ -8,12 +8,13 @@ use std::{
     str::FromStr,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Data {
     String(String),
     Int(i64),
     Float(f64),
     Bool(bool),
+    Nil,
 }
 
 impl std::fmt::Display for Data {
@@ -23,6 +24,7 @@ impl std::fmt::Display for Data {
             Data::Int(_) => write!(f, "int"),
             Data::Float(_) => write!(f, "float"),
             Data::Bool(_) => write!(f, "bool"),
+            Data::Nil => write!(f, "nil"),
         }
     }
 }
@@ -224,6 +226,9 @@ impl<'a> Runtime<'a> {
                         Data::Bool(n) => {
                             println!("{}", n);
                         }
+                        Data::Nil => {
+                            println!("nil");
+                        }
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(span, "println".to_string(), 1));
@@ -243,6 +248,9 @@ impl<'a> Runtime<'a> {
                         }
                         Data::Bool(n) => {
                             eprintln!("{}", n);
+                        }
+                        Data::Nil => {
+                            eprintln!("nil");
                         }
                     }
                 } else {
@@ -272,6 +280,10 @@ impl<'a> Runtime<'a> {
                             eprint!("{}", n);
                             std::io::stderr().flush().unwrap();
                         }
+                        Data::Nil => {
+                            eprint!("nil");
+                            std::io::stderr().flush().unwrap();
+                        }
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(span, "eprint".to_string(), 1));
@@ -294,6 +306,10 @@ impl<'a> Runtime<'a> {
                         }
                         Data::Bool(n) => {
                             print!("{}", n);
+                            std::io::stdout().flush().unwrap();
+                        }
+                        Data::Nil => {
+                            print!("nil");
                             std::io::stdout().flush().unwrap();
                         }
                     }
@@ -353,6 +369,14 @@ impl<'a> Runtime<'a> {
                         Data::Float(n) => self.push_int(n as i64),
                         Data::Bool(n) => self.push_int(n as i64),
                         Data::Int(n) => self.push_int(n),
+                        _ => {
+                            return Err(RuntimeError::UnexpectedType(
+                                span,
+                                "toint".to_string(),
+                                "int, float or bool".to_string(),
+                                format!("{}", a),
+                            ));
+                        }
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
@@ -375,6 +399,14 @@ impl<'a> Runtime<'a> {
                         Data::Int(n) => self.push_float(n as f64),
                         Data::Bool(n) => self.push_float(n as i64 as f64),
                         Data::Float(n) => self.push_float(n),
+                        _ => {
+                            return Err(RuntimeError::UnexpectedType(
+                                span,
+                                "tofloat".to_string(),
+                                "int, float or bool".to_string(),
+                                format!("{}", a),
+                            ));
+                        }
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
@@ -387,6 +419,7 @@ impl<'a> Runtime<'a> {
                         Data::Float(n) => self.push_string(n.to_string()),
                         Data::Bool(s) => self.push_string((s as i32).to_string()),
                         Data::String(s) => self.push_string(s),
+                        Data::Nil => self.push_string("nil".to_string()),
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
@@ -433,6 +466,22 @@ impl<'a> Runtime<'a> {
                     UnaryOp::Drop => {}
                     UnaryOp::BNot => self.push_float(!(n as i64) as f64),
                 },
+                Data::Nil => match x {
+                    UnaryOp::Trace => println!("nil"),
+                    UnaryOp::Dup => {
+                        self.push_nil();
+                        self.push_nil();
+                    }
+                    UnaryOp::Drop => {}
+                    _ => {
+                        return Err(RuntimeError::UnexpectedType(
+                            span,
+                            format!("{}", x),
+                            "int, float or string".to_string(),
+                            "nil".to_string(),
+                        ))
+                    }
+                },
                 Data::String(s) => match x {
                     UnaryOp::Trace => println!("string \"{}\"", s),
                     UnaryOp::Dup => {
@@ -440,7 +489,7 @@ impl<'a> Runtime<'a> {
                         self.push_string(s);
                     }
                     UnaryOp::Drop => {}
-                    UnaryOp::BNot => {
+                    _ => {
                         return Err(RuntimeError::UnexpectedType(
                             span,
                             format!("{}", x),
@@ -517,6 +566,25 @@ impl<'a> Runtime<'a> {
                         ))
                     }
                 },
+                (i @ Data::Nil, j @ Data::Nil) => match x {
+                    BinaryOp::Swap => {
+                        self.stack.push_front(j);
+                        self.stack.push_front(i);
+                    }
+                    BinaryOp::Over => {
+                        self.stack.push_front(j.clone());
+                        self.stack.push_front(i);
+                        self.stack.push_front(j);
+                    }
+                    _ => {
+                        return Err(RuntimeError::UnexpectedType(
+                            span,
+                            format!("{}", x),
+                            "ints, floats, bools or strings".to_string(),
+                            format!("({}, {})", i, j),
+                        ))
+                    }
+                },
                 (ref i @ Data::String(ref s1), ref j @ Data::String(ref s2)) => match x {
                     BinaryOp::Add => self.push_string(s1.to_owned() + s2),
                     BinaryOp::Eq => self.push_bool(s1 == s2),
@@ -526,8 +594,8 @@ impl<'a> Runtime<'a> {
                         self.push_string(s2.to_string());
                     }
                     BinaryOp::Over => {
-                        self.push_string(s2.clone());
-                        self.push_string(s1.clone());
+                        self.push_string(s2.to_string());
+                        self.push_string(s1.to_string());
                         self.push_string(s2.to_string());
                     }
                     _ => {
@@ -655,6 +723,17 @@ impl<'a> Runtime<'a> {
                     }
                     OpKind::True => self.push_bool(true),
                     OpKind::False => self.push_bool(false),
+                    OpKind::Nil => self.push_nil(),
+                    OpKind::IsNil => {
+                        if let Some(a) = self.pop() {
+                            match a {
+                                Data::Nil => self.push_bool(true),
+                                _ => self.push_bool(false),
+                            }
+                        } else {
+                            return Err(RuntimeError::StackUnderflow(s, "?".to_string(), 1));
+                        }
+                    }
                 }
             }
             Node::Symbol(w, s) => {
@@ -685,6 +764,7 @@ impl<'a> Runtime<'a> {
                                 Data::Float(n) => self.push_float(*n),
                                 Data::String(s) => self.push_string(String::from(s)),
                                 Data::Bool(b) => self.push_bool(*b),
+                                Data::Nil => self.push_nil(),
                             }
                         } else {
                             return Err(RuntimeError::InvalidWord(s, w.to_string()));
@@ -727,6 +807,10 @@ impl<'a> Runtime<'a> {
     
     fn push_bool(&mut self, b: bool) {
         self.stack.push_front(Data::Bool(b));
+    }
+    
+    fn push_nil(&mut self) {
+        self.stack.push_front(Data::Nil);
     }
 
     fn pop(&mut self) -> Option<Data> {
