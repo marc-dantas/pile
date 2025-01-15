@@ -6,12 +6,12 @@
 - [X] Introduce `bool` datatype
   * Final: Type `true`or `false` for the respective variants of the type.
            `if` statements only accept boolean values. 
+- [X] Introduce `nil` datatype
+  * Final: Use `nil` to represent empty or undefined values for error handling and logic flow.
 
 ## To Be Done
 Definitely going to happen someday. Probably not exactly like described but it will happen.
 
-- [ ] Introduce `nil` datatype
-  * Idea: Use `nil` to represent empty or undefined values for error handling and logic flow.
 - [ ] More builtins
   * Idea: Include type conversion and additional I/O builtins.
 - [ ] String formatting
