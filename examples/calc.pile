@@ -1,0 +1,36 @@
+"First operand: " print
+readln toint
+
+dup ? if
+    "Invalid integer input" println
+    1 exit
+end
+
+"Second operand: " print
+readln toint
+
+dup ? if
+    "Invalid integer input" println
+    1 exit
+end
+
+swap # Swaps operands to make it calculate in the correct order 
+
+"Operation: " print
+readln
+
+"Result: " print
+
+dup "+" = if
+    drop
+    + println
+else dup "-" = if
+    drop
+    - println
+else dup "*" = if
+    drop
+    * println
+else dup "/" = if
+    drop
+    / println
+end end end end
