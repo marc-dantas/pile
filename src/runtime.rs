@@ -146,6 +146,7 @@ impl std::fmt::Display for Builtin {
 
 pub type Stack = VecDeque<Data>;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum RuntimeError {
     ProcedureError {
@@ -357,14 +358,7 @@ impl<'a> Runtime<'a> {
                     match a {
                         Data::String(s) => match i64::from_str(&s) {
                             Ok(n) => self.push_int(n),
-                            Err(_) => {
-                                return Err(RuntimeError::ValueError(
-                                    span,
-                                    format!("{}", x),
-                                    "int".to_string(),
-                                    s,
-                                ));
-                            }
+                            Err(_) => self.push_nil(),
                         },
                         Data::Float(n) => self.push_int(n as i64),
                         Data::Bool(n) => self.push_int(n as i64),
@@ -387,14 +381,7 @@ impl<'a> Runtime<'a> {
                     match a {
                         Data::String(s) => match f64::from_str(&s) {
                             Ok(n) => self.push_float(n),
-                            Err(_) => {
-                                return Err(RuntimeError::ValueError(
-                                    span,
-                                    format!("{}", x),
-                                    "float".to_string(),
-                                    s,
-                                ));
-                            }
+                            Err(_) => self.push_nil(),
                         },
                         Data::Int(n) => self.push_float(n as f64),
                         Data::Bool(n) => self.push_float(n as i64 as f64),
