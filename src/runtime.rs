@@ -95,7 +95,6 @@ impl std::fmt::Display for BinaryOp {
 }
 
 pub enum UnaryOp {
-    Trace,
     Dup,
     Drop,
     BNot,
@@ -104,7 +103,6 @@ pub enum UnaryOp {
 impl std::fmt::Display for UnaryOp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            UnaryOp::Trace => write!(f, "trace"),
             UnaryOp::Dup => write!(f, "dup"),
             UnaryOp::Drop => write!(f, "drop"),
             UnaryOp::BNot => write!(f, "~"),
@@ -169,6 +167,12 @@ pub struct Runtime<'a> {
     stop: bool,
 }
 
+// TODO: Optimize stack operations using the peek function.
+// This way it is possible to avoid popping and pushing back the same item
+// For example (over operation)
+// over ( a b -- a b a )
+// For now, I pop 2 items on top of the stack and push them back in the desired order after the operation
+// But i can just peek(1) (second last element) and then push it to the top. Way better.
 impl<'a> Runtime<'a> {
     pub fn new(input: &'a ProgramTree) -> Self {
         Self {
@@ -427,7 +431,6 @@ impl<'a> Runtime<'a> {
         if let Some(a) = self.pop() {
             match a {
                 Data::Int(n) => match x {
-                    UnaryOp::Trace => println!("int {}", n),
                     UnaryOp::Dup => {
                         self.push_int(n);
                         self.push_int(n);
@@ -436,7 +439,6 @@ impl<'a> Runtime<'a> {
                     UnaryOp::BNot => self.push_int(!n),
                 },
                 Data::Bool(n) => match x {
-                    UnaryOp::Trace => println!("bool {}", n),
                     UnaryOp::Dup => {
                         self.push_bool(n);
                         self.push_bool(n);
@@ -445,7 +447,6 @@ impl<'a> Runtime<'a> {
                     UnaryOp::BNot => self.push_bool(!n),
                 },
                 Data::Float(n) => match x {
-                    UnaryOp::Trace => println!("float {}", n),
                     UnaryOp::Dup => {
                         self.push_float(n);
                         self.push_float(n);
@@ -454,7 +455,6 @@ impl<'a> Runtime<'a> {
                     UnaryOp::BNot => self.push_float(!(n as i64) as f64),
                 },
                 Data::Nil => match x {
-                    UnaryOp::Trace => println!("nil"),
                     UnaryOp::Dup => {
                         self.push_nil();
                         self.push_nil();
@@ -470,7 +470,6 @@ impl<'a> Runtime<'a> {
                     }
                 },
                 Data::String(s) => match x {
-                    UnaryOp::Trace => println!("string \"{}\"", s),
                     UnaryOp::Dup => {
                         self.push_string(s.clone());
                         self.push_string(s);
@@ -694,7 +693,19 @@ impl<'a> Runtime<'a> {
                     OpKind::BNot => self.unop(s, UnaryOp::BNot)?,
                     OpKind::Dup => self.unop(s, UnaryOp::Dup)?,
                     OpKind::Drop => self.unop(s, UnaryOp::Drop)?,
-                    OpKind::Trace => self.unop(s, UnaryOp::Trace)?,
+                    OpKind::Trace => {
+                        if let Some(a) = self.peek(0) {
+                            match a {
+                                Data::Int(n) => println!("int {}", n),
+                                Data::Float(n) => println!("float {}", n),
+                                Data::String(s) => println!("string \"{}\"", s),
+                                Data::Bool(b) => println!("bool {}", b),
+                                Data::Nil => println!("nil"),
+                            }
+                        } else {
+                            return Err(RuntimeError::StackUnderflow(s, "trace".to_string(), 1));
+                        }
+                    },
                     OpKind::Rot => {
                         if let (Some(a), Some(b), Some(c)) = (self.pop(), self.pop(), self.pop()) {
                             self.stack.push_front(b);
@@ -790,6 +801,12 @@ impl<'a> Runtime<'a> {
 
     fn push_string(&mut self, s: String) {
         self.stack.push_front(Data::String(s));
+    }
+
+    // Peek operation is meant to get an item at the nth position starting from the top
+    // without afecting the stack
+    fn peek(&self, nth: usize) -> Option<&Data> {
+        self.stack.get(nth)
     }
     
     fn push_bool(&mut self, b: bool) {
