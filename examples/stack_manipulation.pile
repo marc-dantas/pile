@@ -1,5 +1,5 @@
-5 dup trace trace
-10 5 drop trace
-5 7 swap trace trace
-7 5 over trace trace trace
-1 2 3 rot trace trace trace
+5      dup  println
+10 5   drop println
+5  7   swap println
+7  5   over println
+1  2 3 rot  println

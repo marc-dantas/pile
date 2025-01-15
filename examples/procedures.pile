@@ -1,5 +1,5 @@
 proc greet
-    "Hi" trace
+    "Hi" println
 end
 
 greet
