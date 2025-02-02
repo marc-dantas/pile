@@ -76,7 +76,12 @@ pub fn parse_arguments() -> Result<Arguments, CLIError> {
         Ok(Arguments::new(f, show_help, show_version, parse_only))
     } else {
         if show_help || show_version {
-            return Ok(Arguments::new("".to_string(), show_help, show_version, parse_only));
+            return Ok(Arguments::new(
+                "".to_string(),
+                show_help,
+                show_version,
+                parse_only,
+            ));
         }
         Err(CLIError::ExpectedArgument("FILENAME".to_string()))
     }

@@ -36,9 +36,13 @@ pub struct Procedure<'a>(&'a Vec<Node>);
 pub struct Definition(Data);
 
 #[derive(Debug)]
+pub struct Variable(Data);
+
+#[derive(Debug)]
 pub struct Namespace<'a> {
     pub procs: HashMap<String, Procedure<'a>>,
     pub defs: HashMap<String, Definition>,
+    pub globals: HashMap<String, Variable>,
 }
 
 // stack operations:
@@ -181,6 +185,7 @@ impl<'a> Runtime<'a> {
             namespace: Namespace {
                 procs: HashMap::new(),
                 defs: HashMap::new(),
+                globals: HashMap::new(),
             },
             stop: false,
         }
@@ -494,7 +499,8 @@ impl<'a> Runtime<'a> {
     fn binop(&mut self, span: TokenSpan, x: BinaryOp) -> Result<(), RuntimeError> {
         if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
             match (a, b) {
-                (Data::Int(n1), Data::Int(n2)) => match x { // TODO: deal with i64 overflows
+                (Data::Int(n1), Data::Int(n2)) => match x {
+                    // TODO: deal with i64 overflows
                     BinaryOp::Add => self.push_int(n1 + n2),
                     BinaryOp::Sub => self.push_int(n1 - n2),
                     BinaryOp::Mul => self.push_int(n1 * n2),
@@ -705,7 +711,7 @@ impl<'a> Runtime<'a> {
                         } else {
                             return Err(RuntimeError::StackUnderflow(s, "trace".to_string(), 1));
                         }
-                    },
+                    }
                     OpKind::Rot => {
                         if let (Some(a), Some(b), Some(c)) = (self.pop(), self.pop(), self.pop()) {
                             self.stack.push_front(b);
@@ -764,10 +770,29 @@ impl<'a> Runtime<'a> {
                                 Data::Bool(b) => self.push_bool(*b),
                                 Data::Nil => self.push_nil(),
                             }
+                        } else if let Some(v) = self.namespace.globals.get(w) {
+                            match &v.0 {
+                                Data::Int(n) => self.push_int(*n),
+                                Data::Float(n) => self.push_float(*n),
+                                Data::String(s) => self.push_string(String::from(s)),
+                                Data::Bool(b) => self.push_bool(*b),
+                                Data::Nil => self.push_nil(),
+                            }
                         } else {
                             return Err(RuntimeError::InvalidWord(s, w.to_string()));
                         }
                     }
+                }
+            }
+            Node::Let(name, span) => {
+                if let Some(a) = self.pop() {
+                    self.namespace.globals.insert(name.to_string(), Variable(a));
+                } else {
+                    return Err(RuntimeError::StackUnderflow(
+                        span.clone(),
+                        "let".to_string(),
+                        1,
+                    ));
                 }
             }
             Node::Proc(..) => {}
@@ -808,11 +833,11 @@ impl<'a> Runtime<'a> {
     fn peek(&self, nth: usize) -> Option<&Data> {
         self.stack.get(nth)
     }
-    
+
     fn push_bool(&mut self, b: bool) {
         self.stack.push_front(Data::Bool(b));
     }
-    
+
     fn push_nil(&mut self) {
         self.stack.push_front(Data::Nil);
     }

@@ -31,7 +31,7 @@ pub fn is_op(value: &str) -> bool {
 pub fn is_reserved_word(value: &str) -> bool {
     matches!(
         value,
-        "if" | "loop" | "proc" | "end" | "else" | "def" | "stop" | "true" | "false" | "nil"
+        "if" | "loop" | "proc" | "end" | "let" | "else" | "def" | "stop" | "true" | "false" | "nil"
     )
 }
 
@@ -85,6 +85,7 @@ pub enum Node {
     Def(String, Vec<Node>, TokenSpan),
     If(Vec<Node>, Option<Vec<Node>>, TokenSpan),
     Loop(Vec<Node>, TokenSpan),
+    Let(String, TokenSpan),
     Operation(OpKind, TokenSpan),
     Symbol(String, TokenSpan),
 }
@@ -128,6 +129,7 @@ impl<'a> Parser<'a> {
             TokenKind::Word => match token.value.as_str() {
                 "proc" => self.parse_proc(),
                 "def" => self.parse_def(),
+                "let" => self.parse_let(),
                 "if" => self.parse_if(),
                 "loop" => self.parse_loop(),
                 "end" => Err(ParseError::UnmatchedBlock(
@@ -196,6 +198,23 @@ impl<'a> Parser<'a> {
             proc_name.span.clone(),
             "proc".to_string(),
         ))
+    }
+
+    fn parse_let(&mut self) -> Result<Node, ParseError> {
+        let variable = self.lexer.next().ok_or_else(|| {
+            let span = self.current_span.clone().unwrap();
+            ParseError::UnexpectedEOF(span, "valid identifier".to_string())
+        })?;
+
+        if !is_valid_identifier(&variable.value) {
+            return Err(ParseError::UnexpectedToken(
+                variable.span.clone(),
+                variable.value,
+                "valid identifier".to_string(),
+            ));
+        }
+
+        Ok(Node::Let(variable.value, variable.span))
     }
 
     fn parse_def(&mut self) -> Result<Node, ParseError> {
