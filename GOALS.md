@@ -79,7 +79,7 @@ Definitely going to happen someday. Probably not exactly like described but it w
     ```pile
     assert 2 3 + 5 = end
     ```
-- [X] Block Let statement
+- [ ] Block Let statement
   * Idea: Create a scope system that works inside a block syntax after the let.
     ```
     10 20 30
