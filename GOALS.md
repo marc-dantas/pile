@@ -8,6 +8,11 @@
            `if` statements only accept boolean values. 
 - [X] Introduce `nil` datatype
   * Final: Use `nil` to represent empty or undefined values for error handling and logic flow.
+- [X] Let statement
+  * Final: Define global variables using keyword `let`:
+    ```
+    10 let x # assigns the name to the last value on top of the stack
+    ```
 
 ## To Be Done
 Definitely going to happen someday. Probably not exactly like described but it will happen.
@@ -38,26 +43,6 @@ Definitely going to happen someday. Probably not exactly like described but it w
     try # Only runs this block if the last item on the stack is not nil
       ...
     end
-    ```
-- [ ] Let statement
-  * Idea: Implement a variable system using keyword `let`:
-    ```
-    10 let x # assigns the name to the last value on top of the stack
-    ```
-    Create a scope system that works inside an optional block syntax after the let.
-    ```
-    proc circle_area
-      # This way it's possible to bind the arguments of the proc
-      let radius do
-        radius dup * PI *
-      end # name radius is undefined past this
-    end
-    
-    # Also be able to bind the values to more names
-    10 20 30
-    let x y z do
-      x y z + +
-    end # names x, y and z are undefined past this
     ```
 - [ ] More refined error messages
   * Idea: Make language errors show the line and column visually to the use
