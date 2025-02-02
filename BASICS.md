@@ -138,7 +138,6 @@ add_1      # Error!
 - A definition pushes its value onto the stack when used.
 
 ### Examples
-
 ```pile
 def SUN 1 end
 def MON 1 end
@@ -162,6 +161,29 @@ TOTAL trace
 ```
 def AUTHOR "marc-dantas" end
 AUTHOR trace # Output: marc-dantas
+```
+## Global Variables
+
+### Overview
+
+- A global variable in Pile is a binding to a value.
+- A global variable pushes its stored value onto the stack when used.
+- Global variables are mutable.
+
+### Examples
+```pile
+"Hello World" let message
+
+message println
+```
+
+```
+proc squared
+    let n
+    n dup *
+end
+
+10 squared println
 ```
 
 **More about Pile programming language can be found in the official documentation.**
