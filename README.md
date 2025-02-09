@@ -41,11 +41,11 @@ Clone the repository and build the project:
 
 ## Documentation
 
-***(Still in development)***
+Pile's full documentation and website can be visited at [pile-online.vercel.app](https://pile-lang.vercel.app).
 
-Pile's full documentation and website is being developed at [marc-dantas/pile-online](https://github.com/marc-dantas/pile-online).
+Also take a look at the development repository of the website at [marc-dantas/pile-online](https://gihub.com/marc-dantas/pile-online).
 
-For a quick understanding of the language, try reading [`BASICS.md`](./BASICS.md) file, which includes some examples and a compact overview of the language.
+> If you are quick, try reading [`BASICS.md`](./BASICS.md) file, which includes some examples and a compact overview of the language.
 
 ## Examples
 
