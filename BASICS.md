@@ -186,7 +186,7 @@ end
 10 squared println
 ```
 
-**More about Pile programming language can be found in the official documentation.**
+**More about Pile programming language can be found in the [official documentation](https://pile-lang.vercel.app/docs).**
 
 ---
 
