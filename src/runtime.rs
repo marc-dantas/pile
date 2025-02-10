@@ -170,7 +170,8 @@ pub struct Runtime<'a> {
     input: &'a ProgramTree,
     stack: Stack,
     namespace: Namespace<'a>,
-    stop: bool,
+    loop_break: bool,
+    loop_continue: bool,
 }
 
 // TODO: Optimize stack operations using the peek function.
@@ -190,7 +191,8 @@ impl<'a> Runtime<'a> {
                 globals: HashMap::new(),
                 locals: HashMap::new(),
             },
-            stop: false,
+            loop_break: false,
+            loop_continue: false,
         }
     }
 
@@ -666,12 +668,17 @@ impl<'a> Runtime<'a> {
                 }
             }
             Node::Loop(l, _) => {
-                while !self.stop {
-                    self.run_block(l)?;
-
-                    if self.stop {
-                        self.stop = false;
-                        break;
+                'outer: loop {
+                    for n in l {
+                        self.run_node(n)?;
+                        if self.loop_break {
+                            break 'outer;
+                        }
+                        if self.loop_continue {
+                            // The reason why I don't use 'outer label is that it would re-execute
+                            // the entire block of the loop if I used the label.
+                            continue;
+                        }
                     }
                 }
             }
@@ -725,9 +732,8 @@ impl<'a> Runtime<'a> {
                         }
                         Ok(())
                     }?,
-                    OpKind::Stop => {
-                        self.stop = true;
-                    }
+                    OpKind::Break => self.loop_break = true,
+                    OpKind::Continue => self.loop_continue = true,
                     OpKind::True => self.push_bool(true),
                     OpKind::False => self.push_bool(false),
                     OpKind::Nil => self.push_nil(),

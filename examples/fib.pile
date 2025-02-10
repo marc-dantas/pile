@@ -3,13 +3,10 @@ proc fib
     0 1 as a b let
         loop
             b println
-
-            a b + as temp let
-                b let a
-                temp let b
-            end
-            
-            n b > if stop end
+            a b + let temp
+            b let a
+            temp let b
+            n b > if break end
         end
     end
 end

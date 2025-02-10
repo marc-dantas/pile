@@ -6,5 +6,5 @@ end
 
 loop
     "looping" println
-    stop
+    break
 end

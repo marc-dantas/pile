@@ -101,7 +101,8 @@ end
 ```pile
 loop
     "this will trace forever" trace
-    # Use `stop` to break the loop
+    # Use `break` to break the loop
+    # Use `continue` to go to the next iteration of the loop
 end
 ```
 

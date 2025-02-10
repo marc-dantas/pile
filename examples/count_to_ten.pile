@@ -3,7 +3,7 @@
 loop
     counter println
     counter 10 = if
-        stop
+        break
     end
     counter 1 + let counter
 end
