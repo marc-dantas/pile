@@ -1,12 +1,11 @@
 proc fib
     let n
-    0 1 as a b let
-        loop
-            b println
-            a b + let temp
-            b let a
-            temp let b
-            n b > if break end
+    0 1
+    loop
+        over n swap >= if break end
+        as a b let
+            a println
+            b a b +
         end
     end
 end
