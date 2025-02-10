@@ -31,7 +31,7 @@ pub fn is_op(value: &str) -> bool {
 pub fn is_reserved_word(value: &str) -> bool {
     matches!(
         value,
-        "if" | "loop" | "proc" | "end" | "let" | "else" | "def" | "stop" | "true" | "false" | "nil"
+        "if" | "as" | "loop" | "proc" | "end" | "let" | "else" | "def" | "stop" | "true" | "false" | "nil"
     )
 }
 
@@ -86,6 +86,7 @@ pub enum Node {
     If(Vec<Node>, Option<Vec<Node>>, TokenSpan),
     Loop(Vec<Node>, TokenSpan),
     Let(String, TokenSpan),
+    AsLet(Vec<Token>, Vec<Node>, TokenSpan),
     Operation(OpKind, TokenSpan),
     Symbol(String, TokenSpan),
 }
@@ -130,6 +131,7 @@ impl<'a> Parser<'a> {
                 "proc" => self.parse_proc(),
                 "def" => self.parse_def(),
                 "let" => self.parse_let(),
+                "as" => self.parse_aslet(),
                 "if" => self.parse_if(),
                 "loop" => self.parse_loop(),
                 "end" => Err(ParseError::UnmatchedBlock(
@@ -217,6 +219,38 @@ impl<'a> Parser<'a> {
         Ok(Node::Let(variable.value, variable.span))
     }
 
+    fn parse_aslet(&mut self) -> Result<Node, ParseError> {
+        let mut variables = Vec::new();
+
+        while let Some(token) = self.lexer.next() {
+            if token.value == "let" {
+                break;
+            }
+            if !is_valid_identifier(&token.value) {
+                return Err(ParseError::UnexpectedToken(
+                    token.span.clone(),
+                    token.value,
+                    "valid identifier".to_string(),
+                ));
+            }
+            variables.push(token);
+        }
+        
+        let mut body = Vec::new();
+
+        while let Some(token) = self.lexer.next() {
+            if token.value == "end" {
+                return Ok(Node::AsLet(variables, body, token.span));
+            }
+            body.push(self.parse_expr(token)?);
+        }
+        
+        Err(ParseError::UnterminatedBlock(
+            self.current_span.as_ref().unwrap().clone(),
+            "as..let".to_string(),
+        ))
+    }
+
     fn parse_def(&mut self) -> Result<Node, ParseError> {
         let def_name = self.lexer.next().ok_or_else(|| {
             let span = self.current_span.clone().unwrap_or_else(|| TokenSpan {
@@ -234,16 +268,16 @@ impl<'a> Parser<'a> {
                 "valid identifier".to_string(),
             ));
         }
-
+        
         let mut body = Vec::new();
-
+        
         while let Some(token) = self.lexer.next() {
             if token.value == "end" {
                 return Ok(Node::Def(def_name.value, body, def_name.span));
             }
             body.push(self.parse_expr(token)?);
         }
-
+        
         Err(ParseError::UnterminatedBlock(
             def_name.span.clone(),
             "proc".to_string(),

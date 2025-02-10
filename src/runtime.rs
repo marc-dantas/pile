@@ -40,9 +40,10 @@ pub struct Variable(Data);
 
 #[derive(Debug)]
 pub struct Namespace<'a> {
-    pub procs: HashMap<String, Procedure<'a>>,
-    pub defs: HashMap<String, Definition>,
-    pub globals: HashMap<String, Variable>,
+    pub procs: HashMap<&'a str, Procedure<'a>>,
+    pub defs: HashMap<&'a str, Definition>,
+    pub globals: HashMap<&'a str, Variable>,
+    pub locals: HashMap<&'a str, Variable>,
 }
 
 // stack operations:
@@ -162,6 +163,7 @@ pub enum RuntimeError {
     ProcRedefinition(TokenSpan, String),           // used when a procedure name is already taken
     DefRedefinition(TokenSpan, String),            // used when a definition name is already taken
     EmptyDefinition(TokenSpan, String),            // used when a definition has empty body
+    UnboundVariable(TokenSpan, String),            // used when a definition has empty body
 }
 
 pub struct Runtime<'a> {
@@ -186,6 +188,7 @@ impl<'a> Runtime<'a> {
                 procs: HashMap::new(),
                 defs: HashMap::new(),
                 globals: HashMap::new(),
+                locals: HashMap::new(),
             },
             stop: false,
         }
@@ -195,20 +198,20 @@ impl<'a> Runtime<'a> {
         for n in self.input {
             match n {
                 Node::Proc(n, p, s) => {
-                    if self.namespace.procs.contains_key(n) {
+                    if self.namespace.procs.contains_key(n.as_str()) {
                         return Err(RuntimeError::ProcRedefinition(s.clone(), n.to_string()));
                     }
-                    self.namespace.procs.insert(n.to_string(), Procedure(p));
+                    self.namespace.procs.insert(n, Procedure(p));
                 }
                 Node::Def(n, p, s) => {
-                    if self.namespace.defs.contains_key(n) {
+                    if self.namespace.defs.contains_key(n.as_str()) {
                         return Err(RuntimeError::DefRedefinition(s.clone(), n.to_string()));
                     }
                     self.run_block(p)?;
                     if let Some(result) = self.pop() {
                         self.namespace
                             .defs
-                            .insert(n.to_string(), Definition(result));
+                            .insert(n, Definition(result));
                     } else {
                         return Err(RuntimeError::EmptyDefinition(s.clone(), n.to_string()));
                     }
@@ -755,14 +758,14 @@ impl<'a> Runtime<'a> {
                     "tofloat" => self.builtin(s, Builtin::ToFloat)?,
                     "typeof" => self.builtin(s, Builtin::TypeOf)?,
                     _ => {
-                        if let Some(p) = self.namespace.procs.get(w) {
+                        if let Some(p) = self.namespace.procs.get(w.as_str()) {
                             if let Err(e) = self.run_block(p.0) {
                                 return Err(RuntimeError::ProcedureError {
                                     call: s,
                                     inner: Box::new(e),
                                 });
                             }
-                        } else if let Some(d) = self.namespace.defs.get(w) {
+                        } else if let Some(d) = self.namespace.defs.get(w.as_str()) {
                             match &d.0 {
                                 Data::Int(n) => self.push_int(*n),
                                 Data::Float(n) => self.push_float(*n),
@@ -770,7 +773,15 @@ impl<'a> Runtime<'a> {
                                 Data::Bool(b) => self.push_bool(*b),
                                 Data::Nil => self.push_nil(),
                             }
-                        } else if let Some(v) = self.namespace.globals.get(w) {
+                        } else if let Some(v) = self.namespace.globals.get(w.as_str()) {
+                            match &v.0 {
+                                Data::Int(n) => self.push_int(*n),
+                                Data::Float(n) => self.push_float(*n),
+                                Data::String(s) => self.push_string(String::from(s)),
+                                Data::Bool(b) => self.push_bool(*b),
+                                Data::Nil => self.push_nil(),
+                            }
+                        } else if let Some(v) = self.namespace.locals.get(w.as_str()) {
                             match &v.0 {
                                 Data::Int(n) => self.push_int(*n),
                                 Data::Float(n) => self.push_float(*n),
@@ -786,14 +797,27 @@ impl<'a> Runtime<'a> {
             }
             Node::Let(name, span) => {
                 if let Some(a) = self.pop() {
-                    self.namespace.globals.insert(name.to_string(), Variable(a));
+                    self.namespace.globals.insert(name, Variable(a));
                 } else {
-                    return Err(RuntimeError::StackUnderflow(
+                    return Err(RuntimeError::UnboundVariable(
                         span.clone(),
-                        "let".to_string(),
-                        1,
+                        name.to_string(),
                     ));
                 }
+            }
+            Node::AsLet(vars, block, _) => {
+                for x in vars.into_iter().rev() {
+                    if let Some(a) = self.pop() {
+                        self.namespace.locals.insert(&x.value, Variable(a));
+                    } else {
+                        return Err(RuntimeError::UnboundVariable(
+                            x.span.clone(),
+                            x.value.to_string(),
+                        ));
+                    }
+                }
+                self.run_block(block)?;
+                self.namespace.locals.clear();
             }
             Node::Proc(..) => {}
             Node::Def(..) => {}
