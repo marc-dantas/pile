@@ -25,6 +25,10 @@
 ## To Be Done
 Definitely going to happen someday. Probably not exactly like described but it will happen.
 
+- [ ] Return in procedures
+  * Auto-descriptive
+- [ ] While loops
+  * Auto-descriptive
 - [ ] More builtins
   * Idea: Include type conversion and additional I/O builtins.
 - [ ] String formatting
@@ -86,4 +90,17 @@ Definitely going to happen someday. Probably not exactly like described but it w
   * Idea: Include `assert` statement and simple error handling:
     ```pile
     assert 2 3 + 5 = end
+    ```
+- [ ] For loop
+  * Idea: Create a structure that iterates through the stack and assigns the value in iteration to a variable:
+    ```
+    1 2 3 4
+    4 for x # each value is assigned to x for each iteration
+        x println
+    end
+    # Output:
+    # 4
+    # 3
+    # 2
+    # 1
     ```
