@@ -150,7 +150,7 @@ impl std::fmt::Display for Builtin {
 pub type Stack = VecDeque<Data>;
 
 #[allow(dead_code)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum RuntimeError {
     ProcedureError {
         call: TokenSpan,          // TokenSpan where the procedure was called

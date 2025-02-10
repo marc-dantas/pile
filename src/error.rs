@@ -8,7 +8,8 @@ use crate::{
 
 fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
     match e {
-        RuntimeError::ProcedureError { .. } => unreachable!(),
+        // TODO: plz implement a call stack. this is totally a hack and will not produce good error messages
+        e@RuntimeError::ProcedureError { .. } => runtime_error(e.clone()),
         RuntimeError::InvalidWord(span, x) => {
             throw(
                 "runtime error",
