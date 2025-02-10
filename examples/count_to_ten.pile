@@ -1,5 +1,9 @@
-0 loop
-    dup println
-    dup 10 = if stop end
-    1 +
+0 let counter
+
+loop
+    counter println
+    counter 10 = if
+        stop
+    end
+    counter 1 + let counter
 end

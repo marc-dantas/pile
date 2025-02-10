@@ -3,4 +3,4 @@ proc squared
     n dup *
 end
 
- squared println
+squared println

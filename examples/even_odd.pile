@@ -1,9 +1,10 @@
 proc even_odd
-  2 swap % 0 = if
-    "even"
-  else
-    "odd"
-  end
+    let n
+    2 n % 0 = if
+        "even"
+    else
+        "odd"
+    end
 end
 
 "Number input: " print readln

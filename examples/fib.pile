@@ -1,14 +1,17 @@
 proc fib
-    0 1
-    loop
-        dup println
-        over over +
-        
-        dup N < if
-            stop
+    let n
+    0 1 as a b let
+        loop
+            b println
+
+            a b + as temp let
+                b let a
+                temp let b
+            end
+            
+            n b > if stop end
         end
     end
 end
 
-def N 400 end
-fib
+60000 fib

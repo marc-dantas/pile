@@ -1,8 +1,9 @@
 proc fact
-    dup 1 swap <= if
-        drop 1
+    let n
+    1 n <= if
+        1
     else
-        dup 1 swap - fact *
+        n 1 n - fact *
     end
 end
 

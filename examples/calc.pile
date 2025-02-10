@@ -1,36 +1,30 @@
 "First operand: " print
-readln toint
+readln toint let n1
 
-dup ? if
+n1 ? if
     "Invalid integer input" println
     1 exit
 end
 
 "Second operand: " print
-readln toint
+readln toint let n2
 
-dup ? if
+n2 ? if
     "Invalid integer input" println
     1 exit
 end
 
-swap # Swaps operands to make it calculate in the correct order 
-
 "Operation: " print
-readln
+readln let op
 
 "Result: " print
 
-dup "+" = if
-    drop
-    + println
-else dup "-" = if
-    drop
-    - println
-else dup "*" = if
-    drop
-    * println
-else dup "/" = if
-    drop
-    / println
+op "+" = if
+    n2 n1 + println
+else op "-" = if
+    n2 n1 - println
+else op "*" = if
+    n2 n1 * println
+else op "/" = if
+    n2 n1 / println
 end end end end

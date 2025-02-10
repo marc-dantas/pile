@@ -1,7 +1,8 @@
 def PI 3.14159265359 end
 
 proc circle_area
-    tofloat dup * PI *
+    let radius
+    radius tofloat dup * PI *
 end
 
 10 circle_area println
