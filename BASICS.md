@@ -168,6 +168,7 @@ AUTHOR trace # Output: marc-dantas
 
 - A global variable in Pile is a binding to a value.
 - A global variable pushes its stored value onto the stack when used.
+- Global variables can't be destroyed.
 - Global variables are mutable.
 
 ### Examples
@@ -184,6 +185,34 @@ proc squared
 end
 
 10 squared println
+```
+
+## Local Variables
+
+### Overview
+
+- A local variable in Pile is a binding to a value that is destroyed after the end of a scope block.
+- A local variable pushes its stored value onto the stack when used  (if it is still a valid binding).
+- Local variables are also mutable.
+
+### Examples
+```pile
+"Hello World" as message let
+    message println # result: Hello World
+end
+
+# error! this variable was destroyed!
+message println
+```
+
+```
+proc takes_a_and_b
+    as a b let
+        a b +
+    end
+end
+
+1 1 takes_a_and_b println # output: 2
 ```
 
 **More about Pile programming language can be found in the [official documentation](https://pile-lang.vercel.app/docs).**

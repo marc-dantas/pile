@@ -13,6 +13,14 @@
     ```
     10 let x # assigns the name to the last value on top of the stack
     ```
+- [X] Block Let statement
+  * Final: Define local and scoped variables using the construction `as..let`:
+    ```
+    10 20 30
+    as a b c let # assigns to the last 3 values on the stack
+      ...
+    end # variables are deleted here
+    ```
 
 ## To Be Done
 Definitely going to happen someday. Probably not exactly like described but it will happen.
@@ -78,12 +86,4 @@ Definitely going to happen someday. Probably not exactly like described but it w
   * Idea: Include `assert` statement and simple error handling:
     ```pile
     assert 2 3 + 5 = end
-    ```
-- [ ] Block Let statement
-  * Idea: Create a scope system that works inside a block syntax after the let.
-    ```
-    10 20 30
-    let a b c do # assigns to the last 3 values on the stack
-      ....
-    end # variables are deleted here
     ```
