@@ -74,6 +74,15 @@ fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
                 call,
             );
         }
+        RuntimeError::UnboundVariable(span, s) => {
+            throw(
+                "runtime error",
+                &format!("unbound variable: variable `{s}` has no value to be bound."),
+                span.clone(),
+                Some(&format!("push values on the stack before using `{s}`.")),
+                call,
+            );
+        }
     }
 }
 
@@ -91,7 +100,7 @@ pub fn parse_error(e: ParseError) {
         ParseError::UnmatchedBlock(span) => {
             throw(
                 "parse error",
-                "syntax error: found unmatched block: termination of block (end) provided without a beginning (`if`, `else`, `proc`, `def`, or `loop`)",
+                "syntax error: found unmatched block: termination of block (end) provided without a beginning",
                 span,
                 None,
                 None,
