@@ -797,7 +797,11 @@ impl<'a> Runtime<'a> {
             }
             Node::Let(name, span) => {
                 if let Some(a) = self.pop() {
-                    self.namespace.globals.insert(name, Variable(a));
+                    if let Some(_) = self.namespace.locals.get(name.as_str()) {
+                        self.namespace.locals.insert(name, Variable(a));
+                    } else {
+                        self.namespace.globals.insert(name, Variable(a));
+                    }
                 } else {
                     return Err(RuntimeError::UnboundVariable(
                         span.clone(),
@@ -806,7 +810,9 @@ impl<'a> Runtime<'a> {
                 }
             }
             Node::AsLet(vars, block, _) => {
+                let mut defined_vars = Vec::new();
                 for x in vars.into_iter().rev() {
+                    defined_vars.push(&x.value);
                     if let Some(a) = self.pop() {
                         self.namespace.locals.insert(&x.value, Variable(a));
                     } else {
@@ -817,7 +823,9 @@ impl<'a> Runtime<'a> {
                     }
                 }
                 self.run_block(block)?;
-                self.namespace.locals.clear();
+                for var in defined_vars.iter() {
+                    self.namespace.locals.remove(var.as_str());
+                }
             }
             Node::Proc(..) => {}
             Node::Def(..) => {}
