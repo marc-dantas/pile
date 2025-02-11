@@ -21,12 +21,12 @@
       ...
     end # variables are deleted here
     ```
+- [X] Return in procedures
+  * Auto-descriptive
 
 ## To Be Done
 Definitely going to happen someday. Probably not exactly like described but it will happen.
 
-- [ ] Return in procedures
-  * Auto-descriptive
 - [ ] While loops
   * Auto-descriptive
 - [ ] More builtins
