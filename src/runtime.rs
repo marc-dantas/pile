@@ -172,6 +172,7 @@ pub struct Runtime<'a> {
     namespace: Namespace<'a>,
     loop_break: bool,
     loop_continue: bool,
+    proc_return: bool,
 }
 
 // TODO: Optimize stack operations using the peek function.
@@ -193,6 +194,7 @@ impl<'a> Runtime<'a> {
             },
             loop_break: false,
             loop_continue: false,
+            proc_return: false,
         }
     }
 
@@ -734,6 +736,7 @@ impl<'a> Runtime<'a> {
                     }?,
                     OpKind::Break => self.loop_break = true,
                     OpKind::Continue => self.loop_continue = true,
+                    OpKind::Return => self.proc_return = true,
                     OpKind::True => self.push_bool(true),
                     OpKind::False => self.push_bool(false),
                     OpKind::Nil => self.push_nil(),
@@ -765,12 +768,16 @@ impl<'a> Runtime<'a> {
                     "typeof" => self.builtin(s, Builtin::TypeOf)?,
                     _ => {
                         if let Some(p) = self.namespace.procs.get(w.as_str()) {
-                            if let Err(e) = self.run_block(p.0) {
-                                return Err(RuntimeError::ProcedureError {
-                                    call: s,
-                                    inner: Box::new(e),
-                                });
+                            for n in p.0 {
+                                if let Err(e) = self.run_node(n) {
+                                    return Err(RuntimeError::ProcedureError {
+                                        call: s,
+                                        inner: Box::new(e),
+                                    });
+                                }
+                                if self.proc_return { break; }
                             }
+                            self.proc_return = false;
                         } else if let Some(d) = self.namespace.defs.get(w.as_str()) {
                             match &d.0 {
                                 Data::Int(n) => self.push_int(*n),
