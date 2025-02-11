@@ -683,6 +683,8 @@ impl<'a> Runtime<'a> {
                         }
                     }
                 }
+                self.loop_break = false;
+                self.loop_continue = false;
             }
             Node::IntLit(n, _) => self.push_int(*n),
             Node::FloatLit(n, _) => self.push_float(*n),
