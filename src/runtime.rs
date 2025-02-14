@@ -730,29 +730,11 @@ impl<'a> Runtime<'a> {
                             }
                             self.proc_return = false;
                         } else if let Some(d) = self.namespace.defs.get(w.as_str()) {
-                            match &d.0 {
-                                Data::Int(n) => self.push_int(*n),
-                                Data::Float(n) => self.push_float(*n),
-                                Data::String(s) => self.push_string(String::from(s)),
-                                Data::Bool(b) => self.push_bool(*b),
-                                Data::Nil => self.push_nil(),
-                            }
+                            self.stack.push_front(d.0.clone()); // TODO: Make Data a stack structure
                         } else if let Some(v) = self.namespace.globals.get(w.as_str()) {
-                            match &v.0 {
-                                Data::Int(n) => self.push_int(*n),
-                                Data::Float(n) => self.push_float(*n),
-                                Data::String(s) => self.push_string(String::from(s)),
-                                Data::Bool(b) => self.push_bool(*b),
-                                Data::Nil => self.push_nil(),
-                            }
+                            self.stack.push_front(v.0.clone()); // TODO: Make Data a stack structure
                         } else if let Some(v) = self.namespace.locals.get(w.as_str()) {
-                            match &v.0 {
-                                Data::Int(n) => self.push_int(*n),
-                                Data::Float(n) => self.push_float(*n),
-                                Data::String(s) => self.push_string(String::from(s)),
-                                Data::Bool(b) => self.push_bool(*b),
-                                Data::Nil => self.push_nil(),
-                            }
+                            self.stack.push_front(v.0.clone()); // TODO: Make Data a stack structure
                         } else {
                             return Err(RuntimeError::InvalidWord(s, w.to_string()));
                         }
