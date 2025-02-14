@@ -1,5 +1,0 @@
-5      dup  println
-10 5   drop println
-5  7   swap println
-7  5   over println
-1  2 3 rot  println

@@ -1,5 +1,0 @@
-def PI 3.14159 end
-def MSG "Hello from Pile!" end
-
-PI println
-MSG println

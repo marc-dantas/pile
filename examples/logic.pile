@@ -1,6 +1,0 @@
-10 10 =  println
-10 5  != println
-5  10 <  println
-10 5  >  println
-5  5  <= println
-10 10 >= println

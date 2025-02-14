@@ -1,6 +1,0 @@
-proc squared
-    let n
-    n dup *
-end
-
-squared println

@@ -1,3 +1,4 @@
+# Recursive factorial in Pile programming language
 proc fact
     let n
     1 n <= if

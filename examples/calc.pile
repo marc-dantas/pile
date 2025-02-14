@@ -1,30 +1,48 @@
 "First operand: " print
-readln toint let n1
+readln toint let operand1
 
-n1 ? if
+operand1 ? if
     "Invalid integer input" println
     1 exit
 end
 
 "Second operand: " print
-readln toint let n2
+readln toint let operand2
 
-n2 ? if
+operand2 ? if
     "Invalid integer input" println
     1 exit
 end
 
 "Operation: " print
-readln let op
+readln let operation
 
-"Result: " print
+proc calculate
+    as n1 n2 op let
+        op "+" = if
+            10 trace
+            n2 n1 + return
+        end
+        op "-" = if
+            n2 n1 - return
+        end
+        op "*" = if
+            n2 n1 * return
+        end
+        op "/" = if
+            n2 n1 / return
+        end
+        nil return
+    end
+end
 
-op "+" = if
-    n2 n1 + println
-else op "-" = if
-    n2 n1 - println
-else op "*" = if
-    n2 n1 * println
-else op "/" = if
-    n2 n1 / println
-end end end end
+operand1 operand2 operation calculate let result
+
+result trace ? if
+    "Invalid operation" eprintln
+    1 exit
+end
+
+result tostring let result
+
+result "Result: " + println

@@ -1,3 +1,0 @@
-def AUTHOR "marc-dantas" end
-
-AUTHOR println
