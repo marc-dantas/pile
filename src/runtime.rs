@@ -70,8 +70,6 @@ pub enum BinaryOp {
     Shr,
     Bor,
     Band,
-    Swap,
-    Over,
 }
 
 impl std::fmt::Display for BinaryOp {
@@ -93,23 +91,17 @@ impl std::fmt::Display for BinaryOp {
             BinaryOp::Shr => write!(f, "<<"),
             BinaryOp::Bor => write!(f, "|"),
             BinaryOp::Band => write!(f, "&"),
-            BinaryOp::Swap => write!(f, "swap"),
-            BinaryOp::Over => write!(f, "over"),
         }
     }
 }
 
 pub enum UnaryOp {
-    Dup,
-    Drop,
     BNot,
 }
 
 impl std::fmt::Display for UnaryOp {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
-            UnaryOp::Dup => write!(f, "dup"),
-            UnaryOp::Drop => write!(f, "drop"),
             UnaryOp::BNot => write!(f, "~"),
         }
     }
@@ -443,35 +435,15 @@ impl<'a> Runtime<'a> {
         if let Some(a) = self.pop() {
             match a {
                 Data::Int(n) => match x {
-                    UnaryOp::Dup => {
-                        self.push_int(n);
-                        self.push_int(n);
-                    }
-                    UnaryOp::Drop => {}
                     UnaryOp::BNot => self.push_int(!n),
                 },
                 Data::Bool(n) => match x {
-                    UnaryOp::Dup => {
-                        self.push_bool(n);
-                        self.push_bool(n);
-                    }
-                    UnaryOp::Drop => {}
                     UnaryOp::BNot => self.push_bool(!n),
                 },
                 Data::Float(n) => match x {
-                    UnaryOp::Dup => {
-                        self.push_float(n);
-                        self.push_float(n);
-                    }
-                    UnaryOp::Drop => {}
                     UnaryOp::BNot => self.push_float(!(n as i64) as f64),
                 },
                 Data::Nil => match x {
-                    UnaryOp::Dup => {
-                        self.push_nil();
-                        self.push_nil();
-                    }
-                    UnaryOp::Drop => {}
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
                             span,
@@ -481,12 +453,7 @@ impl<'a> Runtime<'a> {
                         ))
                     }
                 },
-                Data::String(s) => match x {
-                    UnaryOp::Dup => {
-                        self.push_string(s.clone());
-                        self.push_string(s);
-                    }
-                    UnaryOp::Drop => {}
+                Data::String(_s) => match x {
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
                             span,
@@ -524,15 +491,6 @@ impl<'a> Runtime<'a> {
                     BinaryOp::Shr => self.push_int(n1 >> n2),
                     BinaryOp::Bor => self.push_int(n1 | n2),
                     BinaryOp::Band => self.push_int(n1 & n2),
-                    BinaryOp::Swap => {
-                        self.push_int(n1);
-                        self.push_int(n2);
-                    }
-                    BinaryOp::Over => {
-                        self.push_int(n2);
-                        self.push_int(n1);
-                        self.push_int(n2);
-                    }
                 },
                 (ref i @ Data::Float(ref n1), ref j @ Data::Float(ref n2)) => match x {
                     BinaryOp::Add => self.push_float(n1 + n2),
@@ -547,15 +505,6 @@ impl<'a> Runtime<'a> {
                     BinaryOp::Gt => self.push_bool(n1 > n2),
                     BinaryOp::Le => self.push_bool(n1 <= n2),
                     BinaryOp::Ge => self.push_bool(n1 >= n2),
-                    BinaryOp::Swap => {
-                        self.push_float(*n1);
-                        self.push_float(*n2);
-                    }
-                    BinaryOp::Over => {
-                        self.push_float(*n2);
-                        self.push_float(*n1);
-                        self.push_float(*n2);
-                    }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
                             span,
@@ -566,15 +515,6 @@ impl<'a> Runtime<'a> {
                     }
                 },
                 (i @ Data::Nil, j @ Data::Nil) => match x {
-                    BinaryOp::Swap => {
-                        self.stack.push_front(j);
-                        self.stack.push_front(i);
-                    }
-                    BinaryOp::Over => {
-                        self.stack.push_front(j.clone());
-                        self.stack.push_front(i);
-                        self.stack.push_front(j);
-                    }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
                             span,
@@ -588,15 +528,6 @@ impl<'a> Runtime<'a> {
                     BinaryOp::Add => self.push_string(s1.to_owned() + s2),
                     BinaryOp::Eq => self.push_bool(s1 == s2),
                     BinaryOp::Ne => self.push_bool(s1 != s2),
-                    BinaryOp::Swap => {
-                        self.push_string(s1.to_string());
-                        self.push_string(s2.to_string());
-                    }
-                    BinaryOp::Over => {
-                        self.push_string(s2.to_string());
-                        self.push_string(s1.to_string());
-                        self.push_string(s2.to_string());
-                    }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
                             span,
@@ -609,15 +540,6 @@ impl<'a> Runtime<'a> {
                 (ref i @ Data::Bool(ref b1), ref j @ Data::Bool(ref b2)) => match x {
                     BinaryOp::Eq => self.push_bool(b1 == b2),
                     BinaryOp::Ne => self.push_bool(b1 != b2),
-                    BinaryOp::Swap => {
-                        self.push_bool(*b1);
-                        self.push_bool(*b2);
-                    }
-                    BinaryOp::Over => {
-                        self.push_bool(*b2);
-                        self.push_bool(*b1);
-                        self.push_bool(*b2);
-                    }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
                             span,
@@ -708,11 +630,48 @@ impl<'a> Runtime<'a> {
                     OpKind::Shr => self.binop(s, BinaryOp::Shr)?,
                     OpKind::Bor => self.binop(s, BinaryOp::Bor)?,
                     OpKind::Band => self.binop(s, BinaryOp::Band)?,
-                    OpKind::Swap => self.binop(s, BinaryOp::Swap)?,
-                    OpKind::Over => self.binop(s, BinaryOp::Over)?,
                     OpKind::BNot => self.unop(s, UnaryOp::BNot)?,
-                    OpKind::Dup => self.unop(s, UnaryOp::Dup)?,
-                    OpKind::Drop => self.unop(s, UnaryOp::Drop)?,
+                    OpKind::Swap => {
+                        if let (Some(x), Some(y)) = (self.pop(), self.pop()) {
+                            self.stack.push_front(x);
+                            self.stack.push_front(y);
+                        } else {
+                            return Err(RuntimeError::StackUnderflow(s, "swap".to_string(), 2));
+                        }
+                        Ok(())
+                    }?,
+                    OpKind::Over => {
+                        if let Some(x) = self.peek(1) {
+                            self.stack.push_front(x.clone()); // TODO: Make Data a stack structure
+                        } else {
+                            return Err(RuntimeError::StackUnderflow(s, "over".to_string(), 2));
+                        }
+                        Ok(())
+                    }?,
+                    OpKind::Drop => {
+                        if let None = self.pop() {
+                            return Err(RuntimeError::StackUnderflow(s, "drop".to_string(), 1));
+                        }
+                        Ok(())
+                    }?,
+                    OpKind::Dup => {
+                        if let Some(a) = self.peek(0) {
+                            self.stack.push_front(a.clone()); // TODO: Make Data a stack structure
+                        } else {
+                            return Err(RuntimeError::StackUnderflow(s, "dup".to_string(), 1));
+                        }
+                        Ok(())
+                    }?,
+                    OpKind::Rot => {
+                        if let (Some(a), Some(b), Some(c)) = (self.pop(), self.pop(), self.pop()) {
+                            self.stack.push_front(b);
+                            self.stack.push_front(a);
+                            self.stack.push_front(c);
+                        } else {
+                            return Err(RuntimeError::StackUnderflow(s, "rot".to_string(), 3));
+                        }
+                        Ok(())
+                    }?,
                     OpKind::Trace => {
                         if let Some(a) = self.peek(0) {
                             match a {
@@ -726,16 +685,6 @@ impl<'a> Runtime<'a> {
                             return Err(RuntimeError::StackUnderflow(s, "trace".to_string(), 1));
                         }
                     }
-                    OpKind::Rot => {
-                        if let (Some(a), Some(b), Some(c)) = (self.pop(), self.pop(), self.pop()) {
-                            self.stack.push_front(b);
-                            self.stack.push_front(a);
-                            self.stack.push_front(c);
-                        } else {
-                            return Err(RuntimeError::StackUnderflow(s, "rot".to_string(), 3));
-                        }
-                        Ok(())
-                    }?,
                     OpKind::Break => self.loop_break = true,
                     OpKind::Continue => self.loop_continue = true,
                     OpKind::Return => self.proc_return = true,
