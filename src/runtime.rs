@@ -3,28 +3,26 @@ use crate::{
     parser::{Node, OpKind, ProgramTree},
 };
 use std::{
-    collections::{HashMap, VecDeque},
-    io::{Read, Write},
-    str::FromStr,
+    collections::{HashMap, VecDeque}, io::{Read, Write}, str::FromStr
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Data {
-    String(String),
+    String(usize, usize),
     Int(i64),
     Float(f64),
     Bool(bool),
     Nil,
 }
 
-impl std::fmt::Display for Data {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Data {
+    fn format(&self) -> &str {
         match *self {
-            Data::String(_) => write!(f, "string"),
-            Data::Int(_) => write!(f, "int"),
-            Data::Float(_) => write!(f, "float"),
-            Data::Bool(_) => write!(f, "bool"),
-            Data::Nil => write!(f, "nil"),
+            Data::String(..) => "string",
+            Data::Int(_)     => "int",
+            Data::Float(_)   => "float",
+            Data::Bool(_)    => "bool",
+            Data::Nil        => "nil",
         }
     }
 }
@@ -139,7 +137,7 @@ impl std::fmt::Display for Builtin {
     }
 }
 
-pub type Stack = VecDeque<Data>;
+pub type Stack<'a> = VecDeque<Data>;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -158,25 +156,26 @@ pub enum RuntimeError {
     UnboundVariable(TokenSpan, String),            // used when a definition has empty body
 }
 
+const KB: usize = 1024;
+pub const MEMORY_CAPACITY: usize = 100*KB; // 100 Kilobytes of memory. Let's get back to the 90's!
+
 pub struct Runtime<'a> {
     input: &'a ProgramTree,
-    stack: Stack,
+    memory: [u8; MEMORY_CAPACITY],
+    memptr: usize,
+    stack: Stack<'a>,
     namespace: Namespace<'a>,
     loop_break: bool,
     loop_continue: bool,
     proc_return: bool,
 }
 
-// TODO: Optimize stack operations using the peek function.
-// This way it is possible to avoid popping and pushing back the same item
-// For example (over operation)
-// over ( a b -- a b a )
-// For now, I pop 2 items on top of the stack and push them back in the desired order after the operation
-// But i can just peek(1) (second last element) and then push it to the top. Way better.
 impl<'a> Runtime<'a> {
     pub fn new(input: &'a ProgramTree) -> Self {
         Self {
             input,
+            memory: [0; MEMORY_CAPACITY],
+            memptr: 0,
             stack: VecDeque::new(),
             namespace: Namespace {
                 procs: HashMap::new(),
@@ -204,7 +203,7 @@ impl<'a> Runtime<'a> {
                         return Err(RuntimeError::DefRedefinition(s.clone(), n.to_string()));
                     }
                     self.run_block(p)?;
-                    if let Some(result) = self.pop() {
+                    if let Some(result) = self.stack.pop_front() {
                         self.namespace
                             .defs
                             .insert(n, Definition(result));
@@ -223,7 +222,8 @@ impl<'a> Runtime<'a> {
             Builtin::Println => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(s) => {
+                        Data::String(ptr, size) => {
+                            let s = self.read_string(ptr, size);
                             println!("{}", s);
                         }
                         Data::Int(n) => {
@@ -246,7 +246,8 @@ impl<'a> Runtime<'a> {
             Builtin::EPrintln => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(s) => {
+                        Data::String(ptr, size) => {
+                            let s = self.read_string(ptr, size);
                             eprintln!("{}", s);
                         }
                         Data::Int(n) => {
@@ -273,7 +274,8 @@ impl<'a> Runtime<'a> {
             Builtin::EPrint => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(s) => {
+                        Data::String(ptr, size) => {
+                            let s = self.read_string(ptr, size);
                             eprint!("{}", s);
                             std::io::stderr().flush().unwrap();
                         }
@@ -301,7 +303,8 @@ impl<'a> Runtime<'a> {
             Builtin::Print => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(s) => {
+                        Data::String(ptr, size) => {
+                            let s = self.read_string(ptr, size);
                             print!("{}", s);
                             std::io::stdout().flush().unwrap();
                         }
@@ -329,7 +332,7 @@ impl<'a> Runtime<'a> {
             Builtin::Readln => {
                 let mut xs = String::new();
                 if let Ok(_) = std::io::stdin().read_line(&mut xs) {
-                    self.push_string(xs.trim().to_string());
+                    self.push_string(xs.trim().to_string().as_bytes());
                 } else {
                     self.push_int(-1);
                 }
@@ -337,7 +340,7 @@ impl<'a> Runtime<'a> {
             Builtin::Read => {
                 let mut xs = String::new();
                 if let Ok(_) = std::io::stdin().read_to_string(&mut xs) {
-                    self.push_string(xs);
+                    self.push_string(xs.as_bytes());
                 } else {
                     self.push_int(-1);
                 }
@@ -353,7 +356,7 @@ impl<'a> Runtime<'a> {
                                 span,
                                 "exit".to_string(),
                                 "int".to_string(),
-                                format!("{}", a),
+                                a.format().to_string(),
                             ));
                         }
                     }
@@ -364,9 +367,12 @@ impl<'a> Runtime<'a> {
             Builtin::ToInt => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(s) => match i64::from_str(&s) {
-                            Ok(n) => self.push_int(n),
-                            Err(_) => self.push_nil(),
+                        Data::String(ptr, size) => {
+                            let s = self.read_string(ptr, size);
+                            match i64::from_str(s) {
+                                Ok(n) => self.push_int(n),
+                                Err(_) => self.push_nil(),
+                            }
                         },
                         Data::Float(n) => self.push_int(n as i64),
                         Data::Bool(n) => self.push_int(n as i64),
@@ -376,7 +382,7 @@ impl<'a> Runtime<'a> {
                                 span,
                                 "toint".to_string(),
                                 "int, float or bool".to_string(),
-                                format!("{}", a),
+                                a.format().to_string(),
                             ));
                         }
                     }
@@ -387,9 +393,12 @@ impl<'a> Runtime<'a> {
             Builtin::ToFloat => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(s) => match f64::from_str(&s) {
-                            Ok(n) => self.push_float(n),
-                            Err(_) => self.push_nil(),
+                        Data::String(ptr, size) => {
+                            let s = self.read_string(ptr, size);
+                            match f64::from_str(&s) {
+                                Ok(n) => self.push_float(n),
+                                Err(_) => self.push_nil(),
+                            }
                         },
                         Data::Int(n) => self.push_float(n as f64),
                         Data::Bool(n) => self.push_float(n as i64 as f64),
@@ -399,7 +408,7 @@ impl<'a> Runtime<'a> {
                                 span,
                                 "tofloat".to_string(),
                                 "int, float or bool".to_string(),
-                                format!("{}", a),
+                                a.format().to_string(),
                             ));
                         }
                     }
@@ -409,20 +418,14 @@ impl<'a> Runtime<'a> {
             }
             Builtin::ToString => {
                 if let Some(a) = self.pop() {
-                    match a {
-                        Data::Int(n) => self.push_string(n.to_string()),
-                        Data::Float(n) => self.push_string(n.to_string()),
-                        Data::Bool(s) => self.push_string((s as i32).to_string()),
-                        Data::String(s) => self.push_string(s),
-                        Data::Nil => self.push_string("nil".to_string()),
-                    }
+                    self.push_string(a.format().as_bytes());
                 } else {
                     return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
                 }
             }
             Builtin::TypeOf => {
-                if let Some(a) = self.pop() {
-                    self.push_string(format!("{}", a));
+                if let Some(a) = self.stack.pop_front() {
+                    self.push_string(a.format().as_bytes());
                 } else {
                     return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
                 }
@@ -453,7 +456,7 @@ impl<'a> Runtime<'a> {
                         ))
                     }
                 },
-                Data::String(_s) => match x {
+                Data::String(..) => match x {
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
                             span,
@@ -510,7 +513,7 @@ impl<'a> Runtime<'a> {
                             span,
                             format!("{}", x),
                             "ints".to_string(),
-                            format!("({}, {})", i, j),
+                            format!("({}, {})", i.format(), j.format()),
                         ))
                     }
                 },
@@ -520,23 +523,27 @@ impl<'a> Runtime<'a> {
                             span,
                             format!("{}", x),
                             "ints, floats, bools or strings".to_string(),
-                            format!("({}, {})", i, j),
+                            format!("({}, {})", i.format(), j.format()),
                         ))
                     }
                 },
-                (ref i @ Data::String(ref s1), ref j @ Data::String(ref s2)) => match x {
-                    BinaryOp::Add => self.push_string(s1.to_owned() + s2),
-                    BinaryOp::Eq => self.push_bool(s1 == s2),
-                    BinaryOp::Ne => self.push_bool(s1 != s2),
-                    _ => {
-                        return Err(RuntimeError::UnexpectedType(
-                            span,
-                            format!("{}", x),
-                            "ints or floats".to_string(),
-                            format!("({}, {})", i, j),
-                        ))
+                (ref i @ Data::String(ptr1, size1), ref j @ Data::String(ptr2, size2)) => {
+                    let s1 = self.read_string(ptr1, size1);
+                    let s2 = self.read_string(ptr2, size2);
+                    match x {
+                        BinaryOp::Add => self.push_string(((*s1).to_owned() + s2).as_bytes()),
+                        BinaryOp::Eq => self.push_bool(s1 == s2),
+                        BinaryOp::Ne => self.push_bool(s1 != s2),
+                        _ => {
+                            return Err(RuntimeError::UnexpectedType(
+                                span,
+                                format!("{}", x),
+                                "ints or floats".to_string(),
+                                format!("({}, {})", i.format(), j.format()),
+                            ))
+                        }
                     }
-                },
+                }
                 (ref i @ Data::Bool(ref b1), ref j @ Data::Bool(ref b2)) => match x {
                     BinaryOp::Eq => self.push_bool(b1 == b2),
                     BinaryOp::Ne => self.push_bool(b1 != b2),
@@ -545,7 +552,7 @@ impl<'a> Runtime<'a> {
                             span,
                             format!("{}", x),
                             "ints, floats or strings".to_string(),
-                            format!("({}, {})", i, j),
+                            format!("({}, {})", i.format(), j.format()),
                         ))
                     }
                 },
@@ -554,7 +561,7 @@ impl<'a> Runtime<'a> {
                         span,
                         format!("{}", x),
                         "ints, floats or strings".to_string(),
-                        format!("({}, {})", &a, &b),
+                        format!("({}, {})", a.format(), b.format()),
                     ));
                 }
             }
@@ -583,7 +590,7 @@ impl<'a> Runtime<'a> {
                                 s.clone(),
                                 "if".to_string(),
                                 "bool".to_string(),
-                                format!("({})", a),
+                                format!("({})", a.format()),
                             ))
                         }
                     }
@@ -610,7 +617,7 @@ impl<'a> Runtime<'a> {
             }
             Node::IntLit(n, _) => self.push_int(*n),
             Node::FloatLit(n, _) => self.push_float(*n),
-            Node::StringLit(v, _) => self.push_string(v.to_string()),
+            Node::StringLit(v, _) => self.push_string(v.as_bytes()),
             Node::Operation(op, s) => {
                 let s = s.clone(); // TODO: this is a hack, fix it
                 match op {
@@ -642,7 +649,7 @@ impl<'a> Runtime<'a> {
                     }?,
                     OpKind::Over => {
                         if let Some(x) = self.peek(1) {
-                            self.stack.push_front(x.clone()); // TODO: Make Data a stack structure
+                            self.stack.push_front(*x);
                         } else {
                             return Err(RuntimeError::StackUnderflow(s, "over".to_string(), 2));
                         }
@@ -656,7 +663,7 @@ impl<'a> Runtime<'a> {
                     }?,
                     OpKind::Dup => {
                         if let Some(a) = self.peek(0) {
-                            self.stack.push_front(a.clone()); // TODO: Make Data a stack structure
+                            self.stack.push_front(*a);
                         } else {
                             return Err(RuntimeError::StackUnderflow(s, "dup".to_string(), 1));
                         }
@@ -677,7 +684,10 @@ impl<'a> Runtime<'a> {
                             match a {
                                 Data::Int(n) => println!("int {}", n),
                                 Data::Float(n) => println!("float {}", n),
-                                Data::String(s) => println!("string \"{}\"", s),
+                                Data::String(ptr, size) => {
+                                    let s = self.read_string(*ptr, *size);
+                                    println!("string \"{}\"", s)
+                                },
                                 Data::Bool(b) => println!("bool {}", b),
                                 Data::Nil => println!("nil"),
                             }
@@ -730,11 +740,11 @@ impl<'a> Runtime<'a> {
                             }
                             self.proc_return = false;
                         } else if let Some(d) = self.namespace.defs.get(w.as_str()) {
-                            self.stack.push_front(d.0.clone()); // TODO: Make Data a stack structure
+                            self.stack.push_front(d.0);
                         } else if let Some(v) = self.namespace.globals.get(w.as_str()) {
-                            self.stack.push_front(v.0.clone()); // TODO: Make Data a stack structure
+                            self.stack.push_front(v.0);
                         } else if let Some(v) = self.namespace.locals.get(w.as_str()) {
-                            self.stack.push_front(v.0.clone()); // TODO: Make Data a stack structure
+                            self.stack.push_front(v.0);
                         } else {
                             return Err(RuntimeError::InvalidWord(s, w.to_string()));
                         }
@@ -784,6 +794,7 @@ impl<'a> Runtime<'a> {
         for n in self.input {
             self.run_node(n)?;
         }
+        // println!("{:?}", self.memory);
         Ok(())
     }
 
@@ -802,8 +813,36 @@ impl<'a> Runtime<'a> {
         self.stack.push_front(Data::Float(n));
     }
 
-    fn push_string(&mut self, s: String) {
-        self.stack.push_front(Data::String(s));
+    // Accepts a sized Pile string, reads bytes in memory and returns the string read.
+    fn read_string(&self, ptr: usize, size: usize) -> &str {
+        let slice = &self.memory[ptr..(ptr+size)];
+        return std::str::from_utf8(slice).unwrap();
+    }
+    
+    // Stores bytes in memory and returns the resultant sized string that was written
+    fn store_string(&mut self, bytes: &[u8]) -> (usize, usize) {
+        let size = bytes.len();
+        let ptr = self.memptr;
+        if ptr + size > self.memory.len() {
+            eprintln!("pile: internal error:");
+            eprintln!("    | out of bounds:");
+            eprintln!("    |     static memory size = {}", self.memory.len());
+            eprintln!("    |     current pointer = {}", self.memptr);
+            eprintln!("    |     tried to write {:?}", bytes);
+            eprintln!("    |       size = {}", bytes.len());
+            eprintln!("    |       current pointer + size = {}", self.memptr + bytes.len());
+            eprintln!("this error should not happen in normal conditions.");
+            std::process::exit(1);
+        }
+        self.memory[ptr..ptr + size].copy_from_slice(bytes);
+        self.memptr += size;
+        (ptr, size)
+    }
+
+    // Allocate string takes raw bytes, allocates it and then pushes it
+    fn push_string(&mut self, bytes: &[u8]) {
+        let (ptr, size) = self.store_string(bytes);
+        self.stack.push_front(Data::String(ptr, size));
     }
 
     // Peek operation is meant to get an item at the nth position starting from the top
