@@ -1,6 +1,5 @@
 use crate::{
-    lexer::TokenSpan,
-    parser::{Node, OpKind, ProgramTree},
+    error::fatal, lexer::TokenSpan, parser::{Node, OpKind, ProgramTree}
 };
 use std::{
     collections::{HashMap, VecDeque}, io::{Read, Write}, str::FromStr
@@ -824,15 +823,14 @@ impl<'a> Runtime<'a> {
         let size = bytes.len();
         let ptr = self.memptr;
         if ptr + size > self.memory.len() {
-            eprintln!("pile: internal error:");
-            eprintln!("    | out of bounds:");
-            eprintln!("    |     static memory size = {}", self.memory.len());
-            eprintln!("    |     current pointer = {}", self.memptr);
-            eprintln!("    |     tried to write {:?}", bytes);
-            eprintln!("    |       size = {}", bytes.len());
-            eprintln!("    |       current pointer + size = {}", self.memptr + bytes.len());
+            eprintln!("static memory out of bounds:");
+            eprintln!("  static memory size = {}", self.memory.len());
+            eprintln!("  current pointer = {}", self.memptr);
+            eprintln!("  tried to write {:?}", bytes);
+            eprintln!("    size = {}", bytes.len());
+            eprintln!("    current pointer + size = {}", self.memptr + bytes.len());
             eprintln!("this error should not happen in normal conditions.");
-            std::process::exit(1);
+            fatal("internal error: out of bounds");
         }
         self.memory[ptr..ptr + size].copy_from_slice(bytes);
         self.memptr += size;
