@@ -1,10 +1,11 @@
 use crate::{
-    cli::{show_help, show_usage},
+    cli::*,
     lexer::TokenSpan,
     parser::ParseError,
     runtime::RuntimeError,
     CLIError,
 };
+use std::fs::read_to_string;
 
 fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
     match e {
@@ -13,7 +14,7 @@ fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
         RuntimeError::InvalidWord(span, x) => {
             throw(
                 "runtime error",
-                &format!("`{x}` is not defined."),
+                &format!("invalid word: `{x}` is not defined."),
                 span.clone(),
                 Some("maybe a typo?"),
                 call,
@@ -22,16 +23,16 @@ fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
         RuntimeError::EmptyDefinition(span, x) => {
             throw(
                 "runtime error",
-                &format!("definition `{x}` has no value to be associated with. `x` can't be bound to anything."),
+                &format!("empty definition: `{x}`."),
                 span.clone(),
                 Some("add values to the definition body."),
                 call,
             );
         }
-        RuntimeError::StackUnderflow(span, n, x) => {
+        RuntimeError::StackUnderflow(span, n, _) => {
             throw(
                 "runtime error",
-                &format!("operation `{n}` expects {x} element(s) on top of the stack but got a different amount."),
+                &format!("stack underflow: not enough values on top of the stack to satisfy `{n}`."),
                 span.clone(),
                 Some("try checking the values before the operation."),
                 call,
@@ -41,7 +42,7 @@ fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
             throw(
                 "runtime error",
                 &format!(
-                    "operation `{n}` expects {x} datatype(s) on the stack to work, but got {y}."
+                    "unexpected type: `{n}` expects {x} datatype(s) on the stack to work, but got {y}."
                 ),
                 span.clone(),
                 Some("try checking the values before the operation."),
@@ -51,7 +52,7 @@ fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
         RuntimeError::ProcRedefinition(span, x) => {
             throw(
                 "runtime error",
-                &format!("tried to redefine the procedure `{x}` (this name is already taken)."),
+                &format!("procedure redefinition: `{x}`."),
                 span.clone(),
                 None,
                 call,
@@ -60,7 +61,7 @@ fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
         RuntimeError::DefRedefinition(span, x) => {
             throw(
                 "runtime error",
-                &format!("tried to redefine the definition `{x}` (this name is already taken)."),
+                &format!("definition redefinition: `{x}`."),
                 span.clone(),
                 None,
                 call,
@@ -101,7 +102,7 @@ pub fn parse_error(e: ParseError) {
         ParseError::UnmatchedBlock(span) => {
             throw(
                 "parse error",
-                "syntax error: found unmatched block: termination of block (end) provided without a beginning",
+                "unmatched block: termination of block (`end`) provided without a beginning.",
                 span,
                 None,
                 None,
@@ -110,7 +111,7 @@ pub fn parse_error(e: ParseError) {
         ParseError::UnterminatedBlock(span, x) => {
             throw(
                 "parse error",
-                &format!("syntax error: found unterminated block: termination of block not provided from `{x}` block"),
+                &format!("unterminated block: termination of block not provided from `{x}` block."),
                 span,
                 Some("perhaps you forgot to write `end`?"),
                 None,
@@ -120,7 +121,7 @@ pub fn parse_error(e: ParseError) {
             throw(
                 "parse error",
                 &format!(
-                    "syntax error: unexpected end of file while parsing: expected {x} but got the end of the file (nothing)"
+                    "unexpected end of file: expected {x} but got the end of the file (nothing)."
                 ),
                 span,
                 None,
@@ -130,7 +131,7 @@ pub fn parse_error(e: ParseError) {
         ParseError::UnexpectedToken(span, x, y) => {
             throw(
                 "parse error",
-                &format!("syntax error: unexpected token while parsing: expected {y} but got {x}"),
+                &format!("unexpected token: expected {y} but got {x}."),
                 span,
                 None,
                 None,
@@ -144,19 +145,19 @@ pub fn cli_error(e: CLIError) {
     show_help();
     match e {
         CLIError::InvalidFlag(x) => {
-            fatal(&format!("invalid flag: {x}"));
+            fatal(&format!("invalid flag \"{x}\""));
         }
         CLIError::ExpectedArgument(x) => {
-            fatal(&format!("expected argument: {x}"));
+            fatal(&format!("expected positional argument {x}"));
         }
         CLIError::UnexpectedArgument(x) => {
-            fatal(&format!("found unexpected argument: {x}"));
+            fatal(&format!("found unexpected argument \"{x}\""));
         }
     }
 }
 
 pub fn fatal(message: &str) {
-    eprintln!("pile: fatal: {message}");
+    eprintln!("{GRAY}pile{RES}: {RED}fatal{RES}: {RED}{message}{RES}");
     std::process::exit(1);
 }
 
@@ -167,25 +168,34 @@ pub fn throw(
     help: Option<&str>,
     call: Option<TokenSpan>,
 ) {
-    eprintln!(
-        "pile: error at {}:{}:{}:",
-        span.filename, span.line, span.col
-    );
+    let mut span = span;
+    eprintln!("{GRAY}pile{RES}: {RED}{}{RES}:", error);
     if let Some(c) = call {
+        eprintln!("    {GRAY}at {BLUE}{}:{}{RES}:", c.filename, c.line);
         eprintln!(
-            "    > from procedure call at {}:{}:{}:",
-            c.filename, c.line, c.col
+            "    {GRAY}inside procedure at {BLUE}{}:{}:{}{RES}:\n",
+            span.filename, span.line, span.col
         );
+        span = c;
+    } else {
+        eprintln!("    {GRAY}at {BLUE}{}:{}{RES}:\n", span.filename, span.line);
     }
-    eprintln!("    |    {error}:");
+    for (i, j) in read_to_string(span.filename).unwrap().lines().enumerate() {
+        if i+1 == span.line {
+            eprintln!("    {UNDERWHITE}{}{RES}", j);
+            break;
+        }
+    }
+    eprintln!("    {}", " ".repeat(span.col-1) + RED + "^" + RES);
     for line in break_line_at(message.to_string(), 50) {
-        eprintln!("    |        {line}");
+        eprintln!("    {}{RED}{line}{RES}", " ".repeat(span.col-1));
     }
     if let Some(h) = help {
         for line in break_line_at(h.to_string(), 50) {
-            eprintln!("    +    {line}");
+            eprintln!("    {}{GREEN}+ {line}{RES}", " ".repeat(span.col-3));
         }
     }
+    eprintln!();
     std::process::exit(1);
 }
 
