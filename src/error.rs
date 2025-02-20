@@ -192,7 +192,14 @@ pub fn throw(
     }
     if let Some(h) = help {
         for line in break_line_at(h.to_string(), 50) {
-            eprintln!("    {}{GREEN}+ {line}{RES}", " ".repeat(span.col-3));
+            if span.col == 1 {
+                eprintln!("  {GREEN}+ {line}{RES}");
+            } else if span.col == 2 {
+                eprintln!("   {GREEN}+ {line}{RES}");
+            } else {
+                eprintln!("    {}{GREEN}+ {line}{RES}", " ".repeat(span.col-3));
+            }
+                
         }
     }
     eprintln!();
