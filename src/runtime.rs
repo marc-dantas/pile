@@ -109,8 +109,8 @@ pub enum Builtin {
     Println,
     EPrintln,
     EPrint,
-    Read,
-    Readln,
+    Input,
+    InputLn,
     Exit,
     ToString,
     ToInt,
@@ -125,8 +125,8 @@ impl std::fmt::Display for Builtin {
             Builtin::Println => write!(f, "println"),
             Builtin::EPrintln => write!(f, "eprintln"),
             Builtin::EPrint => write!(f, "eprint"),
-            Builtin::Read => write!(f, "read"),
-            Builtin::Readln => write!(f, "readln"),
+            Builtin::Input => write!(f, "input"),
+            Builtin::InputLn => write!(f, "inputln"),
             Builtin::Exit => write!(f, "exit"),
             Builtin::ToString => write!(f, "tostring"),
             Builtin::ToInt => write!(f, "toint"),
@@ -328,7 +328,7 @@ impl<'a> Runtime<'a> {
                     return Err(RuntimeError::StackUnderflow(span, "print".to_string(), 1));
                 }
             }
-            Builtin::Readln => {
+            Builtin::InputLn => {
                 let mut xs = String::new();
                 if let Ok(_) = std::io::stdin().read_line(&mut xs) {
                     self.push_string(xs.trim().to_string().as_bytes());
@@ -336,7 +336,7 @@ impl<'a> Runtime<'a> {
                     self.push_int(-1);
                 }
             }
-            Builtin::Read => {
+            Builtin::Input => {
                 let mut xs = String::new();
                 if let Ok(_) = std::io::stdin().read_to_string(&mut xs) {
                     self.push_string(xs.as_bytes());
@@ -725,8 +725,8 @@ impl<'a> Runtime<'a> {
                     "print" => self.builtin(s, Builtin::Print)?,
                     "eprint" => self.builtin(s, Builtin::EPrint)?,
                     "eprintln" => self.builtin(s, Builtin::EPrintln)?,
-                    "readln" => self.builtin(s, Builtin::Readln)?,
-                    "read" => self.builtin(s, Builtin::Read)?,
+                    "inputln" => self.builtin(s, Builtin::InputLn)?,
+                    "input" => self.builtin(s, Builtin::Input)?,
                     "exit" => self.builtin(s, Builtin::Exit)?,
                     "tostring" => self.builtin(s, Builtin::ToString)?,
                     "toint" => self.builtin(s, Builtin::ToInt)?,

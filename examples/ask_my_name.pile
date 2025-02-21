@@ -1,6 +1,6 @@
 "What is your name? " print
-readln as input let
-    "Your name is " print
-    input print
-    "." println
-end
+inputln let x
+
+"Your name is " print
+x print
+"." println

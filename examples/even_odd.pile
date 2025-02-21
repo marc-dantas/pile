@@ -7,7 +7,7 @@ proc even_odd
     end
 end
 
-"Number input: " print readln
+"Number input: " print inputln
 
 toint even_odd
 
