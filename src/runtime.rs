@@ -417,7 +417,13 @@ impl<'a> Runtime<'a> {
             }
             Builtin::ToString => {
                 if let Some(a) = self.pop() {
-                    self.push_string(a.format().as_bytes());
+                    match a {
+                        Data::String(..) => self.stack.push_front(a),
+                        Data::Int(i) => self.push_string(i.to_string().as_bytes()),
+                        Data::Float(f) => self.push_string(f.to_string().as_bytes()),
+                        Data::Bool(b) => self.push_string(b.to_string().as_bytes()),
+                        Data::Nil => self.push_string("nil".to_string().as_bytes()),
+                    }
                 } else {
                     return Err(RuntimeError::StackUnderflow(span, format!("{}", x), 1));
                 }
