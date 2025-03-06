@@ -5,7 +5,6 @@ use crate::{
     runtime::RuntimeError,
     CLIError,
 };
-use std::fs::read_to_string;
 
 fn match_runtime_error(e: &RuntimeError, call: Option<TokenSpan>) {
     match e {
@@ -157,7 +156,7 @@ pub fn cli_error(e: CLIError) {
 }
 
 pub fn fatal(message: &str) {
-    eprintln!("{GRAY}pile{RES}: {RED}fatal{RES}: {RED}{message}{RES}");
+    eprintln!("pile: fatal: {message}");
     std::process::exit(1);
 }
 
@@ -168,41 +167,18 @@ pub fn throw(
     help: Option<&str>,
     call: Option<TokenSpan>,
 ) {
-    let mut span = span;
-    eprintln!("{GRAY}pile{RES}: {RED}{}{RES}:", error);
-    if let Some(c) = call {
-        eprintln!("    {GRAY}at {BLUE}{}:{}{RES}:", c.filename, c.line);
-        eprintln!(
-            "    {GRAY}inside procedure at {BLUE}{}:{}:{}{RES}:\n",
-            span.filename, span.line, span.col
-        );
-        span = c;
-    } else {
-        eprintln!("    {GRAY}at {BLUE}{}:{}{RES}:\n", span.filename, span.line);
-    }
-    for (i, j) in read_to_string(span.filename).unwrap().lines().enumerate() {
-        if i+1 == span.line {
-            eprintln!("    {UNDERWHITE}{}{RES}", j);
-            break;
-        }
-    }
-    eprintln!("    {}", " ".repeat(span.col-1) + RED + "^" + RES);
+    eprintln!("{}:{}:{}: {}:", span.filename, span.line, span.col, error);
     for line in break_line_at(message.to_string(), 50) {
-        eprintln!("    {}{RED}{line}{RES}", " ".repeat(span.col-1));
+        eprintln!(" |  {line}",);
     }
     if let Some(h) = help {
         for line in break_line_at(h.to_string(), 50) {
-            if span.col == 1 {
-                eprintln!("  {GREEN}+ {line}{RES}");
-            } else if span.col == 2 {
-                eprintln!("   {GREEN}+ {line}{RES}");
-            } else {
-                eprintln!("    {}{GREEN}+ {line}{RES}", " ".repeat(span.col-3));
-            }
-                
+            eprintln!(" +  {}", line);
         }
     }
-    eprintln!();
+    if let Some(c) = call {
+        eprintln!("note: error occurred from procedure call at {}:{}:{}:", c.filename, c.line, c.col);
+    }
     std::process::exit(1);
 }
 

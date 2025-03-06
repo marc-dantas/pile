@@ -26,17 +26,17 @@ impl Arguments {
 }
 
 pub fn show_usage() {
-    eprintln!("{GRAY}pile{RES}: {GRAY}usage{RES}: {GRAY}pile FILENAME [FLAGS]{RES}");
+    eprintln!("pile: usage: pile FILENAME [FLAGS]");
 }
 
 pub fn show_help() {
-    println!("{GRAY}pile help{RES}:");
-    println!("  {BOLD}positional arguments{RES}:");
-    println!("    {GRAY}FILENAME{RES}          File path of Pile code");
-    println!("  {BOLD}flags{RES}:");
-    println!("    {GRAY}-h{RES}, {GRAY}--help{RES}        Show this help message and exit");
-    println!("    {GRAY}-v{RES}, {GRAY}--version{RES}     Show the version information and exit");
-    println!("    {GRAY}-P{RES}, {GRAY}--parse-only{RES}  Parse FILENAME and write parser result to stdout");
+    println!("pile help:");
+    println!("  positional arguments:");
+    println!("    FILENAME\tFile path of Pile code");
+    println!("  flags:");
+    println!("    -h, --help      \tShow this help message and exit");
+    println!("    -v, --version   \tShow the version information and exit");
+    println!("    -P, --parse-only\tParse FILENAME and write parser result to stdout");
 }
 
 fn rustc_version() -> String {
@@ -45,17 +45,9 @@ fn rustc_version() -> String {
 }
 
 pub fn show_version(v: &str) {
-    println!("{GRAY}pile programming language {GREEN}{}{RES}", v);
-    println!("{GRAY}{}{RES}", rustc_version());
+    println!("pile programming language {}", v);
+    println!("{}", rustc_version());
 }
-
-pub const UNDERWHITE: &str = "\x1b[4;37m";
-pub const BOLD: &str = "\x1b[1;37m";
-pub const RED: &str = "\x1b[1;31m";
-pub const BLUE: &str = "\x1b[1;34m";
-pub const GREEN: &str = "\x1b[1;32m";
-pub const GRAY: &str = "\x1b[38;5;248m";
-pub const RES: &str = "\x1b[0m";
 
 pub fn parse_arguments() -> Result<Arguments, CLIError> {
     let args = args().skip(1);
