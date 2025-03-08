@@ -480,7 +480,7 @@ impl<'a> Runtime<'a> {
 
     fn binop(&mut self, span: TokenSpan, x: BinaryOp) -> Result<(), RuntimeError> {
         if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
-            match (a, b) {
+            match (b, a) { // Inverted stack order to match the writing order
                 (Data::Int(n1), Data::Int(n2)) => match x {
                     // TODO: deal with i64 overflows
                     BinaryOp::Add => self.push_int(n1 + n2),
@@ -808,6 +808,14 @@ impl<'a> Runtime<'a> {
     fn run_block(&mut self, b: &'a Vec<Node>) -> Result<(), RuntimeError> {
         for n in b {
             self.run_node(n)?;
+            // This checking is (also) made here because a Node can have blocks.
+            // If I do run_node() on a block node, it will execute the entire thing
+            // even if there is a return, break or continue inside it. If this check is
+            // made, it ensures that the block is not further executed after break, continue
+            // or return and lets the outer runtime scope handle the condition properly.
+            if self.loop_continue || self.loop_break || self.proc_return {
+                break;
+            }
         }
         Ok(())
     }
