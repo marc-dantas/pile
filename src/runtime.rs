@@ -552,6 +552,8 @@ impl<'a> Runtime<'a> {
                 (ref i @ Data::Bool(ref b1), ref j @ Data::Bool(ref b2)) => match x {
                     BinaryOp::Eq => self.push_bool(b1 == b2),
                     BinaryOp::Ne => self.push_bool(b1 != b2),
+                    BinaryOp::Bor => self.push_bool(*b1 || *b2),
+                    BinaryOp::Band => self.push_bool(*b1 && *b2),
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
                             span,
