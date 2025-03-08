@@ -70,8 +70,10 @@ def write_mode(missing_files=None):
 def show_failed_test(name: str, t: tuple[tuple[str, str], tuple[str, str]]):
     print(f"FAILED TEST {name}", file=sys.stderr)
     print("stdout:", file=sys.stderr)
-    print(f"  expected: {t[0][1].replace('\n', "\\n")}", file=sys.stderr)
-    print(f"  got: {t[0][0].replace('\n', "\\n")}", file=sys.stderr)
+    a = t[0][1].replace('\n', "\\n")
+    b = t[0][0].replace('\n', "\\n")
+    print(f"  expected: {a}", file=sys.stderr)
+    print(f"  got: {b}", file=sys.stderr)
     print(f"returncode:", file=sys.stderr)
     print(f"  expected: {t[1][1]}", file=sys.stderr)
     print(f"  got: {t[1][0]}", file=sys.stderr)
