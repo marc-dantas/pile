@@ -44,6 +44,8 @@ Definitely going to happen someday. Probably not exactly like described but it w
     import "test.pile" end
     ...
     ```
+- [ ] Improve performance
+    * Idea: Create a virtual machine for Pile.
 - [ ] First stable release implementation
 
 
