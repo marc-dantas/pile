@@ -1,0 +1,13 @@
+# Largest Prime Factor
+# https://projecteuler.net/problem=3
+
+600851475143 2
+loop
+    over 1 = if break end
+    over over % 0 = if
+        swap over / swap
+    else
+        1 +
+    end
+end
+println

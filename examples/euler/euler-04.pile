@@ -1,0 +1,30 @@
+# Largest Palindrome Product
+# https://projecteuler.net/problem=4
+
+proc is_palindrome
+    0 over
+    loop
+        dup 0 = if break end
+        dup 10 % rot 10 * +
+        swap 10 /
+    end
+    rot rot = swap drop
+end
+
+0 let result
+
+100 loop
+    dup 1000 = if break end
+    100 loop
+        dup 1000 = if break end
+        over over *
+        dup is_palindrome
+        over result >
+        & if
+            let result
+        else drop end
+        1 +
+    end drop
+    1 +
+end
+result println

@@ -1,0 +1,17 @@
+# Multiples of 3 or 5
+# https://projecteuler.net/problem=1
+
+# Doing it in reverse just for fun
+
+0 1000
+loop
+    dup 0 = if break end
+    dup 3 % 0 =
+    over 5 % 0 =
+    | if
+        over over + over
+    end
+    1 -
+end
+
+over println

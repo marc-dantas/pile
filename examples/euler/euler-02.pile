@@ -1,0 +1,15 @@
+# Even Fibonacci Numbers
+# https://projecteuler.net/problem=2
+
+0 let acc
+
+1 2
+loop
+    over 4000000 > if break end
+    dup 2 % 0 = if
+        dup acc + let acc
+    end 
+    over over +
+end
+
+acc println
