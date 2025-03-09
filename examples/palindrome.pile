@@ -1,0 +1,11 @@
+proc is_palindrome
+    0 over
+    loop
+        dup 0 = if break end
+        dup 10 % rot 10 * +
+        swap 10 /
+    end
+    rot rot = swap drop
+end
+
+9009 is_palindrome
