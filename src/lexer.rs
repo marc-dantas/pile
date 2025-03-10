@@ -14,7 +14,7 @@ pub enum TokenKind {
 pub struct Token {
     pub value: String,
     pub kind: TokenKind,
-    pub span: TokenSpan,
+    pub span: Span,
 }
 
 #[derive(Debug)]
@@ -23,21 +23,31 @@ pub struct InputFile<'a> {
     pub content: Peekable<Chars<'a>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Span {
     pub line: usize,
     pub col: usize,
 }
 
 #[derive(Debug, Clone)]
-pub struct TokenSpan {
+pub struct FileSpan {
     pub filename: String,
     pub line: usize,
     pub col: usize,
 }
 
+impl Span {
+    pub fn to_filespan(&self, filename: String) -> FileSpan {
+        FileSpan {
+            filename,
+            line: self.line,
+            col: self.col,
+        }
+    }
+}
+
 impl<'a> Token {
-    pub fn new(value: String, kind: TokenKind, span: TokenSpan) -> Token {
+    pub fn new(value: String, kind: TokenKind, span: Span) -> Token {
         Self { value, kind, span }
     }
 
@@ -83,7 +93,7 @@ impl<'a> Token {
 }
 
 pub struct Lexer<'a> {
-    input: InputFile<'a>,
+    pub input: InputFile<'a>,
     span: Span,
 }
 
@@ -130,7 +140,7 @@ impl<'a> Iterator for Lexer<'a> {
                                     "expected closing quotation mark (\") for string literal \"{}\".",
                                     buffer.clone() + &String::from(d)
                                 ),
-                                TokenSpan {
+                                FileSpan {
                                     filename: self.input.name.to_string(),
                                     line: self.span.line,
                                     col: self.span.col + 2
@@ -145,8 +155,7 @@ impl<'a> Iterator for Lexer<'a> {
                     return Some(Token::new(
                         buffer,
                         TokenKind::String,
-                        TokenSpan {
-                            filename: self.input.name.to_string(),
+                        Span {
                             line: self.span.line,
                             col: col,
                         },
@@ -166,7 +175,7 @@ impl<'a> Iterator for Lexer<'a> {
                                     &format!(
                                         "invalid character `{d}` found in integer/float literal."
                                     ),
-                                    TokenSpan {
+                                    FileSpan {
                                         filename: self.input.name.to_string(),
                                         line: self.span.line,
                                         col: self.span.col + buffer.len(),
@@ -185,8 +194,7 @@ impl<'a> Iterator for Lexer<'a> {
                         return Some(Token::new(
                             buffer,
                             TokenKind::Float,
-                            TokenSpan {
-                                filename: self.input.name.to_string(),
+                            Span {
                                 line: self.span.line,
                                 col: col,
                             },
@@ -195,8 +203,7 @@ impl<'a> Iterator for Lexer<'a> {
                         return Some(Token::new(
                             buffer,
                             TokenKind::Int,
-                            TokenSpan {
-                                filename: self.input.name.to_string(),
+                            Span {
                                 line: self.span.line,
                                 col: col,
                             },
@@ -212,7 +219,7 @@ impl<'a> Iterator for Lexer<'a> {
                                 throw(
                                     "token error",
                                     &format!("invalid character `{d}` found in float literal."),
-                                    TokenSpan {
+                                    FileSpan {
                                         filename: self.input.name.to_string(),
                                         line: self.span.line,
                                         col: self.span.col + buffer.len(),
@@ -230,8 +237,7 @@ impl<'a> Iterator for Lexer<'a> {
                     return Some(Token::new(
                         buffer,
                         TokenKind::Float,
-                        TokenSpan {
-                            filename: self.input.name.to_string(),
+                        Span {
                             line: self.span.line,
                             col: col,
                         },
@@ -251,8 +257,7 @@ impl<'a> Iterator for Lexer<'a> {
                     return Some(Token::new(
                         buffer,
                         TokenKind::Word,
-                        TokenSpan {
-                            filename: self.input.name.to_string(),
+                        Span {
                             line: self.span.line,
                             col: col,
                         },
@@ -262,7 +267,7 @@ impl<'a> Iterator for Lexer<'a> {
                     throw(
                         "token error",
                         &format!("illegal character `{c}` found in file."),
-                        TokenSpan {
+                        FileSpan {
                             filename: self.input.name.to_string(),
                             line: self.span.line,
                             col: self.span.col,

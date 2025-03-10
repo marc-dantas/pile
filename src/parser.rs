@@ -1,4 +1,4 @@
-use crate::lexer::{Lexer, Token, TokenKind, TokenSpan};
+use crate::lexer::{FileSpan, Lexer, Span, Token, TokenKind};
 
 pub fn is_op(value: &str) -> bool {
     matches!(
@@ -80,37 +80,39 @@ pub enum OpKind {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum Node {
-    IntLit(i64, TokenSpan),
-    FloatLit(f64, TokenSpan),
-    StringLit(String, TokenSpan),
-    Proc(String, Vec<Node>, TokenSpan),
-    Def(String, Vec<Node>, TokenSpan),
-    If(Vec<Node>, Option<Vec<Node>>, TokenSpan),
-    Loop(Vec<Node>, TokenSpan),
-    Let(String, TokenSpan),
-    AsLet(Vec<Token>, Vec<Node>, TokenSpan),
-    Operation(OpKind, TokenSpan),
-    Symbol(String, TokenSpan),
+    IntLit(i64, Span),
+    FloatLit(f64, Span),
+    StringLit(String, Span),
+    Proc(String, Vec<Node>, Span),
+    Def(String, Vec<Node>, Span),
+    If(Vec<Node>, Option<Vec<Node>>, Span),
+    Loop(Vec<Node>, Span),
+    Let(String, Span),
+    AsLet(Vec<Token>, Vec<Node>, Span),
+    Operation(OpKind, Span),
+    Symbol(String, Span),
 }
 
 pub type ProgramTree = Vec<Node>;
 
 pub struct Parser<'a> {
     lexer: Lexer<'a>,
-    current_span: Option<TokenSpan>,
+    filename: &'a str,
+    current_span: Option<Span>,
 }
 
 #[derive(Debug)]
 pub enum ParseError {
-    UnexpectedToken(TokenSpan, String, String),
-    UnexpectedEOF(TokenSpan, String),
-    UnterminatedBlock(TokenSpan, String),
-    UnmatchedBlock(TokenSpan),
+    UnexpectedToken(FileSpan, String, String),
+    UnexpectedEOF(FileSpan, String),
+    UnterminatedBlock(FileSpan, String),
+    UnmatchedBlock(FileSpan),
 }
 
 impl<'a> Parser<'a> {
     pub fn new(lexer: Lexer<'a>) -> Self {
         Self {
+            filename: lexer.input.name,
             lexer: lexer,
             current_span: None,
         }
@@ -119,7 +121,7 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<ProgramTree, ParseError> {
         let mut exprs = Vec::new();
         while let Some(token) = self.lexer.next() {
-            self.current_span = Some(token.span.clone());
+            self.current_span = Some(token.span);
             exprs.push(self.parse_expr(token)?);
         }
         Ok(exprs)
@@ -137,9 +139,7 @@ impl<'a> Parser<'a> {
                 "if" => self.parse_if(),
                 "loop" => self.parse_loop(),
                 "end" => Err(ParseError::UnmatchedBlock(
-                    self.current_span
-                        .clone()
-                        .unwrap_or_else(|| token.span.clone()),
+                    self.current_span.unwrap().to_filespan(self.filename.to_string())
                 )),
                 "+" => Ok(Node::Operation(OpKind::Add, token.span)),
                 "-" => Ok(Node::Operation(OpKind::Sub, token.span)),
@@ -179,13 +179,13 @@ impl<'a> Parser<'a> {
 
     fn parse_proc(&mut self) -> Result<Node, ParseError> {
         let proc_name = self.lexer.next().ok_or_else(|| {
-            let span = self.current_span.clone().unwrap();
-            ParseError::UnexpectedEOF(span, "valid identifier".to_string())
+            let span = self.current_span.unwrap();
+            ParseError::UnexpectedEOF(span.to_filespan(self.filename.to_string()), "valid identifier".to_string())
         })?;
 
         if !is_valid_identifier(&proc_name.value) {
             return Err(ParseError::UnexpectedToken(
-                proc_name.span.clone(),
+                proc_name.span.to_filespan(self.filename.to_string()),
                 proc_name.value,
                 "valid identifier".to_string(),
             ));
@@ -201,20 +201,20 @@ impl<'a> Parser<'a> {
         }
 
         Err(ParseError::UnterminatedBlock(
-            proc_name.span.clone(),
+            proc_name.span.to_filespan(self.filename.to_string()),
             "proc".to_string(),
         ))
     }
 
     fn parse_let(&mut self) -> Result<Node, ParseError> {
         let variable = self.lexer.next().ok_or_else(|| {
-            let span = self.current_span.clone().unwrap();
-            ParseError::UnexpectedEOF(span, "valid identifier".to_string())
+            let span = self.current_span.unwrap();
+            ParseError::UnexpectedEOF(span.to_filespan(self.filename.to_string()), "valid identifier".to_string())
         })?;
 
         if !is_valid_identifier(&variable.value) {
             return Err(ParseError::UnexpectedToken(
-                variable.span.clone(),
+                variable.span.to_filespan(self.filename.to_string()),
                 variable.value,
                 "valid identifier".to_string(),
             ));
@@ -232,7 +232,7 @@ impl<'a> Parser<'a> {
             }
             if !is_valid_identifier(&token.value) {
                 return Err(ParseError::UnexpectedToken(
-                    token.span.clone(),
+                    token.span.to_filespan(self.filename.to_string()),
                     token.value,
                     "valid identifier".to_string(),
                 ));
@@ -250,24 +250,20 @@ impl<'a> Parser<'a> {
         }
         
         Err(ParseError::UnterminatedBlock(
-            self.current_span.as_ref().unwrap().clone(),
+            self.current_span.unwrap().to_filespan(self.filename.to_string()),
             "as..let".to_string(),
         ))
     }
 
     fn parse_def(&mut self) -> Result<Node, ParseError> {
         let def_name = self.lexer.next().ok_or_else(|| {
-            let span = self.current_span.clone().unwrap_or_else(|| TokenSpan {
-                filename: "unknown".to_string(),
-                line: 0,
-                col: 0,
-            });
-            ParseError::UnexpectedEOF(span, "valid identifier".to_string())
+            let span = self.current_span.unwrap();
+            ParseError::UnexpectedEOF(span.to_filespan(self.filename.to_string()), "valid identifier".to_string())
         })?;
 
         if !is_valid_identifier(&def_name.value) {
             return Err(ParseError::UnexpectedToken(
-                def_name.span.clone(),
+                def_name.span.to_filespan(self.filename.to_string()),
                 def_name.value,
                 "valid identifier".to_string(),
             ));
@@ -283,7 +279,7 @@ impl<'a> Parser<'a> {
         }
         
         Err(ParseError::UnterminatedBlock(
-            def_name.span.clone(),
+            def_name.span.to_filespan(self.filename.to_string()),
             "proc".to_string(),
         ))
     }
@@ -302,7 +298,7 @@ impl<'a> Parser<'a> {
                     else_block.push(self.parse_expr(token)?);
                 }
                 return Err(ParseError::UnterminatedBlock(
-                    token.span.clone(),
+                    token.span.to_filespan(self.filename.to_string()),
                     "else".to_string(),
                 ));
             } else if token.value == "end" {
@@ -312,7 +308,7 @@ impl<'a> Parser<'a> {
         }
 
         Err(ParseError::UnterminatedBlock(
-            self.current_span.clone().unwrap(),
+            self.current_span.unwrap().to_filespan(self.filename.to_string()),
             "if".to_string(),
         ))
     }
@@ -328,7 +324,7 @@ impl<'a> Parser<'a> {
         }
 
         Err(ParseError::UnterminatedBlock(
-            self.current_span.clone().unwrap(),
+            self.current_span.unwrap().to_filespan(self.filename.to_string()),
             "loop".to_string(),
         ))
     }

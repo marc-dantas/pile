@@ -36,15 +36,15 @@ fn parse(filename: &str, source: String) -> Result<ProgramTree, ParseError> {
     p.parse()
 }
 
-fn run_program(p: ProgramTree) -> Result<(), RuntimeError> {
-    let mut r = Runtime::new(&p);
+fn run_program(program: ProgramTree, filename: &str) -> Result<(), RuntimeError> {
+    let mut r = Runtime::new(&program, filename);
     r.run()
 }
 
 fn run(filename: &str, source: String) {
     match parse(&filename, source) {
         Ok(p) => {
-            if let Err(e) = run_program(p) {
+            if let Err(e) = run_program(p, filename) {
                 error::runtime_error(e);
             }
         }
