@@ -15,7 +15,7 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
                 "runtime error",
                 &format!("memory out of bounds: tried to read memory at invalid address 0X{:X} ({addr}).", addr),
                 span.clone(),
-                Some("check if you are using `mem` and `offset` correctly."),
+                Some("check if you are using `mem` correctly."),
                 call,
             );
         }
@@ -24,7 +24,7 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
                 "runtime error",
                 &format!("memory out of bounds: tried to write {what} memory at invalid address 0X{:X} ({addr}).", addr),
                 span.clone(),
-                Some("check if you are using `mem` and `offset` correctly."),
+                Some("check if you are using `mem` correctly."),
                 call,
             );
         }
