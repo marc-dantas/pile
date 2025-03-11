@@ -1,0 +1,12 @@
+def ASCII_SIZE 128 end
+
+0 loop dup ASCII_SIZE = if break end
+    dup dup mem + w@
+    1 +
+end
+
+0 loop dup ASCII_SIZE = if break end
+    dup mem + r@ chr print " " print
+    1 +
+end
+"" println
