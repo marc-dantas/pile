@@ -142,27 +142,28 @@ pub type Stack<'a> = VecDeque<Data>;
 #[derive(Debug, Clone)]
 pub enum RuntimeError {
     ProcedureError {
-        call: FileSpan,          // TokenSpan where the procedure was called
+        call: FileSpan,           // TokenSpan where the procedure was called
         inner: Box<RuntimeError>, // the original error inside the procedure
     },
-    StackUnderflow(FileSpan, String, usize), // when there's too few data on the stack to perform operation
-    UnexpectedType(FileSpan, String, String, String), // when there's an operation tries to operate with an unsupported or an invalid datatype
-    InvalidWord(FileSpan, String), // used when a word doesn't correspond a valid identifier
-    ValueError(FileSpan, String, String, String), // used when a value is invalid or can not be handled
-    ProcRedefinition(FileSpan, String),           // used when a procedure name is already taken
-    DefRedefinition(FileSpan, String),            // used when a definition name is already taken
-    EmptyDefinition(FileSpan, String),            // used when a definition has empty body
-    UnboundVariable(FileSpan, String),            // used when a definition has empty body
+    StackUnderflow(FileSpan, String, usize),          // when there's too few data on the stack to perform operation
+    UnexpectedType(FileSpan, String, String, String), // when there's an operation tries to operate with an invalid datatype
+    InvalidWord(FileSpan, String),                    // used when a word isn't defined
+    ValueError(FileSpan, String, String, String),     // when a value is invalid or can not be handled
+    ProcRedefinition(FileSpan, String),               // when a procedure name is already taken
+    DefRedefinition(FileSpan, String),                // when a definition name is already taken
+    EmptyDefinition(FileSpan, String),                // when a definition has empty body
+    UnboundVariable(FileSpan, String),                // when a variable has no value
 }
 
-const KB: usize = 1024;
-pub const MEMORY_CAPACITY: usize = 100*KB; // 100 Kilobytes of memory. Let's get back to the 90's!
+pub const STR_CAPACITY: usize = 100*1024;                    // 100kb of strings should also be enough
+pub const MEMORY_CAPACITY: usize = 1000*1024 + STR_CAPACITY; // 1mb should be enough
 
 pub struct Runtime<'a> {
     input: &'a ProgramTree,
     filename: &'a str,
     memory: [u8; MEMORY_CAPACITY],
-    memptr: usize,
+    string_ptr: usize,
+    memory_ptr: usize,
     stack: Stack<'a>,
     namespace: Namespace<'a>,
     loop_break: bool,
@@ -175,7 +176,8 @@ impl<'a> Runtime<'a> {
         Self {
             input, filename,
             memory: [0; MEMORY_CAPACITY],
-            memptr: 0,
+            string_ptr: 0,
+            memory_ptr: MEMORY_CAPACITY,
             stack: VecDeque::new(),
             namespace: Namespace {
                 procs: HashMap::new(),
@@ -802,7 +804,7 @@ impl<'a> Runtime<'a> {
         for n in self.input {
             self.run_node(n)?;
         }
-        // println!("{:?}", self.memory);
+        // println!("{:?}", &self.memory[STR_CAPACITY..STR_CAPACITY+30]);
         Ok(())
     }
 
@@ -824,7 +826,7 @@ impl<'a> Runtime<'a> {
     fn push_int(&mut self, n: i64) {
         self.stack.push_front(Data::Int(n));
     }
-
+    
     fn push_float(&mut self, n: f64) {
         self.stack.push_front(Data::Float(n));
     }
@@ -838,19 +840,17 @@ impl<'a> Runtime<'a> {
     // Stores bytes in memory and returns the resultant sized string that was written
     fn store_string(&mut self, bytes: &[u8]) -> (usize, usize) {
         let size = bytes.len();
-        let ptr = self.memptr;
-        if ptr + size > self.memory.len() {
-            eprintln!("static memory out of bounds:");
-            eprintln!("  static memory size = {}", self.memory.len());
-            eprintln!("  current pointer = {}", self.memptr);
-            eprintln!("  tried to write {:?}", bytes);
-            eprintln!("    size = {}", bytes.len());
-            eprintln!("    current pointer + size = {}", self.memptr + bytes.len());
-            eprintln!("this error should not happen in normal conditions.");
-            fatal("internal error: out of bounds");
+        let ptr = self.string_ptr;
+        if ptr + size > STR_CAPACITY {
+            eprintln!("string buffer size = {}", STR_CAPACITY);
+            eprintln!("current pointer = {}", self.string_ptr);
+            eprintln!("tried to write {:?}", bytes);
+            eprintln!("  size = {}", bytes.len());
+            eprintln!("  current pointer + size = {}", self.string_ptr + bytes.len());
+            fatal("string buffer overflow");
         }
         self.memory[ptr..ptr + size].copy_from_slice(bytes);
-        self.memptr += size;
+        self.string_ptr += size;
         (ptr, size)
     }
 
