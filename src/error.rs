@@ -187,7 +187,7 @@ pub fn throw(
 ) {
     eprintln!("{}:{}:{}: {}:", span.filename, span.line, span.col, error);
     for line in break_line_at(message.to_string(), 50) {
-        eprintln!(" |  {line}",);
+        eprintln!(" |    {line}",);
     }
     if let Some(h) = help {
         for line in break_line_at(h.to_string(), 50) {
