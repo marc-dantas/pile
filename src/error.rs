@@ -2,7 +2,7 @@ use crate::{
     cli::*,
     lexer::FileSpan,
     parser::ParseError,
-    runtime::RuntimeError,
+    runtime::{Runtime, RuntimeError},
     CLIError,
 };
 
@@ -10,6 +10,24 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
     match e {
         // TODO: plz implement a call stack. this is totally a hack and will not produce good error messages
         e@RuntimeError::ProcedureError { .. } => runtime_error(e.clone()),
+        RuntimeError::ReadMemoryOutOfBounds(span, addr) => {
+            throw(
+                "runtime error",
+                &format!("memory out of bounds: tried to read memory at invalid address 0X{:X} ({addr}).", addr),
+                span.clone(),
+                Some("check if you are using `mem` and `offset` correctly."),
+                call,
+            );
+        }
+        RuntimeError::WriteMemoryOutOfBounds(span, what, addr) => {
+            throw(
+                "runtime error",
+                &format!("memory out of bounds: tried to write {what} memory at invalid address 0X{:X} ({addr}).", addr),
+                span.clone(),
+                Some("check if you are using `mem` and `offset` correctly."),
+                call,
+            );
+        }
         RuntimeError::InvalidWord(span, x) => {
             throw(
                 "runtime error",

@@ -75,6 +75,10 @@ pub enum OpKind {
     False,
     Nil,
     IsNil,
+    ReadAt,
+    WriteAt,
+    Mem,
+    Chr,
 }
 
 #[allow(dead_code)]
@@ -171,6 +175,10 @@ impl<'a> Parser<'a> {
                 "false" => Ok(Node::Operation(OpKind::False, token.span)),
                 "nil" => Ok(Node::Operation(OpKind::Nil, token.span)),
                 "?" => Ok(Node::Operation(OpKind::IsNil, token.span)),
+                "w@" => Ok(Node::Operation(OpKind::WriteAt, token.span)),
+                "r@" => Ok(Node::Operation(OpKind::ReadAt, token.span)),
+                "mem" => Ok(Node::Operation(OpKind::Mem, token.span)),
+                "chr" => Ok(Node::Operation(OpKind::Chr, token.span)),
                 _ => Ok(Node::Symbol(token.value, token.span)),
             },
             TokenKind::String => Ok(Node::StringLit(token.value, token.span)),
