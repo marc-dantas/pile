@@ -741,7 +741,7 @@ impl<'a> Runtime<'a> {
                             return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "chr".to_string(), 1));
                         }
                     }
-                    OpKind::ReadAt => {
+                    OpKind::Read8 => {
                         if let Some(a) = self.pop() {
                             match a {
                                 Data::Int(x) => {
@@ -756,16 +756,16 @@ impl<'a> Runtime<'a> {
                                 },
                                 _ => return Err(RuntimeError::UnexpectedType(
                                     s.to_filespan(self.filename.to_string()),
-                                    "r@".to_string(),
+                                    "@8".to_string(),
                                     "int".to_string(),
                                     format!("{}", a.format()),
                                 )),
                             }
                         } else {
-                            return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "r@".to_string(), 1));
+                            return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "@8".to_string(), 1));
                         }
                     }
-                    OpKind::WriteAt => {
+                    OpKind::Write8 => {
                         if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
                             match (a, b) {
                                 (Data::Int(addr), Data::Int(what)) => {
@@ -782,13 +782,13 @@ impl<'a> Runtime<'a> {
                                 },
                                 _ => return Err(RuntimeError::UnexpectedType(
                                     s.to_filespan(self.filename.to_string()),
-                                    "w@".to_string(),
+                                    "!8".to_string(),
                                     "(int, int)".to_string(),
                                     format!("({}, {})", a.format(), b.format()),
                                 )),
                             }
                         } else {
-                            return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "w@".to_string(), 1));
+                            return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "!8".to_string(), 1));
                         }
                     }
                 }
