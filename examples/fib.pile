@@ -2,7 +2,7 @@ proc fib
     let n
     0 1
     loop
-        over n swap >= if break end
+        over n >= if break end
         as a b let
             a println
             b a b +

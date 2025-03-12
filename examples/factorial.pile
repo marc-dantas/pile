@@ -1,10 +1,10 @@
 # Recursive factorial in Pile programming language
 proc fact
     let n
-    1 n <= if
+    n 1 <= if
         1
     else
-        n 1 n - fact *
+        n n 1 - fact *
     end
 end
 

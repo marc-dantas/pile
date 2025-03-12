@@ -1,6 +1,6 @@
 proc even_odd
     let n
-    2 n % 0 = if
+    n 2 % 0 = if
         "even"
     else
         "odd"
