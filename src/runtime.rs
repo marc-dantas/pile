@@ -611,6 +611,8 @@ impl<'a> Runtime<'a> {
                 }
             }
             Node::Loop(l, _) => {
+                self.loop_break = false;
+                self.loop_continue = false;
                 'outer: loop {
                     for n in l {
                         self.run_node(n)?;
@@ -809,6 +811,7 @@ impl<'a> Runtime<'a> {
                     "typeof" => self.builtin(s, Builtin::TypeOf)?,
                     _ => {
                         if let Some(p) = self.namespace.procs.get(w.as_str()) {
+                            self.proc_return = false;
                             for n in p.0 {
                                 if let Err(e) = self.run_node(n) {
                                     return Err(RuntimeError::ProcedureError {

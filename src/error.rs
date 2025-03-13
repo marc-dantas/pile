@@ -2,7 +2,7 @@ use crate::{
     cli::*,
     lexer::FileSpan,
     parser::ParseError,
-    runtime::{Runtime, RuntimeError},
+    runtime::RuntimeError,
     CLIError,
 };
 
