@@ -53,7 +53,7 @@ impl<'a> Token {
 
     fn is_int_start(target: &char, next: Option<&char>) -> bool {
         // A number starts with a digit or a '-' followed by a digit
-        matches!(target, '0'..='9')
+        target.is_ascii_digit()
             || (*target == '-' && next.map_or(false, |c| c.is_ascii_digit()))
     }
 
@@ -63,7 +63,7 @@ impl<'a> Token {
 
     fn is_float_start(target: &char, next: Option<&char>) -> bool {
         // A number starts with a digit or a '-' followed by a digit
-        matches!(target, '0'..='9' | '.')
+        target.is_ascii_digit()
             || (*target == '-' && next.map_or(false, |c| c.is_ascii_digit() || c == &'.'))
     }
 
