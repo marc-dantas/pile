@@ -37,6 +37,15 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
                 call,
             );
         }
+        RuntimeError::StringOutOfBounds(span, index, len) => {
+            throw(
+                "runtime error",
+                &format!("string index out of bounds: tried to index string of size {len} but used index {index}."),
+                span.clone(),
+                None,
+                call,
+            );
+        }
         RuntimeError::InvalidWord(span, x) => {
             throw(
                 "runtime error",

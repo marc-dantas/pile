@@ -163,7 +163,8 @@ pub enum RuntimeError {
     UnboundVariable(FileSpan, String),                // when a variable has no value
     ReadMemoryOutOfBounds(FileSpan, usize),           // when tries to read outside of memory bounds
     WriteMemoryOutOfBounds(FileSpan, String, usize),  // when tries to write outside of memory bounds
-    ArrayOutOfBounds(FileSpan, usize, usize)          // when tries to index array at invalid index
+    ArrayOutOfBounds(FileSpan, i64, usize),         // when tries to index array at invalid index
+    StringOutOfBounds(FileSpan, i64, usize)         // when tries to index string at invalid index
 }
 
 pub const STR_CAPACITY: usize = 100*1024; // 100kb of strings should be enough
@@ -804,26 +805,41 @@ impl<'a> Runtime<'a> {
                             return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "?".to_string(), 1));
                         }
                     }
-                    OpKind::ArrayIndex => {
+                    OpKind::Index => {
                         if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
                             match (a, b) {
                                 (Data::Int(index), Data::Array(id)) => {
+                                    let mut i = index.abs() as usize;
                                     let arr = self.arrays.get(&id).unwrap();
-                                    if let Some(d) = arr.iter().nth(index as usize) {
+                                    if index < 0 { i = arr.len() - i; }
+                                    if let Some(d) = arr.iter().nth(i) {
                                         self.stack.push_front(*d);
                                     } else {
                                         return Err(RuntimeError::ArrayOutOfBounds(
                                             s.to_filespan(self.filename.to_string()),
-                                            index as usize,
+                                            index,
                                             arr.len(),
                                         ));
                                     }
+                                }
+                                (Data::Int(index), Data::String(ptr, size)) => {
+                                    let mut i = index.abs() as usize;
+                                    let str = self.read_string(ptr, size).as_bytes();
+                                    if index < 0 { i = str.len() - i; }
+                                    if i >= str.len() {
+                                        return Err(RuntimeError::StringOutOfBounds(
+                                            s.to_filespan(self.filename.to_string()),
+                                            index,
+                                            str.len(),
+                                        ));
+                                    }
+                                    self.push_string(&[str[i]]);
                                 }
                                 (a, b) => {
                                     return Err(RuntimeError::UnexpectedType(
                                         s.to_filespan(self.filename.to_string()),
                                         ":".to_string(),
-                                        "(array, int)".to_string(),
+                                        "(array, int) or (string, int)".to_string(),
                                         format!("({}, {})", a.format(), b.format()),
                                     ));
                                 }
