@@ -121,6 +121,7 @@ pub enum Builtin {
     ToFloat,
     TypeOf,
     Chr,
+    Len,
 }
 
 impl std::fmt::Display for Builtin {
@@ -138,6 +139,7 @@ impl std::fmt::Display for Builtin {
             Builtin::ToFloat => write!(f, "tofloat"),
             Builtin::TypeOf => write!(f, "typeof"),
             Builtin::Chr => write!(f, "chr"),
+            Builtin::Len => write!(f, "len")
         }
     }
 }
@@ -505,6 +507,28 @@ impl<'a> Runtime<'a> {
                     return Err(RuntimeError::StackUnderflow(span.to_filespan(self.filename.to_string()), "chr".to_string(), 1));
                 }
             }
+            Builtin::Len => {
+                if let Some(a) = self.pop() {
+                    match a {
+                        Data::String(addr, size) => {
+                            let str = self.read_string(addr, size);
+                            self.push_int(str.len() as i64);
+                        }
+                        Data::Array(id) => {
+                            let arr = self.arrays.get(&id).unwrap();
+                            self.push_int(arr.len() as i64);
+                        }
+                        _ => return Err(RuntimeError::UnexpectedType(
+                            span.to_filespan(self.filename.to_string()),
+                            "len".to_string(),
+                            "string or array".to_string(),
+                            format!("{}", a.format()),
+                        )),
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(span.to_filespan(self.filename.to_string()), "len".to_string(), 1));
+                }
+            }
         }
         Ok(())
     }
@@ -825,6 +849,7 @@ impl<'a> Runtime<'a> {
                     "tofloat" => self.builtin(s, Builtin::ToFloat)?,
                     "typeof" => self.builtin(s, Builtin::TypeOf)?,
                     "chr" => self.builtin(s, Builtin::Chr)?,
+                    "len" => self.builtin(s, Builtin::Len)?,
                     _ => {
                         if let Some(p) = self.namespace.procs.get(w.as_str()) {
                             self.proc_return = false;
