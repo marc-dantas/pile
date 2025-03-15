@@ -46,6 +46,7 @@ pub fn is_reserved_word(value: &str) -> bool {
             | "true"
             | "false"
             | "nil"
+            | "array"
     )
 }
 
@@ -101,6 +102,7 @@ pub enum Node {
     Def(String, Vec<Node>, Span),
     If(Vec<Node>, Option<Vec<Node>>, Span),
     Loop(Vec<Node>, Span),
+    Array(Vec<Node>, Span),
     Let(String, Span),
     AsLet(Vec<Token>, Vec<Node>, Span),
     Operation(OpKind, Span),
@@ -152,6 +154,7 @@ impl<'a> Parser<'a> {
                 "as" => self.parse_aslet(),
                 "if" => self.parse_if(),
                 "loop" => self.parse_loop(),
+                "array" => self.parse_array(),
                 "end" => Err(ParseError::UnmatchedBlock(
                     self.current_span.unwrap().to_filespan(self.filename.to_string())
                 )),
@@ -340,6 +343,22 @@ impl<'a> Parser<'a> {
         Err(ParseError::UnterminatedBlock(
             self.current_span.unwrap().to_filespan(self.filename.to_string()),
             "loop".to_string(),
+        ))
+    }
+
+    fn parse_array(&mut self) -> Result<Node, ParseError> {
+        let mut body = Vec::new();
+
+        while let Some(token) = self.lexer.next() {
+            if token.value == "end" {
+                return Ok(Node::Array(body, token.span));
+            }
+            body.push(self.parse_expr(token)?);
+        }
+
+        Err(ParseError::UnterminatedBlock(
+            self.current_span.unwrap().to_filespan(self.filename.to_string()),
+            "array".to_string(),
         ))
     }
 }

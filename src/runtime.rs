@@ -7,11 +7,13 @@ use std::{
 
 #[derive(Debug, Clone, Copy)]
 pub enum Data {
+    Array(u32),
     String(usize, usize),
     Int(i64),
     Float(f64),
     Bool(bool),
     Nil,
+    Sep,
 }
 
 impl Data {
@@ -22,6 +24,8 @@ impl Data {
             Data::Float(_)   => "float",
             Data::Bool(_)    => "bool",
             Data::Nil        => "nil",
+            Data::Array(_)   => "array",
+            Data::Sep => unreachable!(),
         }
     }
 }
@@ -166,6 +170,8 @@ pub struct Runtime<'a> {
     filename: &'a str,
     string_buffer: [u8; STR_CAPACITY],
     string_ptr: usize,
+    arrays: HashMap<u32, Vec<Data>>,
+    current_array: u32,
     stack: Stack<'a>,
     namespace: Namespace<'a>,
     loop_break: bool,
@@ -177,8 +183,10 @@ impl<'a> Runtime<'a> {
     pub fn new(input: &'a ProgramTree, filename: &'a str) -> Self {
         Self {
             input, filename,
-            string_ptr: 0,
             string_buffer: [0; STR_CAPACITY],
+            string_ptr: 0,
+            arrays: HashMap::new(),
+            current_array: 0,
             stack: VecDeque::new(),
             namespace: Namespace {
                 procs: HashMap::new(),
@@ -241,6 +249,14 @@ impl<'a> Runtime<'a> {
                         Data::Nil => {
                             println!("nil");
                         }
+                        _ => {
+                            return Err(RuntimeError::UnexpectedType(
+                                span.to_filespan(self.filename.to_string()),
+                                "println".to_string(),
+                                "string, int, float, bool or nil".to_string(),
+                                a.format().to_string(),
+                            ));
+                        }
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(span.to_filespan(self.filename.to_string()), "println".to_string(), 1));
@@ -264,6 +280,14 @@ impl<'a> Runtime<'a> {
                         }
                         Data::Nil => {
                             eprintln!("nil");
+                        }
+                        _ => {
+                            return Err(RuntimeError::UnexpectedType(
+                                span.to_filespan(self.filename.to_string()),
+                                "eprintln".to_string(),
+                                "string, int, float, bool or nil".to_string(),
+                                a.format().to_string(),
+                            ));
                         }
                     }
                 } else {
@@ -298,6 +322,14 @@ impl<'a> Runtime<'a> {
                             eprint!("nil");
                             std::io::stderr().flush().unwrap();
                         }
+                        _ => {
+                            return Err(RuntimeError::UnexpectedType(
+                                span.to_filespan(self.filename.to_string()),
+                                "eprint".to_string(),
+                                "string, int, float, bool or nil".to_string(),
+                                a.format().to_string(),
+                            ));
+                        }
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(span.to_filespan(self.filename.to_string()), "eprint".to_string(), 1));
@@ -326,6 +358,14 @@ impl<'a> Runtime<'a> {
                         Data::Nil => {
                             print!("nil");
                             std::io::stdout().flush().unwrap();
+                        }
+                        _ => {
+                            return Err(RuntimeError::UnexpectedType(
+                                span.to_filespan(self.filename.to_string()),
+                                "print".to_string(),
+                                "string, int, float, bool or nil".to_string(),
+                                a.format().to_string(),
+                            ));
                         }
                     }
                 } else {
@@ -427,6 +467,14 @@ impl<'a> Runtime<'a> {
                         Data::Float(f) => self.push_string(f.to_string().as_bytes()),
                         Data::Bool(b) => self.push_string(b.to_string().as_bytes()),
                         Data::Nil => self.push_string("nil".to_string().as_bytes()),
+                        _ => {
+                            return Err(RuntimeError::UnexpectedType(
+                                span.to_filespan(self.filename.to_string()),
+                                "tostring".to_string(),
+                                "string, int, float, bool or nil".to_string(),
+                                a.format().to_string(),
+                            ));
+                        }
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(span.to_filespan(self.filename.to_string()), format!("{}", x), 1));
@@ -472,26 +520,14 @@ impl<'a> Runtime<'a> {
                 Data::Float(n) => match x {
                     UnaryOp::BNot => self.push_float(!(n as i64) as f64),
                 },
-                Data::Nil => match x {
-                    _ => {
-                        return Err(RuntimeError::UnexpectedType(
-                            span.to_filespan(self.filename.to_string()),
-                            format!("{}", x),
-                            "int, float or string".to_string(),
-                            "nil".to_string(),
-                        ))
-                    }
-                },
-                Data::String(..) => match x {
-                    _ => {
-                        return Err(RuntimeError::UnexpectedType(
-                            span.to_filespan(self.filename.to_string()),
-                            format!("{}", x),
-                            "int or float".to_string(),
-                            "string".to_string(),
-                        ))
-                    }
-                },
+                _ => {
+                    return Err(RuntimeError::UnexpectedType(
+                        span.to_filespan(self.filename.to_string()),
+                        format!("{}", x),
+                        "int, float or bool".to_string(),
+                        a.format().to_string(),
+                    ));
+                }
             }
         } else {
             return Err(RuntimeError::StackUnderflow(span.to_filespan(self.filename.to_string()), format!("{}", x), 1));
@@ -720,6 +756,8 @@ impl<'a> Runtime<'a> {
                                 },
                                 Data::Bool(b) => println!("bool {}", b),
                                 Data::Nil => println!("nil"),
+                                Data::Array(id) => println!("array at 0X{:X}", id),
+                                Data::Sep => unreachable!(),
                             }
                         } else {
                             return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "trace".to_string(), 1));
@@ -783,6 +821,22 @@ impl<'a> Runtime<'a> {
                     }
                 }
             }
+            Node::Array(block, _) => {
+                self.stack.push_front(Data::Sep);
+                self.run_block(block)?;
+                let mut array = Vec::new();
+                while let Some(x) = self.pop() {
+                    if let Data::Sep = x {
+                        break;
+                    }
+                    array.push(x);
+                }
+                let id = self.current_array;
+                array.reverse();
+                self.arrays.insert(id, array);
+                self.current_array += 1;
+                self.stack.push_front(Data::Array(id));
+            }
             Node::Let(name, span) => {
                 if let Some(a) = self.pop() {
                     if let Some(_) = self.namespace.locals.get(name.as_str()) {
@@ -826,6 +880,7 @@ impl<'a> Runtime<'a> {
         for n in self.input {
             self.run_node(n)?;
         }
+        // println!("{:?}", self.arrays);
         // println!("{:?}", &self.memory_ptr);
         // println!("{:?}", &self.memory[STR_CAPACITY..STR_CAPACITY+30]);
         Ok(())
