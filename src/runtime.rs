@@ -161,6 +161,7 @@ pub enum RuntimeError {
     UnboundVariable(FileSpan, String),                // when a variable has no value
     ReadMemoryOutOfBounds(FileSpan, usize),           // when tries to read outside of memory bounds
     WriteMemoryOutOfBounds(FileSpan, String, usize),  // when tries to write outside of memory bounds
+    ArrayOutOfBounds(FileSpan, usize, usize)          // when tries to index array at invalid index
 }
 
 pub const STR_CAPACITY: usize = 100*1024; // 100kb of strings should be enough
@@ -777,6 +778,34 @@ impl<'a> Runtime<'a> {
                             }
                         } else {
                             return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "?".to_string(), 1));
+                        }
+                    }
+                    OpKind::ArrayIndex => {
+                        if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
+                            match (a, b) {
+                                (Data::Int(index), Data::Array(id)) => {
+                                    let arr = self.arrays.get(&id).unwrap();
+                                    if let Some(d) = arr.iter().nth(index as usize) {
+                                        self.stack.push_front(*d);
+                                    } else {
+                                        return Err(RuntimeError::ArrayOutOfBounds(
+                                            s.to_filespan(self.filename.to_string()),
+                                            index as usize,
+                                            arr.len(),
+                                        ));
+                                    }
+                                }
+                                (a, b) => {
+                                    return Err(RuntimeError::UnexpectedType(
+                                        s.to_filespan(self.filename.to_string()),
+                                        ":".to_string(),
+                                        "(array, int)".to_string(),
+                                        format!("({}, {})", a.format(), b.format()),
+                                    ));
+                                }
+                            }
+                        } else {
+                            return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), ":".to_string(), 2));
                         }
                     }
                 }

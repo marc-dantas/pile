@@ -90,6 +90,7 @@ pub enum OpKind {
     False,
     Nil,
     IsNil,
+    ArrayIndex,
 }
 
 #[allow(dead_code)]
@@ -188,6 +189,7 @@ impl<'a> Parser<'a> {
                 "false" => Ok(Node::Operation(OpKind::False, token.span)),
                 "nil" => Ok(Node::Operation(OpKind::Nil, token.span)),
                 "?" => Ok(Node::Operation(OpKind::IsNil, token.span)),
+                ":" => Ok(Node::Operation(OpKind::ArrayIndex, token.span)),
                 _ => Ok(Node::Symbol(token.value, token.span)),
             },
             TokenKind::String => Ok(Node::StringLit(token.value, token.span)),

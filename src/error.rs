@@ -28,6 +28,15 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
                 call,
             );
         }
+        RuntimeError::ArrayOutOfBounds(span, index, len) => {
+            throw(
+                "runtime error",
+                &format!("array index out of bounds: tried to index array of size {len} but used index {index}."),
+                span.clone(),
+                None,
+                call,
+            );
+        }
         RuntimeError::InvalidWord(span, x) => {
             throw(
                 "runtime error",
