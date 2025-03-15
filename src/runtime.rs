@@ -116,6 +116,7 @@ pub enum Builtin {
     ToInt,
     ToFloat,
     TypeOf,
+    Chr,
 }
 
 impl std::fmt::Display for Builtin {
@@ -132,6 +133,7 @@ impl std::fmt::Display for Builtin {
             Builtin::ToInt => write!(f, "toint"),
             Builtin::ToFloat => write!(f, "tofloat"),
             Builtin::TypeOf => write!(f, "typeof"),
+            Builtin::Chr => write!(f, "chr"),
         }
     }
 }
@@ -157,15 +159,13 @@ pub enum RuntimeError {
     WriteMemoryOutOfBounds(FileSpan, String, usize),  // when tries to write outside of memory bounds
 }
 
-pub const STR_CAPACITY: usize = 100*1024;                    // 100kb of strings should also be enough
-pub const MEMORY_CAPACITY: usize = 1000*1024 + STR_CAPACITY; // 1mb should be enough
+pub const STR_CAPACITY: usize = 100*1024; // 100kb of strings should be enough
 
 pub struct Runtime<'a> {
     input: &'a ProgramTree,
     filename: &'a str,
-    memory: [u8; MEMORY_CAPACITY],
+    string_buffer: [u8; STR_CAPACITY],
     string_ptr: usize,
-    memory_ptr: usize,
     stack: Stack<'a>,
     namespace: Namespace<'a>,
     loop_break: bool,
@@ -177,9 +177,8 @@ impl<'a> Runtime<'a> {
     pub fn new(input: &'a ProgramTree, filename: &'a str) -> Self {
         Self {
             input, filename,
-            memory: [0; MEMORY_CAPACITY],
             string_ptr: 0,
-            memory_ptr: STR_CAPACITY,
+            string_buffer: [0; STR_CAPACITY],
             stack: VecDeque::new(),
             namespace: Namespace {
                 procs: HashMap::new(),
@@ -438,6 +437,23 @@ impl<'a> Runtime<'a> {
                     self.push_string(a.format().as_bytes());
                 } else {
                     return Err(RuntimeError::StackUnderflow(span.to_filespan(self.filename.to_string()), format!("{}", x), 1));
+                }
+            }
+            Builtin::Chr => {
+                if let Some(a) = self.pop() {
+                    match a {
+                        Data::Int(c) => {
+                            self.push_string(&[c as u8]);
+                        }
+                        _ => return Err(RuntimeError::UnexpectedType(
+                            span.to_filespan(self.filename.to_string()),
+                            "chr".to_string(),
+                            "int".to_string(),
+                            format!("{}", a.format()),
+                        )),
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(span.to_filespan(self.filename.to_string()), "chr".to_string(), 1));
                 }
             }
         }
@@ -725,74 +741,6 @@ impl<'a> Runtime<'a> {
                             return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "?".to_string(), 1));
                         }
                     }
-                    OpKind::Mem => self.push_int(self.memory_ptr as i64),
-                    OpKind::Chr => {
-                        if let Some(a) = self.pop() {
-                            match a {
-                                Data::Int(c) => {
-                                    self.push_string(&[c as u8]);
-                                }
-                                _ => return Err(RuntimeError::UnexpectedType(
-                                    s.to_filespan(self.filename.to_string()),
-                                    "chr".to_string(),
-                                    "int".to_string(),
-                                    format!("{}", a.format()),
-                                )),
-                            }
-                        } else {
-                            return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "chr".to_string(), 1));
-                        }
-                    }
-                    OpKind::Read8 => {
-                        if let Some(a) = self.pop() {
-                            match a {
-                                Data::Int(x) => {
-                                    let addr = x as usize;
-                                    if addr + 1 > MEMORY_CAPACITY || addr < STR_CAPACITY {
-                                        return Err(RuntimeError::ReadMemoryOutOfBounds(
-                                            s.to_filespan(self.filename.to_string()),
-                                            addr
-                                        ));
-                                    }
-                                    self.push_int(*&self.memory[addr..addr+1][0] as i64);
-                                },
-                                _ => return Err(RuntimeError::UnexpectedType(
-                                    s.to_filespan(self.filename.to_string()),
-                                    "@8".to_string(),
-                                    "int".to_string(),
-                                    format!("{}", a.format()),
-                                )),
-                            }
-                        } else {
-                            return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "@8".to_string(), 1));
-                        }
-                    }
-                    OpKind::Write8 => {
-                        if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
-                            match (a, b) {
-                                (Data::Int(addr), Data::Int(what)) => {
-                                    let addr = addr as usize;
-                                    let what = what as u8;
-                                    if addr+1 > MEMORY_CAPACITY || addr < STR_CAPACITY {
-                                        return Err(RuntimeError::WriteMemoryOutOfBounds(
-                                            s.to_filespan(self.filename.to_string()),
-                                            what.to_string(),
-                                            addr
-                                        ));
-                                    }
-                                    self.memory[addr..addr+1].copy_from_slice(&[what]);
-                                },
-                                _ => return Err(RuntimeError::UnexpectedType(
-                                    s.to_filespan(self.filename.to_string()),
-                                    "!8".to_string(),
-                                    "(int, int)".to_string(),
-                                    format!("({}, {})", a.format(), b.format()),
-                                )),
-                            }
-                        } else {
-                            return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "!8".to_string(), 1));
-                        }
-                    }
                 }
             }
             Node::Symbol(w, s) => {
@@ -809,6 +757,7 @@ impl<'a> Runtime<'a> {
                     "toint" => self.builtin(s, Builtin::ToInt)?,
                     "tofloat" => self.builtin(s, Builtin::ToFloat)?,
                     "typeof" => self.builtin(s, Builtin::TypeOf)?,
+                    "chr" => self.builtin(s, Builtin::Chr)?,
                     _ => {
                         if let Some(p) = self.namespace.procs.get(w.as_str()) {
                             self.proc_return = false;
@@ -907,7 +856,7 @@ impl<'a> Runtime<'a> {
 
     // Accepts a sized Pile string, reads bytes in memory and returns the string read.
     fn read_string(&self, ptr: usize, size: usize) -> &str {
-        let slice = &self.memory[ptr..(ptr+size)];
+        let slice = &self.string_buffer[ptr..(ptr+size)];
         return std::str::from_utf8(slice).unwrap();
     }
     
@@ -923,7 +872,7 @@ impl<'a> Runtime<'a> {
             eprintln!("  current pointer + size = {}", self.string_ptr + bytes.len());
             fatal("string buffer overflow");
         }
-        self.memory[ptr..ptr + size].copy_from_slice(bytes);
+        self.string_buffer[ptr..ptr + size].copy_from_slice(bytes);
         self.string_ptr += size;
         (ptr, size)
     }
