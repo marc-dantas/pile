@@ -25,6 +25,7 @@ pub fn is_op(value: &str) -> bool {
             | "&"
             | "~"
             | "**"
+            | "?"
     )
 }
 
