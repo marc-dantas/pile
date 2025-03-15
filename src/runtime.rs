@@ -13,7 +13,6 @@ pub enum Data {
     Float(f64),
     Bool(bool),
     Nil,
-    Sep,
 }
 
 impl Data {
@@ -25,7 +24,6 @@ impl Data {
             Data::Bool(_)    => "bool",
             Data::Nil        => "nil",
             Data::Array(_)   => "array",
-            Data::Sep => unreachable!(),
         }
     }
 }
@@ -783,7 +781,6 @@ impl<'a> Runtime<'a> {
                                 Data::Bool(b) => println!("bool {}", b),
                                 Data::Nil => println!("nil"),
                                 Data::Array(id) => println!("array at 0X{:X}", id),
-                                Data::Sep => unreachable!(),
                             }
                         } else {
                             return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "trace".to_string(), 1));
@@ -892,14 +889,14 @@ impl<'a> Runtime<'a> {
                 }
             }
             Node::Array(block, _) => {
-                self.stack.push_front(Data::Sep);
+                let initial_len = self.stack.len();
                 self.run_block(block)?;
+                let array_len = self.stack.len() - initial_len; 
                 let mut array = Vec::new();
-                while let Some(x) = self.pop() {
-                    if let Data::Sep = x {
-                        break;
+                for _ in 0..array_len {
+                    if let Some(x) = self.pop() {
+                        array.push(x);
                     }
-                    array.push(x);
                 }
                 let id = self.current_array;
                 array.reverse();
