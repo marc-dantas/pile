@@ -32,7 +32,20 @@ pub fn is_op(value: &str) -> bool {
 pub fn is_reserved_word(value: &str) -> bool {
     matches!(
         value,
-        "if" | "as" | "loop" | "proc" | "end" | "let" | "else" | "def" | "stop" | "true" | "false" | "nil"
+        "if"
+            | "as"
+            | "loop"
+            | "proc"
+            | "end"
+            | "let"
+            | "else"
+            | "def"
+            | "return"
+            | "continue"
+            | "break"
+            | "true"
+            | "false"
+            | "nil"
     )
 }
 
