@@ -79,6 +79,10 @@ impl<'a> Token {
         return target == &'"';
     }
 
+    fn is_char(target: &char) -> bool {
+        return target == &'\'';
+    }
+
     fn is_newline(target: &char) -> bool {
         return target == &'\n';
     }
@@ -160,6 +164,18 @@ impl<'a> Iterator for Lexer<'a> {
                             col: col,
                         },
                     ));
+                }
+                _ if Token::is_char(&c) => {
+                    if let Some(chr) = self.input.content.next() {
+                        return Some(Token::new(
+                            (chr as i64).to_string(),
+                            TokenKind::Int,
+                            Span {
+                                line: self.span.line,
+                                col: self.span.col,
+                            },
+                        ));
+                    }
                 }
                 _ if Token::is_int_start(&c, self.input.content.peek()) => {
                     let col = self.span.col;
