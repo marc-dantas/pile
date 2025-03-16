@@ -889,9 +889,13 @@ impl<'a> Runtime<'a> {
                 }
             }
             Node::Array(block, _) => {
-                let initial_len = self.stack.len();
+                let before_len = self.stack.len();
                 self.run_block(block)?;
-                let array_len = self.stack.len() - initial_len; 
+                let after_len = self.stack.len();
+                let mut array_len = after_len - before_len;
+                if before_len > after_len {
+                    array_len = 0;
+                }
                 let mut array = Vec::new();
                 for _ in 0..array_len {
                     if let Some(x) = self.pop() {
