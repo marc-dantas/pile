@@ -1,3 +1,4 @@
+# Truth machine in Pile programming language
 inputln toint dup ? ~ if
     loop
         dup 0 = if
