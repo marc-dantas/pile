@@ -954,7 +954,7 @@ impl<'a> Runtime<'a> {
         }
         // println!("{:?}", self.arrays);
         // println!("{:?}", &self.memory_ptr);
-        println!("{:?}", String::from_utf8(self.string_buffer[0..140].iter().map(|x| *x).collect::<Vec<u8>>()));
+        // println!("{:?}", String::from_utf8(self.string_buffer[0..140].iter().map(|x| *x).collect::<Vec<u8>>()));
         Ok(())
     }
 
