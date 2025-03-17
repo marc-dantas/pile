@@ -830,7 +830,8 @@ impl<'a> Runtime<'a> {
                                             str.len(),
                                         ));
                                     }
-                                    self.push_string(&[str[i]]);
+                                    // self.push_string(&[str[i]]);
+                                    self.stack.push_front(Data::String(ptr+i, 1));
                                 }
                                 (a, b) => {
                                     return Err(RuntimeError::UnexpectedType(
@@ -953,7 +954,7 @@ impl<'a> Runtime<'a> {
         }
         // println!("{:?}", self.arrays);
         // println!("{:?}", &self.memory_ptr);
-        // println!("{:?}", &self.memory[STR_CAPACITY..STR_CAPACITY+30]);
+        println!("{:?}", String::from_utf8(self.string_buffer[0..140].iter().map(|x| *x).collect::<Vec<u8>>()));
         Ok(())
     }
 
