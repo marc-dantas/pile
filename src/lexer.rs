@@ -36,6 +36,19 @@ pub struct FileSpan {
     pub col: usize,
 }
 
+// Accepts the character after \ and returns the corresponding escaped character
+pub fn escape_char(c: char) -> Option<char> {
+    match c {
+        'n' => Some('\n'),
+        'r' => Some('\r'),
+        't' => Some('\t'),
+        '"' => Some('"'),
+        '0' => Some('\0'),
+        // TODO: Add more escape options
+        _ => None,
+    }
+}
+
 impl Span {
     pub fn to_filespan(&self, filename: String) -> FileSpan {
         FileSpan {
@@ -167,6 +180,23 @@ impl<'a> Iterator for Lexer<'a> {
                 }
                 _ if Token::is_char(&c) => {
                     if let Some(chr) = self.input.content.next() {
+                        let mut chr = chr;
+                        if chr == '\\' {
+                            if let Some(esc) = self.input.content.next() {
+                                if let Some(c) = escape_char(esc) {
+                                    return Some(Token::new(
+                                        (c as i64).to_string(),
+                                        TokenKind::Int,
+                                        Span {
+                                            line: self.span.line,
+                                            col: self.span.col,
+                                        },
+                                    ));
+                                } else if !esc.is_whitespace() {
+                                    chr = esc;
+                                }
+                            }
+                        }
                         return Some(Token::new(
                             (chr as i64).to_string(),
                             TokenKind::Int,
