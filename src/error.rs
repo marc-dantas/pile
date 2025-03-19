@@ -1,3 +1,5 @@
+use std::num::Saturating;
+
 use crate::{
     cli::*,
     lexer::FileSpan,
@@ -203,18 +205,22 @@ pub fn throw(
     help: Option<&str>,
     call: Option<FileSpan>,
 ) {
-    eprintln!("{}:{}:{}: {}:", span.filename, span.line, span.col, error);
+    eprintln!("pile: {}:", error);
+    if let Some(s) = call {
+        eprintln!(" |  {}:{}:{}:", s.filename, s.line, s.col);
+        eprintln!(" |    {}:{}:{}:", span.filename, span.line, span.col);
+    } else {
+        eprintln!(" |  {}:{}:{}:", span.filename, span.line, span.col);
+    }
     for line in break_line_at(message.to_string(), 50) {
-        eprintln!(" |    {line}",);
+        eprintln!(" |      {line}",);
     }
     if let Some(h) = help {
         for line in break_line_at(h.to_string(), 50) {
             eprintln!(" +  {}", line);
         }
     }
-    if let Some(c) = call {
-        eprintln!("note: error occurred from procedure call at {}:{}:{}:", c.filename, c.line, c.col);
-    }
+    eprintln!();
     std::process::exit(1);
 }
 

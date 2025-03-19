@@ -1,7 +1,22 @@
 # Name program in Pile programming language
+
+proc fmtprint
+    let s
+    s len let size
+    0 let c
+    "%" let x
+    loop c size = if break end
+        s c : let char
+        char x != if
+            char
+        end
+        print
+        c 1 + let c
+    end
+    10 chr print
+end
+
 "What is your name? " print
 inputln let x
 
-"Your name is " print
-x print
-"." println
+x "Your name is %." fmtprint
