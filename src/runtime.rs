@@ -802,7 +802,7 @@ impl<'a> Runtime<'a> {
                             return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "?".to_string(), 1));
                         }
                     }
-                    OpKind::Index => {
+                    OpKind::SeqIndex => {
                         if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
                             match (a, b) {
                                 (Data::Int(index), Data::Array(id)) => {
@@ -836,14 +836,57 @@ impl<'a> Runtime<'a> {
                                 (a, b) => {
                                     return Err(RuntimeError::UnexpectedType(
                                         s.to_filespan(self.filename.to_string()),
-                                        ":".to_string(),
+                                        "@".to_string(),
                                         "(array, int) or (string, int)".to_string(),
                                         format!("({}, {})", a.format(), b.format()),
                                     ));
                                 }
                             }
                         } else {
-                            return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), ":".to_string(), 2));
+                            return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "@".to_string(), 2));
+                        }
+                    }
+                    OpKind::SeqAssignAtIndex => {
+                        if let (Some(a), Some(b), Some(c)) = (self.pop(), self.pop(), self.pop()) {
+                            match (a, b, c) {
+                                (Data::Int(index), x, Data::Array(id)) => {
+                                    let mut i = index.abs() as usize;
+                                    let arr = self.arrays.get_mut(&id).unwrap();
+                                    if index < 0 { i = arr.len() - i; }
+                                    if let Some(elem) = arr.get_mut(i) {
+                                        *elem = x;
+                                    } else {
+                                        return Err(RuntimeError::ArrayOutOfBounds(
+                                            s.to_filespan(self.filename.to_string()),
+                                            index,
+                                            arr.len(),
+                                        ));
+                                    }
+                                }
+                                (Data::Int(index), Data::Int(chr), Data::String(ptr, size)) => {
+                                    let mut i = index.abs() as usize;
+                                    let str = self.read_string(ptr, size).as_bytes();
+                                    if index < 0 { i = str.len() - i; }
+                                    if i >= str.len() {
+                                        return Err(RuntimeError::StringOutOfBounds(
+                                            s.to_filespan(self.filename.to_string()),
+                                            index,
+                                            str.len(),
+                                        ));
+                                    }
+                                    self.string_buffer[ptr+i] = chr as u8;
+                                }
+                                (a, b, c) => {
+                                    return Err(RuntimeError::UnexpectedType(
+                                        s.to_filespan(self.filename.to_string()),
+                                        "!".to_string(),
+                                        "(array, any, int), (string, int, int) or (string, string, int)".to_string(),
+                                        format!("({}, {}, {})", a.format(), b.format(), c.format()),
+                                    ));
+                                }
+                            }
+                        } else {
+                            return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "!".to_string(), 2));
                         }
                     }
                 }

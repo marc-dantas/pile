@@ -90,7 +90,8 @@ pub enum OpKind {
     False,
     Nil,
     IsNil,
-    Index,
+    SeqIndex,
+    SeqAssignAtIndex,
 }
 
 #[allow(dead_code)]
@@ -148,6 +149,7 @@ impl<'a> Parser<'a> {
         match token.kind {
             TokenKind::Int => Ok(Node::IntLit(token.value.parse().unwrap(), token.span)),
             TokenKind::Float => Ok(Node::FloatLit(token.value.parse().unwrap(), token.span)),
+            TokenKind::String => Ok(Node::StringLit(token.value, token.span)),
             TokenKind::Word => match token.value.as_str() {
                 "proc" => self.parse_proc(),
                 "def" => self.parse_def(),
@@ -189,10 +191,10 @@ impl<'a> Parser<'a> {
                 "false" => Ok(Node::Operation(OpKind::False, token.span)),
                 "nil" => Ok(Node::Operation(OpKind::Nil, token.span)),
                 "?" => Ok(Node::Operation(OpKind::IsNil, token.span)),
-                ":" => Ok(Node::Operation(OpKind::Index, token.span)),
+                "@" => Ok(Node::Operation(OpKind::SeqIndex, token.span)),
+                "!" => Ok(Node::Operation(OpKind::SeqAssignAtIndex, token.span)),
                 _ => Ok(Node::Symbol(token.value, token.span)),
             },
-            TokenKind::String => Ok(Node::StringLit(token.value, token.span)),
         }
     }
 
@@ -213,8 +215,10 @@ impl<'a> Parser<'a> {
         let mut body = Vec::new();
 
         while let Some(token) = self.lexer.next() {
-            if token.value == "end" {
-                return Ok(Node::Proc(proc_name.value, body, proc_name.span));
+            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+                if x.as_str() == "end" {
+                    return Ok(Node::Proc(proc_name.value, body, proc_name.span));
+                }
             }
             body.push(self.parse_expr(token)?);
         }
@@ -262,8 +266,10 @@ impl<'a> Parser<'a> {
         let mut body = Vec::new();
 
         while let Some(token) = self.lexer.next() {
-            if token.value == "end" {
-                return Ok(Node::AsLet(variables, body, token.span));
+            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+                if x.as_str() == "end" {
+                    return Ok(Node::AsLet(variables, body, token.span));
+                }
             }
             body.push(self.parse_expr(token)?);
         }
@@ -291,8 +297,10 @@ impl<'a> Parser<'a> {
         let mut body = Vec::new();
         
         while let Some(token) = self.lexer.next() {
-            if token.value == "end" {
-                return Ok(Node::Def(def_name.value, body, def_name.span));
+            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+                if x.as_str() == "end" {
+                    return Ok(Node::Def(def_name.value, body, def_name.span));
+                }
             }
             body.push(self.parse_expr(token)?);
         }
@@ -311,8 +319,10 @@ impl<'a> Parser<'a> {
             if token.value == "else" {
                 let mut else_block = Vec::new();
                 while let Some(token) = self.lexer.next() {
-                    if token.value == "end" {
-                        return Ok(Node::If(if_body, Some(else_block), token.span));
+                    if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+                        if x.as_str() == "end" {
+                            return Ok(Node::If(if_body, Some(else_block), token.span));
+                        }
                     }
                     else_block.push(self.parse_expr(token)?);
                 }
@@ -320,8 +330,10 @@ impl<'a> Parser<'a> {
                     token.span.to_filespan(self.filename.to_string()),
                     "else".to_string(),
                 ));
-            } else if token.value == "end" {
-                return Ok(Node::If(if_body, else_body, token.span));
+            } else if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+                if x.as_str() == "end" {
+                    return Ok(Node::If(if_body, else_body, token.span));
+                }
             }
             if_body.push(self.parse_expr(token)?);
         }
@@ -336,8 +348,10 @@ impl<'a> Parser<'a> {
         let mut body = Vec::new();
 
         while let Some(token) = self.lexer.next() {
-            if token.value == "end" {
-                return Ok(Node::Loop(body, token.span));
+            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+                if x.as_str() == "end" {
+                    return Ok(Node::Loop(body, token.span));
+                }
             }
             body.push(self.parse_expr(token)?);
         }
@@ -352,8 +366,10 @@ impl<'a> Parser<'a> {
         let mut body = Vec::new();
 
         while let Some(token) = self.lexer.next() {
-            if token.value == "end" {
-                return Ok(Node::Array(body, token.span));
+            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+                if x.as_str() == "end" {
+                    return Ok(Node::Array(body, token.span));
+                }
             }
             body.push(self.parse_expr(token)?);
         }

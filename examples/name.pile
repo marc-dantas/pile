@@ -6,7 +6,7 @@ proc fmtprint
     0 let c
     "%" let x
     loop c size = if break end
-        s c : let char
+        s c @ let char
         char x != if
             char
         end
