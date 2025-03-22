@@ -802,7 +802,7 @@ impl<'a> Runtime<'a> {
                             return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "?".to_string(), 1));
                         }
                     }
-                    OpKind::Index => {
+                    OpKind::SeqIndex => {
                         if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
                             match (a, b) {
                                 (Data::Int(index), Data::Array(id)) => {
@@ -836,14 +836,14 @@ impl<'a> Runtime<'a> {
                                 (a, b) => {
                                     return Err(RuntimeError::UnexpectedType(
                                         s.to_filespan(self.filename.to_string()),
-                                        ":".to_string(),
+                                        "@".to_string(),
                                         "(array, int) or (string, int)".to_string(),
                                         format!("({}, {})", a.format(), b.format()),
                                     ));
                                 }
                             }
                         } else {
-                            return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), ":".to_string(), 2));
+                            return Err(RuntimeError::StackUnderflow(s.to_filespan(self.filename.to_string()), "@".to_string(), 2));
                         }
                     }
                 }
