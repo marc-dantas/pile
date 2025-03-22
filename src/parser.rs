@@ -91,7 +91,7 @@ pub enum OpKind {
     Nil,
     IsNil,
     SeqIndex,
-//  SeqAssignAtIndex,
+    SeqAssignAtIndex,
 }
 
 #[allow(dead_code)]
