@@ -1,0 +1,21 @@
+def PI    3.14159265359     end
+def TAU   PI 2.0 *          end
+def E     2.718281828459045 end
+def PHI   1.618033988749895 end
+def sqrt2 1.414213562373095 end
+def sqrt3 1.732050807568877 end
+def ln2   0.693147180559945 end
+def ln10  2.302585092994046 end
+def log2e 1.442695040888963 end
+
+# TODO: Implement sign(x)
+# TODO: Implement abs(x)
+# TODO: Implement min(a,b)
+# TODO: Implement max(a, b)
+# TODO: Implement clamp(x, a, b)
+# TODO: Implement ln(x)
+# TODO: Implement log(x, b)
+# TODO: Implement sqrt(x)
+# TODO: Implement cbrt(x)
+
+# TODO: Implement rand()

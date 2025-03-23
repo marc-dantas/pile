@@ -1,0 +1,69 @@
+# Executes a range starting from 0 to `n`
+# ( n -- 0 1 2 .. n )
+proc zrange
+    0 loop dup rot over over = if break end
+        rot
+        1 +
+    end
+    drop drop
+end
+
+# Executes a range starting from `n` to `m`
+# ( n m -- m m+1 m+2 .. m+n )
+proc nrange
+    swap loop dup rot over over = if break end
+        rot
+        1 +
+    end
+    drop drop
+end
+
+# Pushes `x` by `n` times on the stack 
+# ( x n -- x x .. n )
+proc repeat
+    loop dup 0 = if break end
+        over
+        swap
+        1 -
+    end
+    drop drop
+end
+
+# Prints an arbitrary array (for debug purposes)
+# ( a -- )
+proc printarray
+    let a
+    "array " print
+    0 loop dup a len = if break end
+        # TODO: This does not support nested arrays
+        a over @ print " " print
+        1 +
+    end drop
+    "end" println
+end
+
+# Pushes each item of array `a` directly on the stack
+# ( a -- a[0] a[1] ... )
+proc unwrap
+    let arr
+    0 loop dup arr len = if break end
+        arr over @
+        swap
+        1 +
+    end drop
+end
+
+# Pushes a reversed version of array `a1` on the stack
+# ( a1 -- a2 )
+proc reversed
+    dup len 1 + as max let
+        array
+            0 loop dup max = if break end
+                over over 0 swap - @
+                rot rot
+                1 +
+            end
+            drop drop
+        end
+    end
+end

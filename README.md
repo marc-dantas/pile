@@ -39,4 +39,4 @@ You can read the [`GOALS.md`](./GOALS.md) file to find out what I want to implem
 
 > Licensed under **GPL 3.0**. See [`LICENSE`](./LICENSE) for details.
 
-> Developed by [Marcio Dantas](https://github.com/marc-dantas)
+> By [Marcio Dantas](https://github.com/marc-dantas)
