@@ -1,0 +1,95 @@
+%YAML 1.2
+---
+name: Pile
+scope: source.pile
+file_extensions:
+  - pile
+
+contexts:
+  main:
+    - include: comment
+
+    # Keywords
+    - match: '\b(proc|def|as|let|if|loop|end|else|break|continue|return)\b'
+      scope: keyword.control
+
+    # Stack operations
+    - match: '\b(dup|drop|swap|over|rot)\b'
+      scope: markup.bold
+
+    # Arithmetic operations
+    - match: '\*\*|[+\-*/%]'
+      scope: keyword.operator
+
+    # Logic and bitwise operations
+    - match: '>>|<<|<|>|>=|<=|!=|[&|=~]'
+      scope: keyword.operator
+
+    # Other operations
+    - match: '[?@!$]'
+      scope: keyword.operator
+
+    # Input/Output builtins
+    - match: '\b(println|print|eprint|eprintln|input|inputln)\b'
+      scope: support.function.builtin
+
+    # Typing builtins
+    - match: '\b(typeof|toint|tofloat|tostring)\b'
+      scope: support.function.builtin
+
+    # Process builtins
+    - match: '\b(exit)\b'
+      scope: support.function.builtin
+
+    # Misc
+    - match: '\b(chr|ord)\b'
+      scope: support.function.builtin
+
+    # Misc
+    - match: '\b(fopen|fread|freadline|fseek|fwrite|fclose)\b'
+      scope: support.function.builtin
+
+    # Booleans
+    - match: '\b(true|false)\b'
+      scope: constant.language.boolean
+
+    # Nil
+    - match: '\b(nil)\b'
+      scope: constant.language.none
+
+    # Numeric tokens
+    - match: '\b(-)?[0-9.]+\b'
+      scope: constant.numeric
+
+    # String
+    - match: '"'
+      scope: punctuation.definition.string.begin
+      push: string
+
+    # Character
+    - match: "'"
+      scope: punctuation.definition.string.begin
+      push: char
+  
+  string:
+    - meta_scope: string.quoted
+    - match: '\\.'
+      scope: constant.character.escape
+    - match: '"'
+      scope: punctuation.definition.string.end
+      pop: true
+
+  char:
+    - meta_scope: string.quoted
+    - match: '\\.'
+      scope: constant.character.escape
+    - match: " "
+      scope: punctuation.definition.string.end
+      pop: true
+
+  comment:
+    - match: \#
+      push:
+        - meta_scope: comment.line
+        - match: $\n?
+          pop: true

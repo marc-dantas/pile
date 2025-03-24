@@ -30,7 +30,7 @@ If you want a quick approach to the language basics, consider taking a look at t
 Explore the [`./examples`](./examples) folder for code examples.
 
 ## Editors
-Pile has no editor support yet.
+- [Sublime Text](https://www.sublimetext.com/): [here](./editor/Pile.sublime-syntax)
 
 ## Goals and Ideas
 You can read the [`GOALS.md`](./GOALS.md) file to find out what I want to implement in the language in the future and some ideas.
