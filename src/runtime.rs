@@ -42,7 +42,7 @@ pub struct Namespace<'a> {
     pub procs: HashMap<&'a str, Procedure<'a>>,
     pub defs: HashMap<&'a str, Definition>,
     pub globals: HashMap<&'a str, Variable>,
-    pub locals: HashMap<&'a str, Variable>,
+    pub locals: Vec<HashMap<&'a str, Variable>>,
 }
 
 // stack operations:
@@ -194,7 +194,7 @@ impl<'a> Runtime<'a> {
                 procs: HashMap::new(),
                 defs: HashMap::new(),
                 globals: HashMap::new(),
-                locals: HashMap::new(),
+                locals: Vec::new(),
             },
             loop_break: false,
             loop_continue: false,
@@ -924,8 +924,12 @@ impl<'a> Runtime<'a> {
                             self.stack.push_front(d.0);
                         } else if let Some(v) = self.namespace.globals.get(w.as_str()) {
                             self.stack.push_front(v.0);
-                        } else if let Some(v) = self.namespace.locals.get(w.as_str()) {
-                            self.stack.push_front(v.0);
+                        } else if let Some(scope) = self.namespace.locals.last_mut() {
+                            if let Some(v) = scope.get(w.as_str()) {
+                                self.stack.push_front(v.0);
+                            } else {
+                                return Err(RuntimeError::InvalidWord(s.to_filespan(self.filename.to_string()), w.to_string()));
+                            }
                         } else {
                             return Err(RuntimeError::InvalidWord(s.to_filespan(self.filename.to_string()), w.to_string()));
                         }
@@ -954,8 +958,8 @@ impl<'a> Runtime<'a> {
             }
             Node::Let(name, span) => {
                 if let Some(a) = self.pop() {
-                    if let Some(_) = self.namespace.locals.get(name.as_str()) {
-                        self.namespace.locals.insert(name, Variable(a));
+                    if let Some(scope) = self.namespace.locals.last_mut() {
+                        scope.insert(name, Variable(a));
                     } else {
                         self.namespace.globals.insert(name, Variable(a));
                     }
@@ -967,11 +971,10 @@ impl<'a> Runtime<'a> {
                 }
             }
             Node::AsLet(vars, block, _) => {
-                let mut defined_vars = Vec::new();
+                let mut locals = HashMap::new();
                 for x in vars.into_iter().rev() {
-                    defined_vars.push(&x.value);
                     if let Some(a) = self.pop() {
-                        self.namespace.locals.insert(&x.value, Variable(a));
+                        locals.insert(x.value.as_str(), Variable(a));
                     } else {
                         return Err(RuntimeError::UnboundVariable(
                             x.span.to_filespan(self.filename.to_string()),
@@ -979,10 +982,9 @@ impl<'a> Runtime<'a> {
                         ));
                     }
                 }
+                self.namespace.locals.push(locals);
                 self.run_block(block)?;
-                for var in defined_vars.iter() {
-                    self.namespace.locals.remove(var.as_str());
-                }
+                self.namespace.locals.pop().unwrap();
             }
             Node::Proc(..) => {}
             Node::Def(..) => {}
