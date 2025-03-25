@@ -598,7 +598,7 @@ impl<'a> Runtime<'a> {
                         return Err(RuntimeError::UnexpectedType(
                             span.to_filespan(self.filename.to_string()),
                             format!("{}", x),
-                            "ints".to_string(),
+                            "ints, bools, strings or arrays".to_string(),
                             format!("({}, {})", i.format(), j.format()),
                         ))
                     }
@@ -608,7 +608,7 @@ impl<'a> Runtime<'a> {
                         return Err(RuntimeError::UnexpectedType(
                             span.to_filespan(self.filename.to_string()),
                             format!("{}", x),
-                            "ints, floats, bools or strings".to_string(),
+                            "ints, floats, bools, strings or arrays".to_string(),
                             format!("({}, {})", i.format(), j.format()),
                         ))
                     }
@@ -624,7 +624,7 @@ impl<'a> Runtime<'a> {
                             return Err(RuntimeError::UnexpectedType(
                                 span.to_filespan(self.filename.to_string()),
                                 format!("{}", x),
-                                "ints or floats".to_string(),
+                                "ints, floats, bools or arrays".to_string(),
                                 format!("({}, {})", i.format(), j.format()),
                             ))
                         }
@@ -639,7 +639,25 @@ impl<'a> Runtime<'a> {
                         return Err(RuntimeError::UnexpectedType(
                             span.to_filespan(self.filename.to_string()),
                             format!("{}", x),
-                            "ints, floats or strings".to_string(),
+                            "ints, floats, strings or arrays".to_string(),
+                            format!("({}, {})", i.format(), j.format()),
+                        ))
+                    }
+                },
+                (ref i @ Data::Array(id1), ref j @ Data::Array(id2)) => match x {
+                    BinaryOp::Add => {
+                        let mut new_arr = Vec::new();
+                        let arr1 = self.load_array(id1);
+                        new_arr.extend(arr1);
+                        let arr2 = self.load_array(id2);
+                        new_arr.extend(arr2);
+                        self.push_array(new_arr);
+                    },
+                    _ => {
+                        return Err(RuntimeError::UnexpectedType(
+                            span.to_filespan(self.filename.to_string()),
+                            format!("{}", x),
+                            "ints, floats, bools or strings".to_string(),
                             format!("({}, {})", i.format(), j.format()),
                         ))
                     }
@@ -648,7 +666,7 @@ impl<'a> Runtime<'a> {
                     return Err(RuntimeError::UnexpectedType(
                         span.to_filespan(self.filename.to_string()),
                         format!("{}", x),
-                        "ints, floats or strings".to_string(),
+                        "any other type".to_string(),
                         format!("({}, {})", a.format(), b.format()),
                     ));
                 }
@@ -1053,6 +1071,25 @@ impl<'a> Runtime<'a> {
     fn push_string(&mut self, bytes: &[u8]) {
         let (ptr, size) = self.store_string(bytes);
         self.stack.push_front(Data::String(ptr, size));
+    }
+
+    // Allocates an array in the runtime memory and returns its corresponding ID
+    fn alloc_array(&mut self, arr: Vec<Data>) -> u32 {
+        let id  = self.current_array;
+        self.arrays.insert(id, arr);
+        self.current_array += 1;
+        return id;
+    }
+
+    // Loads array from runtime memory and returns it
+    fn load_array(&mut self, id: u32) -> &Vec<Data> {
+        return self.arrays.get(&id).unwrap();
+    }
+
+    // Allocates arr and also pushes it on the working stack
+    fn push_array(&mut self, arr: Vec<Data>) {
+        let id = self.alloc_array(arr);
+        self.stack.push_front(Data::Array(id));
     }
 
     // Peek operation is meant to get an item at the nth position starting from the top
