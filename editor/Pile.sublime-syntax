@@ -10,24 +10,12 @@ contexts:
     - include: comment
 
     # Keywords
-    - match: '\b(proc|def|as|let|if|loop|end|else|break|continue|return)\b'
+    - match: '\b(proc|def|as|let|if|loop|end|else|break|continue|return|array|import)\b'
       scope: keyword.control
 
     # Stack operations
     - match: '\b(dup|drop|swap|over|rot)\b'
       scope: markup.bold
-
-    # Arithmetic operations
-    - match: '\*\*|[+\-*/%]'
-      scope: keyword.operator
-
-    # Logic and bitwise operations
-    - match: '>>|<<|<|>|>=|<=|!=|[&|=~]'
-      scope: keyword.operator
-
-    # Other operations
-    - match: '[?@!$]'
-      scope: keyword.operator
 
     # Input/Output builtins
     - match: '\b(println|print|eprint|eprintln|input|inputln)\b'
@@ -42,7 +30,7 @@ contexts:
       scope: support.function.builtin
 
     # Misc
-    - match: '\b(chr|ord)\b'
+    - match: '\b(chr|ord|len)\b'
       scope: support.function.builtin
 
     # Misc
