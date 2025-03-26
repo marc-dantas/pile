@@ -250,15 +250,17 @@ impl<'a> Parser<'a> {
         let mut variables = Vec::new();
 
         while let Some(token) = self.lexer.next() {
+            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+                if x.as_str() == "let" {
+                    break;
+                }
+            }
             if !is_valid_identifier(&token.value) {
                 return Err(ParseError::UnexpectedToken(
                     token.span.to_filespan(self.filename.to_string()),
                     token.value,
                     "valid identifier".to_string(),
                 ));
-            }
-            if token.value == "let" {
-                break;
             }
             variables.push(token);
         }
