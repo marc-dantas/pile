@@ -32,14 +32,18 @@ end
 # Prints an arbitrary array (for debug purposes)
 # ( a -- )
 proc printarray
-    let a
-    "array " print
-    0 loop dup a len = if break end
-        # TODO: This does not support nested arrays
-        a over @ print " " print
-        1 +
-    end drop
-    "end" println
+    as a let
+        "array " print
+        0 loop dup a len = if break end
+            a over @ dup typeof "array" = if
+                printarray " " print
+            else
+                print " " print
+            end
+            1 +
+        end drop
+        "end" print
+    end
 end
 
 # Pushes each item of array `a` directly on the stack
