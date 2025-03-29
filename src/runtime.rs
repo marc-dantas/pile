@@ -202,7 +202,7 @@ impl<'a> Runtime<'a> {
         }
     }
 
-    fn pre_execution_scan(&mut self) -> Result<(), RuntimeError> {
+    fn prepopulate_namespace(&mut self) -> Result<(), RuntimeError> {
         for n in self.input {
             match n {
                 Node::Proc(n, p, s) => {
@@ -1011,7 +1011,7 @@ impl<'a> Runtime<'a> {
     }
 
     pub fn run(&mut self) -> Result<(), RuntimeError> {
-        self.pre_execution_scan()?;
+        self.prepopulate_namespace()?;
         for n in self.input {
             self.run_node(n)?;
         }
