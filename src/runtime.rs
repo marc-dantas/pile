@@ -1,8 +1,8 @@
 use crate::{
-    error::fatal, lexer::{FileSpan, Span}, parser::{Node, OpKind, ProgramTree}
+    error::{self, fatal}, lexer::{FileSpan, Span}, parser::{Node, OpKind, ProgramTree}
 };
 use std::{
-    collections::{HashMap, VecDeque}, io::{Read, Write}, str::FromStr
+    cell::Ref, collections::{HashMap, VecDeque}, io::{Read, Write}, rc::Rc, str::FromStr
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -28,21 +28,30 @@ impl Data {
     }
 }
 
-#[derive(Debug)]
-pub struct Procedure<'a>(&'a Vec<Node>);
+#[derive(Debug, Clone)]
+pub struct Procedure<'a>(&'a Vec<Node>, FileSpan);
 
-#[derive(Debug)]
-pub struct Definition(Data);
+#[derive(Debug, Clone)]
+pub struct Definition(Data, FileSpan);
 
-#[derive(Debug)]
-pub struct Variable(Data);
+#[derive(Debug, Clone)]
+pub struct Variable(Data, FileSpan);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Namespace<'a> {
     pub procs: HashMap<&'a str, Procedure<'a>>,
     pub defs: HashMap<&'a str, Definition>,
     pub globals: HashMap<&'a str, Variable>,
     pub locals: Vec<HashMap<&'a str, Variable>>,
+}
+
+impl<'a> Namespace<'a> {
+    pub fn extend(&mut self, other: Namespace<'a>) {
+        self.procs.extend(other.procs);
+        self.defs.extend(other.defs);
+        self.globals.extend(other.globals);
+        // Locals don't need to be extended since they are locals! duuuh
+    }
 }
 
 // stack operations:
@@ -151,6 +160,7 @@ pub enum RuntimeError {
         call: FileSpan,           // TokenSpan where the procedure was called
         inner: Box<RuntimeError>, // the original error inside the procedure
     },
+    ImportError(FileSpan, String),                    // when it's not possible to import
     StackUnderflow(FileSpan, String, usize),          // when there's too few data on the stack to perform operation
     UnexpectedType(FileSpan, String, String, String), // when there's an operation tries to operate with an invalid datatype
     InvalidWord(FileSpan, String),                    // used when a word isn't defined
@@ -165,10 +175,32 @@ pub enum RuntimeError {
     StringOutOfBounds(FileSpan, i64, usize)         // when tries to index string at invalid index
 }
 
+pub fn parse_file(filename: &str, source: String) -> Result<ProgramTree, crate::parser::ParseError> {
+    let f = crate::lexer::InputFile {
+        name: filename,
+        content: source.chars().peekable(),
+    };
+    let l = crate::lexer::Lexer::new(f, Span { line: 1, col: 1 });
+    let mut p = crate::parser::Parser::new(l);
+    p.parse()
+}
+
+pub fn import<'a>(program: &'a Vec<Node>, path: &'a str) -> Option<Namespace<'a>> {
+    let mut runtime = Runtime::new(&program, path);
+    match runtime.run() {
+        Ok(()) => {
+            return Some(runtime.namespace);
+        }
+        Err(e) => error::runtime_error(e),
+    }
+    None
+}
+
 pub const STR_CAPACITY: usize = 100*1024; // 100kb of strings should be enough
 
 pub struct Runtime<'a> {
     input: &'a ProgramTree,
+    root_filename: &'a str,
     filename: &'a str,
     string_buffer: [u8; STR_CAPACITY],
     string_ptr: usize,
@@ -185,6 +217,7 @@ impl<'a> Runtime<'a> {
     pub fn new(input: &'a ProgramTree, filename: &'a str) -> Self {
         Self {
             input, filename,
+            root_filename: filename,
             string_buffer: [0; STR_CAPACITY],
             string_ptr: 0,
             arrays: HashMap::new(),
@@ -205,11 +238,43 @@ impl<'a> Runtime<'a> {
     fn prepopulate_namespace(&mut self) -> Result<(), RuntimeError> {
         for n in self.input {
             match n {
+                Node::Import(path, span) => {
+                    match std::fs::File::open(path) {
+                        Ok(mut f) => {
+                            let mut xs = Vec::new();
+                            f.read_to_end(&mut xs).unwrap();
+                            match String::from_utf8(xs) {
+                                _ if path == self.filename => return Err(RuntimeError::ImportError(
+                                    span.to_filespan(self.filename.to_string()),
+                                    path.clone()
+                                )),
+                                Ok(source) => {
+                                    let parsed = parse_file(path, source);
+                                    match parsed {
+                                        Ok(ast) => {
+                                            let x = import(Box::leak(Box::new(ast)), path).unwrap();
+                                            self.namespace.extend(x);
+                                        }
+                                        Err(e) => error::parse_error(e),
+                                    }
+                                },
+                                Err(_) => return Err(RuntimeError::ImportError(
+                                    span.to_filespan(self.filename.to_string()),
+                                    path.clone()
+                                )),
+                            }
+                        }
+                        Err(_) => return Err(RuntimeError::ImportError(
+                            span.to_filespan(self.filename.to_string()),
+                            path.clone()
+                        )),
+                    }
+                }
                 Node::Proc(n, p, s) => {
                     if self.namespace.procs.contains_key(n.as_str()) {
                         return Err(RuntimeError::ProcRedefinition(s.to_filespan(self.filename.to_string()), n.to_string()));
                     }
-                    self.namespace.procs.insert(n, Procedure(p));
+                    self.namespace.procs.insert(n, Procedure(p, s.to_filespan(self.filename.to_string())));
                 }
                 Node::Def(n, p, s) => {
                     if self.namespace.defs.contains_key(n.as_str()) {
@@ -219,7 +284,7 @@ impl<'a> Runtime<'a> {
                     if let Some(result) = self.stack.pop_front() {
                         self.namespace
                             .defs
-                            .insert(n, Definition(result));
+                            .insert(n, Definition(result, s.to_filespan(self.filename.to_string())));
                     } else {
                         return Err(RuntimeError::EmptyDefinition(s.to_filespan(self.filename.to_string()), n.to_string()));
                     }
@@ -928,15 +993,18 @@ impl<'a> Runtime<'a> {
                     _ => {
                         if let Some(p) = self.namespace.procs.get(w.as_str()) {
                             self.proc_return = false;
+                            let prev_filename = self.filename;
+                            self.filename = Box::leak(Box::new(p.1.filename.clone()));
                             for n in p.0 {
                                 if let Err(e) = self.run_node(n) {
                                     return Err(RuntimeError::ProcedureError {
-                                        call: s.to_filespan(self.filename.to_string()),
+                                        call: s.to_filespan(prev_filename.to_string()),
                                         inner: Box::new(e),
                                     });
                                 }
                                 if self.proc_return { break; }
                             }
+                            self.filename = self.root_filename;
                             self.proc_return = false;
                         } else if let Some(d) = self.namespace.defs.get(w.as_str()) {
                             self.stack.push_front(d.0);
@@ -977,9 +1045,9 @@ impl<'a> Runtime<'a> {
             Node::Let(name, span) => {
                 if let Some(a) = self.pop() {
                     if let Some(scope) = self.namespace.locals.last_mut() {
-                        scope.insert(name, Variable(a));
+                        scope.insert(name, Variable(a, span.to_filespan(self.filename.to_string())));
                     } else {
-                        self.namespace.globals.insert(name, Variable(a));
+                        self.namespace.globals.insert(name, Variable(a, span.to_filespan(self.filename.to_string())));
                     }
                 } else {
                     return Err(RuntimeError::UnboundVariable(
@@ -992,7 +1060,7 @@ impl<'a> Runtime<'a> {
                 let mut locals = HashMap::new();
                 for x in vars.into_iter().rev() {
                     if let Some(a) = self.pop() {
-                        locals.insert(x.value.as_str(), Variable(a));
+                        locals.insert(x.value.as_str(), Variable(a, x.span.to_filespan(self.filename.to_string())));
                     } else {
                         return Err(RuntimeError::UnboundVariable(
                             x.span.to_filespan(self.filename.to_string()),
@@ -1006,6 +1074,7 @@ impl<'a> Runtime<'a> {
             }
             Node::Proc(..) => {}
             Node::Def(..) => {}
+            Node::Import(..) => {}
         }
         Ok(())
     }

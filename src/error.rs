@@ -12,6 +12,15 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
     match e {
         // TODO: plz implement a call stack. this is totally a hack and will not produce good error messages
         e@RuntimeError::ProcedureError { .. } => runtime_error(e.clone()),
+        RuntimeError::ImportError(span, path) => {
+            throw(
+                "runtime error",
+                &format!("import error: could not import \"{path}\"."),
+                span.clone(),
+                Some("maybe the file you are trying to import doesn't actually exist."),
+                call,
+            );
+        }
         RuntimeError::ReadMemoryOutOfBounds(span, addr) => {
             throw(
                 "runtime error",

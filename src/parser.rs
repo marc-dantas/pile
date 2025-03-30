@@ -47,6 +47,7 @@ pub fn is_reserved_word(value: &str) -> bool {
             | "false"
             | "nil"
             | "array"
+            | "import"
     )
 }
 
@@ -107,6 +108,7 @@ pub enum Node {
     Array(Vec<Node>, Span),
     Let(String, Span),
     AsLet(Vec<Token>, Vec<Node>, Span),
+    Import(String, Span),
     Operation(OpKind, Span),
     Symbol(String, Span),
 }
@@ -158,6 +160,7 @@ impl<'a> Parser<'a> {
                 "if" => self.parse_if(),
                 "loop" => self.parse_loop(),
                 "array" => self.parse_array(),
+                "import" => self.parse_import(),
                 "end" => Err(ParseError::UnmatchedBlock(
                     self.current_span.unwrap().to_filespan(self.filename.to_string())
                 )),
@@ -380,5 +383,20 @@ impl<'a> Parser<'a> {
             self.current_span.unwrap().to_filespan(self.filename.to_string()),
             "array".to_string(),
         ))
+    }
+
+    fn parse_import(&mut self) -> Result<Node, ParseError> {
+        let path_token = self.lexer.next().ok_or_else(|| {
+            let span = self.current_span.unwrap();
+            ParseError::UnexpectedEOF(span.to_filespan(self.filename.to_string()), "valid identifier".to_string())
+        })?;
+        if path_token.kind != TokenKind::String {
+            return Err(ParseError::UnexpectedToken(
+                path_token.span.to_filespan(self.filename.to_string()),
+                path_token.value,
+                "string".to_string(),
+            ));
+        }
+        return Ok(Node::Import(path_token.value, path_token.span));
     }
 }
