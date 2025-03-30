@@ -50,7 +50,6 @@ pub fn is_reserved_word(value: &str) -> bool {
             | "nil"
             | "array"
             | "import"
-            | "then"
     )
 }
 
@@ -164,11 +163,6 @@ impl<'a> Parser<'a> {
                 "loop" => self.parse_loop(),
                 "array" => self.parse_array(),
                 "import" => self.parse_import(),
-                "then" => Err(ParseError::UnexpectedToken(
-                    self.current_span.unwrap().to_filespan(self.filename.to_string()),
-                    "`then` keyword".to_string(),
-                    "valid statement".to_string(),
-                )),
                 "end" => Err(ParseError::UnmatchedBlock(
                     self.current_span.unwrap().to_filespan(self.filename.to_string())
                 )),
