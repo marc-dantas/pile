@@ -48,6 +48,7 @@ pub fn is_reserved_word(value: &str) -> bool {
             | "nil"
             | "array"
             | "import"
+            | "then"
     )
 }
 
@@ -161,6 +162,11 @@ impl<'a> Parser<'a> {
                 "loop" => self.parse_loop(),
                 "array" => self.parse_array(),
                 "import" => self.parse_import(),
+                "then" => Err(ParseError::UnexpectedToken(
+                    self.current_span.unwrap().to_filespan(self.filename.to_string()),
+                    "`then` keyword".to_string(),
+                    "valid statement".to_string(),
+                )),
                 "end" => Err(ParseError::UnmatchedBlock(
                     self.current_span.unwrap().to_filespan(self.filename.to_string())
                 )),
@@ -321,22 +327,22 @@ impl<'a> Parser<'a> {
         let else_body = None;
 
         while let Some(token) = self.lexer.next() {
-            if token.value == "else" {
-                let mut else_block = Vec::new();
-                while let Some(token) = self.lexer.next() {
-                    if let Token { value: x, kind: TokenKind::Word, .. } = &token {
-                        if x.as_str() == "end" {
-                            return Ok(Node::If(if_body, Some(else_block), token.span));
+            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+                if x.as_str() == "else" {
+                    let mut else_block = Vec::new();
+                    while let Some(token) = self.lexer.next() {
+                        if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+                            if x.as_str() == "end" {
+                                return Ok(Node::If(if_body, Some(else_block), token.span));
+                            }
                         }
+                        else_block.push(self.parse_expr(token)?);
                     }
-                    else_block.push(self.parse_expr(token)?);
-                }
-                return Err(ParseError::UnterminatedBlock(
-                    token.span.to_filespan(self.filename.to_string()),
-                    "else".to_string(),
-                ));
-            } else if let Token { value: x, kind: TokenKind::Word, .. } = &token {
-                if x.as_str() == "end" {
+                    return Err(ParseError::UnterminatedBlock(
+                        token.span.to_filespan(self.filename.to_string()),
+                        "else".to_string(),
+                    ));
+                } else if x.as_str() == "end" {
                     return Ok(Node::If(if_body, else_body, token.span));
                 }
             }
