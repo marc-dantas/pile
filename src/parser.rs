@@ -1,3 +1,5 @@
+use std::iter::Peekable;
+
 use crate::lexer::{FileSpan, Lexer, Span, Token, TokenKind};
 
 pub fn is_op(value: &str) -> bool {
@@ -117,7 +119,7 @@ pub enum Node {
 pub type ProgramTree = Vec<Node>;
 
 pub struct Parser<'a> {
-    lexer: Lexer<'a>,
+    lexer: Peekable<Lexer<'a>>,
     filename: &'a str,
     current_span: Option<Span>,
 }
@@ -134,7 +136,7 @@ impl<'a> Parser<'a> {
     pub fn new(lexer: Lexer<'a>) -> Self {
         Self {
             filename: lexer.input.name,
-            lexer: lexer,
+            lexer: lexer.peekable(),
             current_span: None,
         }
     }
@@ -327,14 +329,15 @@ impl<'a> Parser<'a> {
         let else_body = None;
 
         while let Some(token) = self.lexer.next() {
-            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
-                if x.as_str() == "else" {
+            match &token {
+                Token { value: x, kind: TokenKind::Word, .. } if x == "else" => {
                     let mut else_block = Vec::new();
                     while let Some(token) = self.lexer.next() {
-                        if let Token { value: x, kind: TokenKind::Word, .. } = &token {
-                            if x.as_str() == "end" {
+                        match &token {
+                            Token { value: x, kind: TokenKind::Word, .. } if x == "end" => {
                                 return Ok(Node::If(if_body, Some(else_block), token.span));
                             }
+                            _ => {}
                         }
                         else_block.push(self.parse_expr(token)?);
                     }
@@ -342,9 +345,11 @@ impl<'a> Parser<'a> {
                         token.span.to_filespan(self.filename.to_string()),
                         "else".to_string(),
                     ));
-                } else if x.as_str() == "end" {
+                }
+                Token { value: x, kind: TokenKind::Word, .. } if x == "end" => {
                     return Ok(Node::If(if_body, else_body, token.span));
                 }
+                _ => {}
             }
             if_body.push(self.parse_expr(token)?);
         }
