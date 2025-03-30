@@ -25,6 +25,12 @@
   * Auto-descriptive
 - [X] More refined error messages
   * Final: errors now show lines
+- [X] Import system
+  * Final: You can import other program's namespaces into the main program:
+    ```pile
+    import "myprettyusefulprogram.pile"
+    ...
+    ```
 
 ## To Be Done
 Definitely going to happen someday. Probably not exactly like described but it will happen.
@@ -37,12 +43,6 @@ Definitely going to happen someday. Probably not exactly like described but it w
   * Idea: Introduce a `format` builtin to format strings dynamically:
     ```pile
     10 34 "this {} is {} formatted" format println # output: this 34 is 10 formatted
-    ```
-- [ ] Import system
-  * Idea: Enable importing other `.pile` files into the main program:
-    ```pile
-    import "test.pile" end
-    ...
     ```
 - [ ] Improve performance
     * Idea: Create a virtual machine for Pile.
