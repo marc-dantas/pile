@@ -8,10 +8,38 @@ def ln2   0.693147180559945 end
 def ln10  2.302585092994046 end
 def log2e 1.442695040888963 end
 
-# TODO: Implement sign(x)
-# TODO: Implement abs(x)
-# TODO: Implement min(a,b)
-# TODO: Implement max(a, b)
+# Takes a number and returns -1 if it is negative or 1 if positive
+# ( n -- s )
+proc sign
+    0 < if -1 else 1 end
+end
+
+# Takes a number and returns its absolute value
+# ( a -- b )
+proc abs
+    dup sign *
+end
+
+# Takes 2 numbers and returns the number with the lowest value
+# ( a b -- a ) or ( a b -- b )
+proc min
+    over over < if
+        drop
+    else
+        swap drop
+    end
+end
+
+# Takes 2 numbers and returns the number with the highest value
+# ( a b -- a ) or ( a b -- b )
+proc max
+    over over > if
+        drop
+    else
+        swap drop
+    end
+end
+
 # TODO: Implement clamp(x, a, b)
 # TODO: Implement ln(x)
 # TODO: Implement log(x, b)
