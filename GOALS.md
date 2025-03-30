@@ -39,6 +39,8 @@ Definitely going to happen someday. Probably not exactly like described but it w
   * Auto-descriptive
 - [ ] More builtins
   * Idea: Include type conversion and additional I/O builtins.
+- [ ] String escaping
+  * Idea: use the backslash syntax to allow escaped characters.
 - [ ] String formatting
   * Idea: Introduce a `format` builtin to format strings dynamically:
     ```pile
@@ -47,7 +49,6 @@ Definitely going to happen someday. Probably not exactly like described but it w
 - [ ] Improve performance
     * Idea: Create a virtual machine for Pile.
 - [ ] First stable release implementation
-
 
 ## Just ideas
 > **NOTE**: Probably the majority of these ideas below aren't going to be actually implemented. **Nothing is confirmed**.
