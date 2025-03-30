@@ -10,3 +10,4 @@
 "Examples of concatenative languages include Forth, Joy, PostScript, Cat, and Factor." println
 "" println
 "https://concatenative.org/wiki/view/Concatenative%20language" println
+0 exit
