@@ -4,7 +4,7 @@ use crate::{
     cli::*,
     lexer::FileSpan,
     parser::ParseError,
-    runtime::RuntimeError,
+    runtime::{Runtime, RuntimeError},
     CLIError,
 };
 
@@ -12,6 +12,15 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
     match e {
         // TODO: plz implement a call stack. this is totally a hack and will not produce good error messages
         e@RuntimeError::ProcedureError { .. } => runtime_error(e.clone()),
+        RuntimeError::RecursionDepthOverflow(span) => {
+            throw(
+                "runtime error",
+                &format!("recursion depth overflow: procedure call lead to too many recursive iterations."),
+                span.clone(),
+                Some("probably you are doing something wrong."),
+                call,
+            );
+        }
         RuntimeError::ImportError(span, path) => {
             throw(
                 "runtime error",

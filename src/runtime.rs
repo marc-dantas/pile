@@ -2,7 +2,7 @@ use crate::{
     error::{self, fatal}, lexer::{FileSpan, Span}, parser::{Node, OpKind, ProgramTree}
 };
 use std::{
-    cell::Ref, collections::{HashMap, VecDeque}, io::{Read, Write}, rc::Rc, str::FromStr
+    cell::Ref, char::MAX, collections::{HashMap, VecDeque}, io::{Read, Write}, rc::Rc, str::FromStr
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -153,13 +153,14 @@ impl std::fmt::Display for Builtin {
 
 pub type Stack<'a> = VecDeque<Data>;
 
-#[allow(dead_code)]
+// #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum RuntimeError {
     ProcedureError {
         call: FileSpan,           // TokenSpan where the procedure was called
         inner: Box<RuntimeError>, // the original error inside the procedure
     },
+    RecursionDepthOverflow(FileSpan),                 // when a procedure recurses too many times
     ImportError(FileSpan, String),                    // when it's not possible to import
     StackUnderflow(FileSpan, String, usize),          // when there's too few data on the stack to perform operation
     UnexpectedType(FileSpan, String, String, String), // when there's an operation tries to operate with an invalid datatype
@@ -197,6 +198,7 @@ pub fn import<'a>(program: &'a Vec<Node>, path: &'a str) -> Option<Namespace<'a>
 }
 
 pub const STR_CAPACITY: usize = 100*1024; // 100kb of strings should be enough
+pub const MAX_RECURSION_DEPTH: u32 = 256; // TODO: Make thread stack bigger to allow deeper recursion
 
 pub struct Runtime<'a> {
     input: &'a ProgramTree,
@@ -211,6 +213,7 @@ pub struct Runtime<'a> {
     loop_break: bool,
     loop_continue: bool,
     proc_return: bool,
+    recursion_depth: u32,
 }
 
 impl<'a> Runtime<'a> {
@@ -232,6 +235,7 @@ impl<'a> Runtime<'a> {
             loop_break: false,
             loop_continue: false,
             proc_return: false,
+            recursion_depth: 0,
         }
     }
 
@@ -995,6 +999,10 @@ impl<'a> Runtime<'a> {
                             self.proc_return = false;
                             let prev_filename = self.filename;
                             self.filename = Box::leak(Box::new(p.1.filename.clone()));
+                            self.recursion_depth += 1;
+                            if self.recursion_depth >= MAX_RECURSION_DEPTH {
+                                return Err(RuntimeError::RecursionDepthOverflow(p.1.clone()));
+                            }
                             for n in p.0 {
                                 if let Err(e) = self.run_node(n) {
                                     return Err(RuntimeError::ProcedureError {
@@ -1004,6 +1012,7 @@ impl<'a> Runtime<'a> {
                                 }
                                 if self.proc_return { break; }
                             }
+                            self.recursion_depth -= 1;
                             self.filename = self.root_filename;
                             self.proc_return = false;
                         } else if let Some(d) = self.namespace.defs.get(w.as_str()) {
