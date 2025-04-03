@@ -1017,14 +1017,14 @@ impl<'a> Runtime<'a> {
                             self.proc_return = false;
                         } else if let Some(d) = self.namespace.defs.get(w.as_str()) {
                             self.stack.push_front(d.0);
-                        } else if let Some(v) = self.namespace.globals.get(w.as_str()) {
-                            self.stack.push_front(v.0);
                         } else if let Some(scope) = self.namespace.locals.last_mut() {
                             if let Some(v) = scope.get(w.as_str()) {
                                 self.stack.push_front(v.0);
                             } else {
                                 return Err(RuntimeError::InvalidWord(s.to_filespan(self.filename.to_string()), w.to_string()));
                             }
+                        } else if let Some(v) = self.namespace.globals.get(w.as_str()) {
+                            self.stack.push_front(v.0);
                         } else {
                             return Err(RuntimeError::InvalidWord(s.to_filespan(self.filename.to_string()), w.to_string()));
                         }
