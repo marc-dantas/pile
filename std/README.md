@@ -5,6 +5,7 @@ Pile programming language that may be part of the standard library.
 ## Table of Contents
 - [Math](./math.pile)
 - [Sequences](./sequences.pile)
+- [Formatting](./fmt.pile)
 
 ---
 
