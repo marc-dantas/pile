@@ -1,0 +1,24 @@
+# Prints the string `s` on top of the stack and reads the next
+# values on the stack corresponding to the amount of '{}' inside
+# the first string passed, essentially formatting it.
+# ( xs... s -- )
+proc fprint
+            let str
+    str len let leng
+    "%" let pattern
+    0 loop dup leng = if break end
+        str over @
+        dup pattern = if
+            rot print drop
+        else
+            print
+        end
+        1 +
+    end
+end
+
+# The same as fprint but adds a newline character at the end
+# ( xs... s -- )
+proc fprintln
+    fprint 10 chr print
+end

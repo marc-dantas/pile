@@ -11,7 +11,13 @@ use crate::{
 fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
     match e {
         // TODO: plz implement a call stack. this is totally a hack and will not produce good error messages
-        e@RuntimeError::ProcedureError { .. } => runtime_error(e.clone()),
+        RuntimeError::ProcedureError { inner, call: proc_call } => {
+            if let Some(c) = call {
+                match_runtime_error(inner, Some(c));
+            } else {
+                match_runtime_error(inner, Some(proc_call.clone()));
+            }
+        }
         RuntimeError::RecursionDepthOverflow(span) => {
             throw(
                 "runtime error",
