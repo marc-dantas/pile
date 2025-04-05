@@ -5,7 +5,7 @@ import sys
 import json
 from pathlib import Path
 
-DEFAULT_STDIN = "DEFAULT_STDIN"
+DEFAULT_STDIN = "0"
 
 def log(t: str):
     print(f"{t}", file=sys.stderr)
@@ -27,6 +27,7 @@ EXAMPLES_DIR = Path('./examples')
 TEST_DIR = EXAMPLES_DIR / 'test'
 
 def run_pile_program(filepath: Path):
+    log(f"running program {filepath}")
     try:
         result = subprocess.run(
             ["cargo", "run", "--", str(filepath)],
