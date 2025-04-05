@@ -2,7 +2,7 @@ use crate::{
     error::{self, fatal}, lexer::{FileSpan, Span}, parser::{Node, OpKind, ProgramTree}
 };
 use std::{
-    cell::Ref, char::MAX, collections::{HashMap, VecDeque}, io::{Read, Write}, rc::Rc, str::FromStr
+    collections::{HashMap, VecDeque}, io::{Read, Write}, str::FromStr
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -32,10 +32,10 @@ impl Data {
 pub struct Procedure<'a>(&'a Vec<Node>, FileSpan);
 
 #[derive(Debug, Clone)]
-pub struct Definition(Data, FileSpan);
+pub struct Definition(Data);
 
 #[derive(Debug, Clone)]
-pub struct Variable(Data, FileSpan);
+pub struct Variable(Data);
 
 #[derive(Debug, Clone)]
 pub struct Namespace<'a> {
@@ -288,7 +288,7 @@ impl<'a> Runtime<'a> {
                     if let Some(result) = self.stack.pop_front() {
                         self.namespace
                             .defs
-                            .insert(n, Definition(result, s.to_filespan(self.filename.to_string())));
+                            .insert(n, Definition(result));
                     } else {
                         return Err(RuntimeError::EmptyDefinition(s.to_filespan(self.filename.to_string()), n.to_string()));
                     }
@@ -1054,9 +1054,9 @@ impl<'a> Runtime<'a> {
             Node::Let(name, span) => {
                 if let Some(a) = self.pop() {
                     if let Some(scope) = self.namespace.locals.last_mut() {
-                        scope.insert(name, Variable(a, span.to_filespan(self.filename.to_string())));
+                        scope.insert(name, Variable(a));
                     } else {
-                        self.namespace.globals.insert(name, Variable(a, span.to_filespan(self.filename.to_string())));
+                        self.namespace.globals.insert(name, Variable(a));
                     }
                 } else {
                     return Err(RuntimeError::UnboundVariable(
@@ -1069,7 +1069,7 @@ impl<'a> Runtime<'a> {
                 let mut locals = HashMap::new();
                 for x in vars.into_iter().rev() {
                     if let Some(a) = self.pop() {
-                        locals.insert(x.value.as_str(), Variable(a, x.span.to_filespan(self.filename.to_string())));
+                        locals.insert(x.value.as_str(), Variable(a));
                     } else {
                         return Err(RuntimeError::UnboundVariable(
                             x.span.to_filespan(self.filename.to_string()),
