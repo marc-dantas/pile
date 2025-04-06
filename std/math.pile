@@ -40,7 +40,18 @@ proc max
     end
 end
 
-# TODO: Implement clamp(x, a, b)
+# Ensures that the returned value `y` is not less than the specified minimum `a` 
+# and not greater than the specified maximum `b`. If the value is within the 
+# range, it is returned unchanged (`x`).
+# ( x a b -- y )
+proc clamp
+    as x a b let
+        x a < if a return end
+        x b > if b return end
+        x
+    end
+end
+
 # TODO: Implement ln(x)
 # TODO: Implement log(x, b)
 # TODO: Implement sqrt(x)
