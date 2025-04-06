@@ -71,3 +71,23 @@ proc reversed
         end
     end
 end
+
+# Copies an array recursively and returns the copied array
+# ( a1 -- a2 )
+proc cpy
+    as a1 let
+        array
+            0 loop dup a1 len = if break end
+                a1 over @ as item let
+                    item typeof "array" = if
+                        item cpy
+                    else
+                        item
+                    end
+                end
+                swap
+                1 +
+            end drop
+        end
+    end
+end
