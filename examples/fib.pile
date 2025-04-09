@@ -1,14 +1,15 @@
 # Fibonacci sequence in Pile programming language
 proc fib
-    let n
-    0 1
-    loop
-        over n >= if break end
-        as a b let
-            a println
-            b a b +
-        end
+    0 1 as n a b let
+        n 1 <= if n return end
+        2 loop dup n 1 + = if break end
+            a b + b
+              let a
+              let b
+            1 +
+        end drop
+        b
     end
 end
 
-60000 fib
+150 fib
