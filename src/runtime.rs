@@ -562,6 +562,9 @@ impl<'a> Runtime<'a> {
                 if let Some(a) = self.pop() {
                     match a {
                         Data::Int(c) => {
+                            let mut c = c;
+                            if c > 255 { c = 0;   }
+                            if c < 0   { c = 255; }
                             self.push_string(&[c as u8]);
                         }
                         _ => return Err(RuntimeError::UnexpectedType(
