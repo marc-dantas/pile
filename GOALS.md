@@ -31,6 +31,16 @@
     import "myprettyusefulprogram.pile"
     ...
     ```
+- [X] String formatting
+  * Final: Use standard library's fprint and fprintln to print stuff in formatted form:
+    ```pile
+    "random text" let a
+    a "this is text: %" fprintln # outputs "this is text: random text"
+    ```
+  * Idea: Introduce string interpolation
+    ``` 
+    1 2 3 "%2 %1 %0" println # Outputs "1 2 3"
+    ```
 
 ## To Be Done
 Definitely going to happen someday. Probably not exactly like described but it will happen.
@@ -41,11 +51,6 @@ Definitely going to happen someday. Probably not exactly like described but it w
   * Idea: Include type conversion and additional I/O builtins.
 - [ ] String escaping
   * Idea: use the backslash syntax to allow escaped characters.
-- [ ] String formatting
-  * Idea: Introduce a `format` builtin to format strings dynamically:
-    ```pile
-    10 34 "this {} is {} formatted" format println # output: this 34 is 10 formatted
-    ```
 - [ ] Improve performance
     * Idea: Create a virtual machine for Pile.
 - [ ] First stable release implementation
