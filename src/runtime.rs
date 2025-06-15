@@ -1,5 +1,5 @@
 use crate::{
-    error::{self, fatal}, lexer::{FileSpan, Span}, parser::{Node, OpKind, ProgramTree}
+    error, lexer::{FileSpan, Span}, parser::{Node, OpKind, ProgramTree}
 };
 use std::{
     collections::{HashMap, VecDeque}, io::{Read, Write}, str::FromStr
@@ -8,7 +8,7 @@ use std::{
 #[derive(Debug, Clone, Copy)]
 pub enum Data {
     Array(u32),
-    String(usize, usize),
+    String(u32),
     Int(i64),
     Float(f64),
     Bool(bool),
@@ -197,15 +197,14 @@ pub fn import<'a>(program: &'a Vec<Node>, path: &'a str) -> Option<Namespace<'a>
     None
 }
 
-pub const STR_CAPACITY: usize = 100*1024; // 100kb of strings should be enough
 pub const MAX_RECURSION_DEPTH: u32 = 256; // TODO: Make thread stack bigger to allow deeper recursion
 
 pub struct Runtime<'a> {
     input: &'a ProgramTree,
     root_filename: &'a str,
     filename: &'a str,
-    string_buffer: [u8; STR_CAPACITY],
-    string_ptr: usize,
+    strings: HashMap<u32, String>,
+    current_string: u32,
     arrays: HashMap<u32, Vec<Data>>,
     current_array: u32,
     stack: Stack<'a>,
@@ -221,8 +220,8 @@ impl<'a> Runtime<'a> {
         Self {
             input, filename,
             root_filename: filename,
-            string_buffer: [0; STR_CAPACITY],
-            string_ptr: 0,
+            strings: HashMap::new(),
+            current_string: 0,
             arrays: HashMap::new(),
             current_array: 0,
             stack: VecDeque::new(),
@@ -304,8 +303,8 @@ impl<'a> Runtime<'a> {
             Builtin::Println => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(ptr, size) => {
-                            let s = self.read_string(ptr, size);
+                        Data::String(id) => {
+                            let s = self.read_string(id);
                             println!("{}", s);
                         }
                         Data::Int(n) => {
@@ -336,8 +335,8 @@ impl<'a> Runtime<'a> {
             Builtin::EPrintln => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(ptr, size) => {
-                            let s = self.read_string(ptr, size);
+                        Data::String(id) => {
+                            let s = self.read_string(id);
                             eprintln!("{}", s);
                         }
                         Data::Int(n) => {
@@ -372,8 +371,8 @@ impl<'a> Runtime<'a> {
             Builtin::EPrint => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(ptr, size) => {
-                            let s = self.read_string(ptr, size);
+                        Data::String(id) => {
+                            let s = self.read_string(id);
                             eprint!("{}", s);
                             std::io::stderr().flush().unwrap();
                         }
@@ -409,8 +408,8 @@ impl<'a> Runtime<'a> {
             Builtin::Print => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(ptr, size) => {
-                            let s = self.read_string(ptr, size);
+                        Data::String(id) => {
+                            let s = self.read_string(id);
                             print!("{}", s);
                             std::io::stdout().flush().unwrap();
                         }
@@ -481,8 +480,8 @@ impl<'a> Runtime<'a> {
             Builtin::ToInt => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(ptr, size) => {
-                            let s = self.read_string(ptr, size);
+                        Data::String(id) => {
+                            let s = self.read_string(id);
                             match i64::from_str(s) {
                                 Ok(n) => self.push_int(n),
                                 Err(_) => self.push_nil(),
@@ -507,8 +506,8 @@ impl<'a> Runtime<'a> {
             Builtin::ToFloat => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(ptr, size) => {
-                            let s = self.read_string(ptr, size);
+                        Data::String(id) => {
+                            let s = self.read_string(id);
                             match f64::from_str(&s) {
                                 Ok(n) => self.push_float(n),
                                 Err(_) => self.push_nil(),
@@ -581,8 +580,8 @@ impl<'a> Runtime<'a> {
             Builtin::Len => {
                 if let Some(a) = self.pop() {
                     match a {
-                        Data::String(addr, size) => {
-                            let str = self.read_string(addr, size);
+                        Data::String(id) => {
+                            let str = self.read_string(id);
                             self.push_int(str.len() as i64);
                         }
                         Data::Array(id) => {
@@ -635,7 +634,8 @@ impl<'a> Runtime<'a> {
         if let (Some(a), Some(b)) = (self.pop(), self.pop()) {
             match (b, a) { // Inverted stack order to match the writing order
                 (Data::Int(n1), Data::Int(n2)) => match x {
-                    // TODO: deal with i64 overflows
+                    // TODO: deal with i64 overflows.
+                    //       use n1.overflowing_add(n2).0
                     BinaryOp::Add => self.push_int(n1 + n2),
                     BinaryOp::Sub => self.push_int(n1 - n2),
                     BinaryOp::Mul => self.push_int(n1 * n2),
@@ -685,9 +685,9 @@ impl<'a> Runtime<'a> {
                         ))
                     }
                 },
-                (ref i @ Data::String(ptr1, size1), ref j @ Data::String(ptr2, size2)) => {
-                    let s1 = self.read_string(ptr1, size1);
-                    let s2 = self.read_string(ptr2, size2);
+                (ref i @ Data::String(id1), ref j @ Data::String(id2)) => {
+                    let s1 = self.read_string(id1);
+                    let s2 = self.read_string(id2);
                     match x {
                         BinaryOp::Add => self.push_string(((*s1).to_owned() + s2).as_bytes()),
                         BinaryOp::Eq => self.push_bool(s1 == s2),
@@ -864,8 +864,8 @@ impl<'a> Runtime<'a> {
                             match a {
                                 Data::Int(n) => println!("int {}", n),
                                 Data::Float(n) => println!("float {}", n),
-                                Data::String(ptr, size) => {
-                                    let s = self.read_string(*ptr, *size);
+                                Data::String(id) => {
+                                    let s = self.read_string(*id);
                                     println!("string \"{}\"", s)
                                 },
                                 Data::Bool(b) => println!("bool {}", b),
@@ -909,9 +909,9 @@ impl<'a> Runtime<'a> {
                                         ));
                                     }
                                 }
-                                (Data::Int(index), Data::String(ptr, size)) => {
+                                (Data::Int(index), Data::String(id)) => {
                                     let mut i = index.abs() as usize;
-                                    let str = self.read_string(ptr, size).as_bytes();
+                                    let str = self.read_string(id).as_bytes();
                                     if index < 0 { i = str.len() - i; }
                                     if i >= str.len() {
                                         return Err(RuntimeError::StringOutOfBounds(
@@ -920,8 +920,7 @@ impl<'a> Runtime<'a> {
                                             str.len(),
                                         ));
                                     }
-                                    // self.push_string(&[str[i]]);
-                                    self.stack.push_front(Data::String(ptr+i, 1));
+                                    self.push_string(&[str[i]]);
                                 }
                                 (a, b) => {
                                     return Err(RuntimeError::UnexpectedType(
@@ -953,9 +952,15 @@ impl<'a> Runtime<'a> {
                                         ));
                                     }
                                 }
-                                (Data::Int(index), Data::Int(chr), Data::String(ptr, size)) => {
+                                (Data::Int(index), Data::Int(chr), Data::String(id)) => {
                                     let mut i = index.abs() as usize;
-                                    let str = self.read_string(ptr, size).as_bytes();
+                                    // This is the kind of thing i have to write to do basic stuff in Rust
+                                    // what a beautiful language, isn't it?
+                                    let mut str = self.read_string(id)
+                                                            .as_bytes()
+                                                            .iter()
+                                                            .map(|&x| x)
+                                                            .collect::<Vec<u8>>();
                                     if index < 0 { i = str.len() - i; }
                                     if i >= str.len() {
                                         return Err(RuntimeError::StringOutOfBounds(
@@ -964,7 +969,8 @@ impl<'a> Runtime<'a> {
                                             str.len(),
                                         ));
                                     }
-                                    self.string_buffer[ptr+i] = chr as u8;
+                                    str[i] = chr as u8;
+                                    self.strings.insert(id, String::from_utf8_lossy(str.as_slice()).into_owned());
                                 }
                                 (a, b, c) => {
                                     return Err(RuntimeError::UnexpectedType(
@@ -1126,32 +1132,23 @@ impl<'a> Runtime<'a> {
     }
 
     // Accepts a sized Pile string, reads bytes in memory and returns the string read.
-    fn read_string(&self, ptr: usize, size: usize) -> &str {
-        let slice = &self.string_buffer[ptr..(ptr+size)];
-        return std::str::from_utf8(slice).unwrap();
+    fn read_string(&self, id: u32) -> &String {
+        let slice = self.strings.get(&id).unwrap();
+        return slice;
     }
     
-    // Stores bytes in memory and returns the resultant sized string that was written
-    fn store_string(&mut self, bytes: &[u8]) -> (usize, usize) {
-        let size = bytes.len();
-        let ptr = self.string_ptr;
-        if ptr + size > STR_CAPACITY {
-            eprintln!("string buffer size = {}", STR_CAPACITY);
-            eprintln!("current pointer = {}", self.string_ptr);
-            eprintln!("tried to write {:?}", bytes);
-            eprintln!("  size = {}", bytes.len());
-            eprintln!("  current pointer + size = {}", self.string_ptr + bytes.len());
-            fatal("string buffer overflow");
-        }
-        self.string_buffer[ptr..ptr + size].copy_from_slice(bytes);
-        self.string_ptr += size;
-        (ptr, size)
+    // Stores bytes in memory and returns the id of the string
+    fn store_string(&mut self, bytes: &[u8]) -> u32 {
+        let id = self.current_string;
+        self.strings.insert(id, String::from_utf8_lossy(bytes).into_owned());
+        self.current_string += 1;
+        id
     }
 
     // Allocate string takes raw bytes, allocates it and then pushes it
     fn push_string(&mut self, bytes: &[u8]) {
-        let (ptr, size) = self.store_string(bytes);
-        self.stack.push_front(Data::String(ptr, size));
+        let id = self.store_string(bytes);
+        self.stack.push_front(Data::String(id));
     }
 
     // Allocates an array in the runtime memory and returns its corresponding ID
