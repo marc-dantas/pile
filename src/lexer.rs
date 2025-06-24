@@ -166,7 +166,30 @@ impl<'a> Iterator for Lexer<'a> {
                                 None,
                             );
                         }
-                        buffer.push(d);
+                        match d {
+                            '\\' => {
+                                if let Some(esc) = self.input.content.next() {
+                                    if let Some(c) = escape_char(esc) {
+                                        buffer.push(c);
+                                    } else {
+                                        throw(
+                                            "token error",
+                                            &format!(
+                                                "invalid escape character `{esc}` in string literal."
+                                            ),
+                                            FileSpan {
+                                                filename: self.input.name.to_string(),
+                                                line: self.span.line,
+                                                col: self.span.col + buffer.len() + 1,
+                                            },
+                                            None,
+                                            None,
+                                        );
+                                    }
+                                }
+                            }
+                            _ => buffer.push(d)
+                        }
                     }
                     self.span.col += buffer.len() + 2; // +2 to consider both quote marks
                     return Some(Token::new(

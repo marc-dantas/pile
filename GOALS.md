@@ -56,6 +56,8 @@
     # ..
     # 10
     ```
+- [X] String escaping
+  * Final: use the backslash syntax to write escaped characters in string literals and char literals.
 
 ## To Be Done
 Definitely going to happen someday. Probably not exactly like described but it will happen.
@@ -64,8 +66,6 @@ Definitely going to happen someday. Probably not exactly like described but it w
   * Auto-descriptive
 - [ ] More builtins
   * Idea: Include type conversion and additional I/O builtins.
-- [ ] String escaping
-  * Idea: use the backslash syntax to allow escaped characters.
 - [ ] Improve performance
     * Idea: Create a virtual machine for Pile.
 - [ ] First stable release implementation
