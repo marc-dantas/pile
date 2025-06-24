@@ -41,6 +41,21 @@
     ``` 
     1 2 3 "%2 %1 %0" println # Outputs "1 2 3"
     ```
+- [X] For loop
+  * Final: Use `for` structure to iterate through arrays or strings and bind each iteration item to a local variable:
+    ```
+    import "std/sequences.pile"
+    array 10 zrange end
+    for x # each value is assigned to x for each iteration
+        x println
+    end
+    # Output:
+    # 1
+    # 2
+    # 3
+    # ..
+    # 10
+    ```
 
 ## To Be Done
 Definitely going to happen someday. Probably not exactly like described but it will happen.
@@ -79,17 +94,4 @@ Definitely going to happen someday. Probably not exactly like described but it w
   * Idea: Include `assert` statement and simple error handling:
     ```pile
     assert 2 3 + 5 = end
-    ```
-- [ ] For loop
-  * Idea: Create a structure that iterates through the stack and assigns the value in iteration to a variable:
-    ```
-    1 2 3 4
-    4 for x # each value is assigned to x for each iteration
-        x println
-    end
-    # Output:
-    # 4
-    # 3
-    # 2
-    # 1
     ```
