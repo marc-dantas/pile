@@ -91,3 +91,18 @@ proc cpy
         end
     end
 end
+
+# Creates an iterable array `x` that contains a range from
+# `a` to `b` by `s` step.
+# ( a b s -- x )
+proc iter
+    as a b s let
+        array
+            loop
+                a b > if break end
+                a
+                a s + let a
+            end
+        end
+    end
+end
