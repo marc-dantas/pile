@@ -110,6 +110,7 @@ pub enum Node {
     Let(String, Span),
     AsLet(Vec<Token>, Vec<Node>, Span),
     Import(String, Span),
+    For(Token, Vec<Node>, Span),
     Operation(OpKind, Span),
     Symbol(String, Span),
 }
@@ -162,6 +163,7 @@ impl<'a> Parser<'a> {
                 "loop" => self.parse_loop(),
                 "array" => self.parse_array(),
                 "import" => self.parse_import(),
+                "for" => self.parse_for(),
                 "end" => Err(ParseError::UnmatchedBlock(
                     self.current_span.unwrap().to_filespan(self.filename.to_string())
                 )),
@@ -402,5 +404,36 @@ impl<'a> Parser<'a> {
             ));
         }
         return Ok(Node::Import(path_token.value, path_token.span));
+    }
+
+    fn parse_for(&mut self) -> Result<Node, ParseError> {
+        let variable = self.lexer.next().ok_or_else(|| {
+            let span = self.current_span.unwrap();
+            ParseError::UnexpectedEOF(span.to_filespan(self.filename.to_string()), "valid identifier".to_string())
+        })?;
+
+        if !is_valid_identifier(&variable.value) {
+            return Err(ParseError::UnexpectedToken(
+                variable.span.to_filespan(self.filename.to_string()),
+                variable.value,
+                "valid identifier".to_string(),
+            ));
+        }
+
+        let mut body = Vec::new();
+
+        while let Some(token) = self.lexer.next() {
+            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+                if x.as_str() == "end" {
+                    return Ok(Node::For(variable, body, token.span));
+                }
+            }
+            body.push(self.parse_expr(token)?);
+        }
+
+        Err(ParseError::UnterminatedBlock(
+            self.current_span.unwrap().to_filespan(self.filename.to_string()),
+            "for".to_string(),
+        ))
     }
 }

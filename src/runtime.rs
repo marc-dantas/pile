@@ -1090,6 +1090,51 @@ impl<'a> Runtime<'a> {
                 self.run_block(block)?;
                 self.namespace.locals.pop().unwrap();
             }
+            Node::For(variable, block, span) => {
+                self.namespace.locals.push(HashMap::new());
+                match self.pop() {
+                    Some(Data::Array(id)) => {
+                        let arr = self.load_array(id);
+                        for x in arr.to_owned() {
+                            self.loop_break = false; // Reset break flag for next iteration
+                            self.loop_continue = false; // Reset continue flag for next iteration
+                            
+                            self.namespace.locals.last_mut().unwrap().insert(variable.value.as_str(), Variable(x));
+                            self.run_block(block)?;
+                            if self.loop_break {
+                                break;
+                            }
+                            if self.loop_continue {
+                                continue;
+                            }
+                        }
+                    }
+                    Some(Data::String(id)) => {
+                        let str = self.read_string(id).clone();
+                        for x in str.chars() {
+                            self.loop_break = false; // Reset break flag for next iteration
+                            self.loop_continue = false; // Reset continue flag for next iteration
+                            
+                            self.namespace.locals.last_mut().unwrap().insert(variable.value.as_str(), Variable(Data::Int(x as i64)));
+                            self.run_block(block)?;
+                            if self.loop_break {
+                                break;
+                            }
+                            if self.loop_continue {
+                                continue;
+                            }
+                        }
+                    }
+                    Some(x) => return Err(RuntimeError::UnexpectedType(
+                        span.to_filespan(self.filename.to_string()),
+                        "for".to_string(),
+                        "array or string".to_string(),
+                        format!("{}", x.format()),
+                    )),
+                    None => return Err(RuntimeError::StackUnderflow(span.to_filespan(self.filename.to_string()), "for".to_string(), 1)),
+                }
+                self.namespace.locals.pop().unwrap();
+            }
             Node::Proc(..) => {}
             Node::Def(..) => {}
             Node::Import(..) => {}
