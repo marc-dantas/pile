@@ -1,5 +1,5 @@
 # Circle area in Pile programming language
-def PI 3.14159265359 end
+import "std/math.pile"
 
 proc circle_area
     let radius

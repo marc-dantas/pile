@@ -12,4 +12,4 @@ proc fib
     end
 end
 
-150 fib
+69 fib println
