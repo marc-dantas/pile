@@ -61,7 +61,7 @@ pub fn is_valid_identifier(value: &str) -> bool {
         && !is_op(value)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum OpKind {
     Add,
     Sub,

@@ -1,8 +1,10 @@
 mod cli;
 mod error;
 mod lexer;
+mod compiler;
 mod parser;
 mod runtime;
+use compiler::*;
 use lexer::*;
 use parser::*;
 use runtime::*;
@@ -37,7 +39,9 @@ pub fn parse(filename: &str, source: String) -> Result<ProgramTree, ParseError> 
 }
 
 pub fn run_program(program: ProgramTree, filename: &str) -> Result<(), RuntimeError> {
-    let mut r = Runtime::new(&program, filename);
+    let c = Compiler::new(program, filename.to_string());
+    let program = c.compile();
+    let r = Executor::new(program, filename.to_string());
     r.run()
 }
 

@@ -1,0 +1,127 @@
+use std::collections::HashMap;
+
+use crate::{compiler::{Id, Instr, Op, Value}, lexer::FileSpan};
+
+#[derive(Debug, Clone)]
+pub enum RuntimeError {
+    StackUnderflow(FileSpan, String, usize),          // when there's too few data on the stack to perform operation
+    UnexpectedType(FileSpan, String, String, String), // when there's an operation tries to operate with an invalid datatype
+    InvalidSymbol(FileSpan, String),                    // used when a word isn't defined
+    ProcRedefinition(FileSpan, String),               // when a procedure name is already taken
+    ArrayOutOfBounds(FileSpan, i64, usize),         // when tries to index array at invalid index
+    StringOutOfBounds(FileSpan, i64, usize)         // when tries to index string at invalid index
+}
+
+
+pub struct Executor {
+    pub program: Vec<Instr>,
+    pub filename: String,
+    span: FileSpan,
+    stack: Vec<Value>,
+    namespace: Vec<HashMap<String, Value>>,
+}
+
+impl Executor {
+    pub fn new(program: Vec<Instr>, filename: String) -> Self {
+        Self { program, filename, span: FileSpan::default(), stack: Vec::new(), namespace: Vec::new() }
+    }
+
+    fn run_op(&mut self, op: Op) -> Result<(), RuntimeError> {
+        match op {
+            Op::Add => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "+".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "+".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => self.stack.push(Value::Int(x.overflowing_add(y).0)),
+                    (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x + y)),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "+".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            }
+            Op::Sub => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "-".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "-".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => self.stack.push(Value::Int(x.overflowing_sub(y).0)),
+                    (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x - y)),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "-".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            }
+            Op::Mul => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "*".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "*".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => self.stack.push(Value::Int(x.overflowing_mul(y).0)),
+                    (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x * y)),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "*".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            }
+            Op::Trace => {
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "trace".to_string(), 1))?;
+                println!("{:?}", a);
+                Ok(())
+            }
+            _ => todo!(),
+        }
+    }
+
+    pub fn run(mut self) -> Result<(), RuntimeError> {
+        let mut pc = 0;
+        while pc < self.program.len() {
+            match &self.program[pc] {
+                Instr::Jump(addr) => {
+                    pc = *addr;
+                    continue;
+                }
+                Instr::JumpIfNot(addr) => {
+                    if let Some(Value::Bool(false)) = self.stack.pop() {
+                        pc = *addr;
+                        continue;
+                    }
+                }
+                Instr::ExecOp(op) => {
+                    self.run_op(*op)?;
+                }
+                Instr::Push(value) => {
+                    self.stack.push(*value);
+                }
+                Instr::BeginScope => {
+                    self.namespace.push(HashMap::new());
+                }
+                Instr::EndScope => {
+                    self.namespace.pop();
+                }
+                Instr::NewVariable(name) => {
+                    if let Some(scope) = self.namespace.last_mut() {
+                        if let Some(value) = self.stack.pop() {
+                            scope.insert(name.clone(), value);
+                        } else {
+                            return Err(RuntimeError::StackUnderflow(self.span.clone(), "let".to_string(), 1));
+                        }
+                    }
+                }
+                Instr::PushVariable(name) => {
+                    // Push the value of a variable onto the stack
+                    if let Some(scope) = self.namespace.last() {
+                        if let Some(value) = scope.get(name) {
+                            self.stack.push(value.clone());
+                        } else {
+                            return Err(RuntimeError::InvalidSymbol(self.span.clone(), name.clone()));
+                        }
+                    } else {
+                        return Err(RuntimeError::InvalidSymbol(self.span.clone(), name.clone()));
+                    }
+                }
+                Instr::SetSpan(span) => {
+                    // Set the current span for error reporting
+                    self.span = span.clone();
+                }
+                _ => todo!(),
+            }
+            pc += 1;
+        }
+        Ok(())
+    }
+}

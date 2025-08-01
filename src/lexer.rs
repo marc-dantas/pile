@@ -29,7 +29,7 @@ pub struct Span {
     pub col: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct FileSpan {
     pub filename: String,
     pub line: usize,
