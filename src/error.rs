@@ -88,12 +88,12 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
         //         call,
         //     );
         // }
-        RuntimeError::StackUnderflow(span, n, _) => {
+        RuntimeError::StackUnderflow(span, op, n) => {
             throw(
                 "runtime error",
-                &format!("stack underflow: not enough values on top of the stack to satisfy `{n}`."),
+                &format!("stack underflow: too few values on the stack to satisfy `{op}` (expected {n})"),
                 span.clone(),
-                Some("try checking the values before the operation."),
+                Some(&format!("use `trace` operation to see the values on the stack without removing them.")),
                 call,
             );
         }
