@@ -117,15 +117,15 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
                 call,
             );
         }
-        // RuntimeError::DefRedefinition(span, x) => {
-        //     throw(
-        //         "runtime error",
-        //         &format!("definition redefinition: `{x}`."),
-        //         span.clone(),
-        //         None,
-        //         call,
-        //     );
-        // }
+        RuntimeError::DivisionByZero(span) => {
+            throw(
+                "runtime error",
+                &format!("division by zero."),
+                span.clone(),
+                None,
+                call,
+            );
+        }
         // RuntimeError::ValueError(span, n, x, y) => {
         //     throw(
         //         "runtime error",

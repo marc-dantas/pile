@@ -4,12 +4,13 @@ use crate::{compiler::{Id, Instr, Op, Value}, lexer::FileSpan};
 
 #[derive(Debug, Clone)]
 pub enum RuntimeError {
-    StackUnderflow(FileSpan, String, usize),          // when there's too few data on the stack to perform operation
+    StackUnderflow(FileSpan, String, usize), // when there's too few data on the stack to perform operation
     UnexpectedType(FileSpan, String, String, String), // when there's an operation tries to operate with an invalid datatype
-    InvalidSymbol(FileSpan, String),                    // used when a word isn't defined
-    ProcRedefinition(FileSpan, String),               // when a procedure name is already taken
-    ArrayOutOfBounds(FileSpan, i64, usize),         // when tries to index array at invalid index
-    StringOutOfBounds(FileSpan, i64, usize)         // when tries to index string at invalid index
+    InvalidSymbol(FileSpan, String), // used when a word isn't defined
+    ProcRedefinition(FileSpan, String), // when a procedure name is already taken
+    ArrayOutOfBounds(FileSpan, i64, usize), // when tries to index array at invalid index
+    StringOutOfBounds(FileSpan, i64, usize), // when tries to index string at invalid index
+    DivisionByZero(FileSpan), // when tries to divide by zero
 }
 
 
@@ -65,6 +66,46 @@ impl Executor {
                     (Value::Int(x), Value::Int(y)) => self.stack.push(Value::Int(x.overflowing_mul(y).0)),
                     (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x * y)),
                     _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "*".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            }
+            Op::Div => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "/".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "/".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => {
+                        if y == 0 {
+                            return Err(RuntimeError::DivisionByZero(self.span.clone()));
+                        }
+                        self.stack.push(Value::Int(x.overflowing_div(y).0));
+                    }
+                    (Value::Float(x), Value::Float(y)) => {
+                        if y == 0.0 {
+                            return Err(RuntimeError::DivisionByZero(self.span.clone()));
+                        }
+                        self.stack.push(Value::Float(x / y));
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "/".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            }
+            Op::Mod => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "%".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "%".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => {
+                        if y == 0 {
+                            return Err(RuntimeError::DivisionByZero(self.span.clone()));
+                        }
+                        self.stack.push(Value::Int(x % y));
+                    }
+                    (Value::Float(x), Value::Float(y)) => {
+                        if y == 0.0 {
+                            return Err(RuntimeError::DivisionByZero(self.span.clone()));
+                        }
+                        self.stack.push(Value::Float(x % y));
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "%".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
                 }
                 Ok(())
             }
