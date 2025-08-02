@@ -1,5 +1,6 @@
 use crate::{lexer::FileSpan, parser::{Node, OpKind, ProgramTree}};
 
+#[derive(Debug, Clone, Copy)]
 pub enum Builtin {
     print,
     println,
@@ -101,6 +102,7 @@ pub enum Value {
     Array(Id),
 }
 
+#[derive(Debug, Clone)]
 pub enum Instr {
     ExecBuiltin(Builtin),
     Jump(Addr),
@@ -111,8 +113,7 @@ pub enum Instr {
     EndScope,
     NewVariable(String),
     PushVariable(String),
-    NewString(String),
-    PushString(Id),
+    PushString(String),
     SetSpan(FileSpan),
 }
 
@@ -126,12 +127,12 @@ impl Compiler {
         Compiler { input, filename }
     }
 
-    pub fn compile(&self) -> Vec<Instr> {
+    pub fn compile(self) -> Vec<Instr> {
         let mut pc = 0;
         let mut instructions = Vec::new();
         let mut jump_stack: Vec<Addr> = Vec::new();
         let mut call_stack: Vec<Addr> = Vec::new();
-        for stmt in self.input.iter() {
+        for stmt in self.input.into_iter() {
             let pc_here = instructions.len();
             match stmt {
                 Node::Operation(OpKind::Break, span) => {
@@ -160,20 +161,21 @@ impl Compiler {
                 }
                 Node::Operation(kind, span) => {
                     instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::ExecOp(Op::from_opkind(*kind)));
+                    instructions.push(Instr::ExecOp(Op::from_opkind(kind)));
                 }
                 Node::IntLit(value, span) => {
                     instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::Push(Value::Int(*value)));
+                    instructions.push(Instr::Push(Value::Int(value)));
                 }
                 Node::FloatLit(value, span) => {
                     instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::Push(Value::Float(*value)));
+                    instructions.push(Instr::Push(Value::Float(value)));
                 }
                 Node::StringLit(value, span) => {
                     instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::NewString(value.clone()));
+                    instructions.push(Instr::PushString(value));
                 }
+
                 _ => unimplemented!(), // Placeholder for other statement types
             }
             pc += instructions.len() - pc_here;

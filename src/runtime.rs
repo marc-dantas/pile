@@ -18,12 +18,22 @@ pub struct Executor {
     pub filename: String,
     span: FileSpan,
     stack: Vec<Value>,
+    strings: HashMap<Id, String>,
+    string_id: Id,
     namespace: Vec<HashMap<String, Value>>,
 }
 
 impl Executor {
     pub fn new(program: Vec<Instr>, filename: String) -> Self {
-        Self { program, filename, span: FileSpan::default(), stack: Vec::new(), namespace: Vec::new() }
+        Self {
+            program,
+            filename,
+            span: FileSpan::default(),
+            stack: Vec::new(),
+            strings: HashMap::new(),
+            string_id: 0,
+            namespace: Vec::new(),
+        }
     }
 
     fn run_op(&mut self, op: Op) -> Result<(), RuntimeError> {
@@ -117,6 +127,13 @@ impl Executor {
                 Instr::SetSpan(span) => {
                     // Set the current span for error reporting
                     self.span = span.clone();
+                }
+                Instr::PushString(value) => {
+                    // Create a new string and push it onto the stack
+                    let id = self.string_id;
+                    self.strings.insert(id, value.clone());
+                    self.stack.push(Value::String(id));
+                    self.string_id += 1;
                 }
                 _ => todo!(),
             }

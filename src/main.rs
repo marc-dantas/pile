@@ -41,6 +41,9 @@ pub fn parse(filename: &str, source: String) -> Result<ProgramTree, ParseError> 
 pub fn run_program(program: ProgramTree, filename: &str) -> Result<(), RuntimeError> {
     let c = Compiler::new(program, filename.to_string());
     let program = c.compile();
+    for i in program.iter() {
+        println!("{:?}", i);
+    }
     let r = Executor::new(program, filename.to_string());
     r.run()
 }
