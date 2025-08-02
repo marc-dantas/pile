@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
 
-use crate::{compiler::{Id, Instr, Op, Value}, lexer::FileSpan};
+use crate::{compiler::{Addr, Id, Instr, Op, Value}, lexer::FileSpan};
 
 #[derive(Debug, Clone)]
 pub enum RuntimeError {
@@ -13,27 +13,26 @@ pub enum RuntimeError {
     DivisionByZero(FileSpan), // when tries to divide by zero
 }
 
-
 pub struct Executor {
     pub program: Vec<Instr>,
-    pub filename: String,
     span: FileSpan,
     stack: Vec<Value>,
     strings: HashMap<Id, String>,
     string_id: Id,
     namespace: Vec<HashMap<String, Value>>,
+    call_stack: Vec<Addr>,
 }
 
 impl Executor {
-    pub fn new(program: Vec<Instr>, filename: String) -> Self {
+    pub fn new(program: Vec<Instr>) -> Self {
         Self {
             program,
-            filename,
             span: FileSpan::default(),
             stack: Vec::new(),
             strings: HashMap::new(),
             string_id: 0,
             namespace: Vec::new(),
+            call_stack: Vec::new(),
         }
     }
 
@@ -143,6 +142,18 @@ impl Executor {
                 }
                 Instr::EndScope => {
                     self.namespace.pop();
+                }
+                Instr::Call(addr) => {
+                    self.call_stack.push(pc + 1);
+                    pc = *addr;
+                    continue;
+                }
+                Instr::Return => {
+                    if let Some(return_addr) = self.call_stack.pop() {
+                        pc = return_addr;
+                        continue;
+                    }
+                    unreachable!("Return without a call stack");
                 }
                 Instr::NewVariable(name) => {
                     if let Some(scope) = self.namespace.last_mut() {

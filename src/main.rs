@@ -39,12 +39,12 @@ pub fn parse(filename: &str, source: String) -> Result<ProgramTree, ParseError> 
 }
 
 pub fn run_program(program: ProgramTree, filename: &str) -> Result<(), RuntimeError> {
-    let c = Compiler::new(program, filename.to_string());
-    let program = c.compile();
-    for i in program.iter() {
-        println!("{:?}", i);
+    let c = Compiler::new();
+    let program = c.compile(program, filename.to_string());
+    for (pc, i) in program.iter().enumerate() {
+        println!("{}: {:?}", pc, i);
     }
-    let r = Executor::new(program, filename.to_string());
+    let r = Executor::new(program);
     r.run()
 }
 
