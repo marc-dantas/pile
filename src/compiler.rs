@@ -157,10 +157,10 @@ impl Compiler {
                     let backpatch = self.instructions.len();
                     self.instructions.push(Instr::Jump(0));
                     let proc_addr = self.instructions.len();
+                    self.procs.insert(name, proc_addr);
                     self.compile_block(block);
                     self.instructions.push(Instr::Return);
                     self.instructions[backpatch] = Instr::Jump(self.instructions.len());
-                    self.procs.insert(name, proc_addr);
                 }
                 Node::If(then_block, else_block, span) => {
                     self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
