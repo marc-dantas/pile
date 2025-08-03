@@ -23,6 +23,13 @@ pub struct Executor {
     call_stack: Vec<Addr>,
 }
 
+fn is_truthy(value: Value) -> bool {
+    match value {
+        Value::Nil | Value::Bool(false) => false,
+        _ => true,
+    }
+}
+
 impl Executor {
     pub fn new(program: Vec<Instr>) -> Self {
         Self {
@@ -126,9 +133,13 @@ impl Executor {
                     continue;
                 }
                 Instr::JumpIfNot(addr) => {
-                    if let Some(Value::Bool(false)) = self.stack.pop() {
-                        pc = *addr;
-                        continue;
+                    if let Some(x) = self.stack.pop() {
+                        if !is_truthy(x) {
+                            pc = *addr;
+                            continue;
+                        }
+                    } else {
+                        return Err(RuntimeError::StackUnderflow(self.span.clone(), "if".to_string(), 1));
                     }
                 }
                 Instr::ExecOp(op) => {

@@ -122,9 +122,10 @@ pub enum Instr {
 }
 
 pub struct Compiler {
-    filename: String,
-    procs: HashMap<String, Addr>,
+    pub filename: String,
     instructions: Vec<Instr>,
+    procs: HashMap<String, Addr>,
+    loop_stack: Vec<(Addr, Vec<Addr>)>
 }
 
 impl Compiler {
@@ -133,6 +134,7 @@ impl Compiler {
             filename: String::new(),
             procs: HashMap::new(),
             instructions: Vec::new(),
+            loop_stack: Vec::new(),
         }
     }
 
@@ -144,7 +146,7 @@ impl Compiler {
 
     fn compile_block(&mut self, block: Vec<Node>) {
         self.instructions.push(Instr::BeginScope);
-        let mut jump_stack: Vec<Addr> = Vec::new();
+
         for stmt in block.into_iter() {
             match stmt {
                 Node::Proc(name, block, span) => {
@@ -158,17 +160,55 @@ impl Compiler {
                     self.compile_block(block);
                     self.instructions.push(Instr::Return);
                     self.instructions[backpatch] = Instr::Jump(self.instructions.len());
-                    dbg!(&name);
-                    dbg!(backpatch, proc_addr);
                     self.procs.insert(name, proc_addr);
                 }
-                Node::Operation(OpKind::Break, span) => {
+                Node::If(then_block, else_block, span) => {
                     self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    self.instructions.push(Instr::Jump(jump_stack.pop().unwrap()));
+                    
+                    let cond_backpatch = self.instructions.len();
+                    self.instructions.push(Instr::JumpIfNot(0));
+                    
+                    self.compile_block(then_block);
+                    let escape_backpatch = self.instructions.len();
+                    self.instructions.push(Instr::Jump(0));
+                    let else_addr = self.instructions.len();
+                    if let Some(else_block) = else_block {
+                        self.compile_block(else_block);
+                    }
+                    let end = self.instructions.len();
+                    self.instructions[escape_backpatch] = Instr::Jump(end);
+                    self.instructions[cond_backpatch] = Instr::JumpIfNot(else_addr);
+                }
+                Node::Loop(block, span) => {
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+
+                    let loop_start = self.instructions.len();
+                    self.loop_stack.push((loop_start, Vec::new()));
+
+                    self.compile_block(block);
+
+                    self.instructions.push(Instr::Jump(loop_start));
+
+                    let (_, breaks) = self.loop_stack.pop().unwrap();
+                    let loop_end = self.instructions.len(); // after the unconditional jump
+
+                    for break_addr in breaks {
+                        self.instructions[break_addr] = Instr::Jump(loop_end);
+                    }
+                }
+                Node::Operation(OpKind::Break, span) => {
+                    if let Some((_, breaks)) = self.loop_stack.last_mut() {
+                        self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                        let break_pos = self.instructions.len();
+                        self.instructions.push(Instr::Jump(0)); // placeholder
+                        breaks.push(break_pos);
+                    }
                 }
                 Node::Operation(OpKind::Continue, span) => {
-                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    self.instructions.push(Instr::Jump(jump_stack.pop().unwrap() - 1));
+                    if let Some((loop_start, _)) = self.loop_stack.last() {
+                        self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                        self.instructions.push(Instr::Jump(*loop_start));
+                    }
                 }
                 Node::Operation(OpKind::Return, span) => {
                     self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
