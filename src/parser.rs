@@ -150,6 +150,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expr(&mut self, token: Token) -> Result<Node, ParseError> {
+        self.current_span = Some(token.span);
         match token.kind {
             TokenKind::Int => Ok(Node::IntLit(token.value.parse().unwrap(), token.span)),
             TokenKind::Float => Ok(Node::FloatLit(token.value.parse().unwrap(), token.span)),
@@ -315,13 +316,14 @@ impl<'a> Parser<'a> {
         
         Err(ParseError::UnterminatedBlock(
             def_name.span.to_filespan(self.filename.to_string()),
-            "proc".to_string(),
+            "def".to_string(),
         ))
     }
 
     fn parse_if(&mut self) -> Result<Node, ParseError> {
         let mut if_body = Vec::new();
         let else_body = None;
+        let if_span = self.current_span.unwrap();
 
         while let Some(token) = self.lexer.next() {
             match &token {
@@ -330,7 +332,7 @@ impl<'a> Parser<'a> {
                     while let Some(token) = self.lexer.next() {
                         match &token {
                             Token { value: x, kind: TokenKind::Word, .. } if x == "end" => {
-                                return Ok(Node::If(if_body, Some(else_block), token.span));
+                                return Ok(Node::If(if_body, Some(else_block), if_span));
                             }
                             _ => {}
                         }
@@ -342,7 +344,7 @@ impl<'a> Parser<'a> {
                     ));
                 }
                 Token { value: x, kind: TokenKind::Word, .. } if x == "end" => {
-                    return Ok(Node::If(if_body, else_body, token.span));
+                    return Ok(Node::If(if_body, else_body, if_span));
                 }
                 _ => {}
             }
@@ -350,7 +352,7 @@ impl<'a> Parser<'a> {
         }
 
         Err(ParseError::UnterminatedBlock(
-            self.current_span.unwrap().to_filespan(self.filename.to_string()),
+            if_span.to_filespan(self.filename.to_string()),
             "if".to_string(),
         ))
     }
