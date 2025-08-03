@@ -155,24 +155,25 @@ impl Executor {
                     }
                     unreachable!("Return without a call stack");
                 }
-                Instr::NewVariable(name) => {
+                Instr::SetVariable(name) => {
                     if let Some(scope) = self.namespace.last_mut() {
                         if let Some(value) = self.stack.pop() {
                             scope.insert(name.clone(), value);
                         } else {
-                            return Err(RuntimeError::StackUnderflow(self.span.clone(), "let".to_string(), 1));
+                            return Err(RuntimeError::StackUnderflow(self.span.clone(), format!("{}", name), 1));
                         }
                     }
                 }
                 Instr::PushVariable(name) => {
-                    // Push the value of a variable onto the stack
-                    if let Some(scope) = self.namespace.last() {
+                    let mut ok = false;
+                    for scope in self.namespace.iter().rev() {
                         if let Some(value) = scope.get(name) {
-                            self.stack.push(value.clone());
-                        } else {
-                            return Err(RuntimeError::InvalidSymbol(self.span.clone(), name.clone()));
+                            self.stack.push(*value);
+                            ok = true;
+                            break;
                         }
-                    } else {
+                    }
+                    if !ok {
                         return Err(RuntimeError::InvalidSymbol(self.span.clone(), name.clone()));
                     }
                 }

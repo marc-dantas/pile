@@ -113,7 +113,7 @@ pub enum Instr {
     Push(Value),
     BeginScope,
     EndScope,
-    NewVariable(String),
+    SetVariable(String),
     PushVariable(String),
     PushString(String),
     Return,
@@ -197,7 +197,7 @@ impl Compiler {
                 }
                 Node::Let(name, span) => {
                     instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::NewVariable(name));
+                    instructions.push(Instr::SetVariable(name));
                 }
                 Node::Symbol(name, span) => {
                     if let Some(addr) = self.procs.get(&name) {
