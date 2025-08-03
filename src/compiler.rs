@@ -124,6 +124,7 @@ pub enum Instr {
 pub struct Compiler {
     filename: String,
     procs: HashMap<String, Addr>,
+    instructions: Vec<Instr>,
 }
 
 impl Compiler {
@@ -131,88 +132,93 @@ impl Compiler {
         Compiler {
             filename: String::new(),
             procs: HashMap::new(),
+            instructions: Vec::new(),
         }
     }
 
     pub fn compile(mut self, input: Vec<Node>, filename: String) -> Vec<Instr> {
         self.filename = filename;
-        self.compile_block(input)
+        self.compile_block(input);
+        self.instructions
     }
 
-    fn compile_block(&mut self, block: Vec<Node>) -> Vec<Instr> {
-        let mut instructions = Vec::new();
-        instructions.push(Instr::BeginScope);
+    fn compile_block(&mut self, block: Vec<Node>) {
+        self.instructions.push(Instr::BeginScope);
         let mut jump_stack: Vec<Addr> = Vec::new();
         for stmt in block.into_iter() {
             match stmt {
                 Node::Proc(name, block, span) => {
-                    instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    let backpatch = instructions.len();
-                    instructions.push(Instr::Jump(0));
-                    let proc_addr = instructions.len();
-                    instructions.extend(self.compile_block(block));
-                    instructions.push(Instr::Return);
-                    instructions[backpatch] = Instr::Jump(instructions.len());
+                    // NOTE: This SetSpan instruction is not really necessary,
+                    // but it will eventually be useful for a future step debugger.
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    
+                    let backpatch = self.instructions.len();
+                    self.instructions.push(Instr::Jump(0));
+                    let proc_addr = self.instructions.len();
+                    self.compile_block(block);
+                    self.instructions.push(Instr::Return);
+                    self.instructions[backpatch] = Instr::Jump(self.instructions.len());
+                    dbg!(&name);
+                    dbg!(backpatch, proc_addr);
                     self.procs.insert(name, proc_addr);
                 }
                 Node::Operation(OpKind::Break, span) => {
-                    instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::Jump(jump_stack.pop().unwrap()));
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::Jump(jump_stack.pop().unwrap()));
                 }
                 Node::Operation(OpKind::Continue, span) => {
-                    instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::Jump(jump_stack.pop().unwrap() - 1));
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::Jump(jump_stack.pop().unwrap() - 1));
                 }
                 Node::Operation(OpKind::Return, span) => {
-                    instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::Return);
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::Return);
                 }
                 Node::Operation(OpKind::True, span) =>  {
-                    instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::Push(Value::Bool(true)));
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::Push(Value::Bool(true)));
                 }
                 Node::Operation(OpKind::False, span) => {
-                    instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::Push(Value::Bool(false)));
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::Push(Value::Bool(false)));
                 }
                 Node::Operation(OpKind::Nil, span) =>   {
-                    instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::Push(Value::Nil));
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::Push(Value::Nil));
                 }
                 Node::Operation(kind, span) => {
-                    instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::ExecOp(Op::from_opkind(kind)));
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::ExecOp(Op::from_opkind(kind)));
                 }
                 Node::IntLit(value, span) => {
-                    instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::Push(Value::Int(value)));
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::Push(Value::Int(value)));
                 }
                 Node::FloatLit(value, span) => {
-                    instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::Push(Value::Float(value)));
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::Push(Value::Float(value)));
                 }
                 Node::StringLit(value, span) => {
-                    instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::PushString(value));
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::PushString(value));
                 }
                 Node::Let(name, span) => {
-                    instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    instructions.push(Instr::SetVariable(name));
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::SetVariable(name));
                 }
                 Node::Symbol(name, span) => {
                     if let Some(addr) = self.procs.get(&name) {
-                        instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                        instructions.push(Instr::Call(*addr));
+                        self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                        self.instructions.push(Instr::Call(*addr));
                     } else {
-                        instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                        instructions.push(Instr::PushVariable(name));
+                        self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                        self.instructions.push(Instr::PushVariable(name));
                     }
                 }
                 _ => unimplemented!(), // Placeholder for other statement types
             }
         }
-        instructions.push(Instr::EndScope);
-        instructions
+        self.instructions.push(Instr::EndScope);
     }
 }
 
