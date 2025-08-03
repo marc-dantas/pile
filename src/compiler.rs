@@ -114,7 +114,8 @@ pub enum Instr {
     BeginScope,
     EndScope,
     SetVariable(String),
-    PushVariable(String),
+    SetDefinition(String),
+    PushBinding(String),
     PushString(String),
     Return,
     Call(Addr),
@@ -196,6 +197,11 @@ impl Compiler {
                         self.instructions[break_addr] = Instr::Jump(loop_end);
                     }
                 }
+                Node::Def(name, block, span) => {
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.compile_block(block);
+                    self.instructions.push(Instr::SetDefinition(name));
+                }
                 Node::Operation(OpKind::Break, span) => {
                     if let Some((_, breaks)) = self.loop_stack.last_mut() {
                         self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
@@ -252,7 +258,7 @@ impl Compiler {
                         self.instructions.push(Instr::Call(*addr));
                     } else {
                         self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                        self.instructions.push(Instr::PushVariable(name));
+                        self.instructions.push(Instr::PushBinding(name));
                     }
                 }
                 _ => unimplemented!(), // Placeholder for other statement types

@@ -7,6 +7,7 @@ pub enum RuntimeError {
     StackUnderflow(FileSpan, String, usize), // when there's too few data on the stack to perform operation
     UnexpectedType(FileSpan, String, String, String), // when there's an operation tries to operate with an invalid datatype
     InvalidSymbol(FileSpan, String), // used when a word isn't defined
+    EmptyDefinition(FileSpan, String), // when a definition is empty
     ProcRedefinition(FileSpan, String), // when a procedure name is already taken
     ArrayOutOfBounds(FileSpan, i64, usize), // when tries to index array at invalid index
     StringOutOfBounds(FileSpan, i64, usize), // when tries to index string at invalid index
@@ -21,6 +22,7 @@ pub struct Executor {
     string_id: Id,
     namespace: Vec<HashMap<String, Value>>,
     call_stack: Vec<Addr>,
+    definitions: HashMap<String, Value>,
 }
 
 fn is_truthy(value: Value) -> bool {
@@ -40,6 +42,7 @@ impl Executor {
             string_id: 0,
             namespace: Vec::new(),
             call_stack: Vec::new(),
+            definitions: HashMap::new(),
         }
     }
 
@@ -166,6 +169,13 @@ impl Executor {
                     }
                     unreachable!("Return without a call stack");
                 }
+                Instr::SetDefinition(name) => {
+                    if let Some(value) = self.stack.pop() {
+                        self.definitions.insert(name.clone(), value);
+                    } else {
+                        return Err(RuntimeError::EmptyDefinition(self.span.clone(), format!("{}", name)));
+                    }
+                }
                 Instr::SetVariable(name) => {
                     if let Some(scope) = self.namespace.last_mut() {
                         if let Some(value) = self.stack.pop() {
@@ -175,17 +185,22 @@ impl Executor {
                         }
                     }
                 }
-                Instr::PushVariable(name) => {
-                    let mut ok = false;
-                    for scope in self.namespace.iter().rev() {
-                        if let Some(value) = scope.get(name) {
-                            self.stack.push(*value);
-                            ok = true;
-                            break;
+                Instr::PushBinding(name) => {
+                    // check for definitions first
+                    if let Some(value) = self.definitions.get(name) {
+                        self.stack.push(*value);
+                    } else {
+                        let mut ok = false;
+                        for scope in self.namespace.iter().rev() {
+                            if let Some(value) = scope.get(name) {
+                                self.stack.push(*value);
+                                ok = true;
+                                break;
+                            }
                         }
-                    }
-                    if !ok {
-                        return Err(RuntimeError::InvalidSymbol(self.span.clone(), name.clone()));
+                        if !ok {
+                            return Err(RuntimeError::InvalidSymbol(self.span.clone(), name.clone()));
+                        }
                     }
                 }
                 Instr::SetSpan(span) => {

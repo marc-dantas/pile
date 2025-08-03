@@ -79,15 +79,15 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
                 call,
             );
         }
-        // RuntimeError::EmptyDefinition(span, x) => {
-        //     throw(
-        //         "runtime error",
-        //         &format!("empty definition: `{x}`."),
-        //         span.clone(),
-        //         Some("add values to the definition body."),
-        //         call,
-        //     );
-        // }
+        RuntimeError::EmptyDefinition(span, x) => {
+            throw(
+                "runtime error",
+                &format!("found empty definition: the expression inside {x} leads to no value on the stack."),
+                span.clone(),
+                None,
+                call,
+            );
+        }
         RuntimeError::StackUnderflow(span, op, n) => {
             throw(
                 "runtime error",
