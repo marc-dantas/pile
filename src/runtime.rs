@@ -17,11 +17,16 @@ pub enum RuntimeError {
 pub struct Executor {
     pub program: Vec<Instr>,
     span: FileSpan,
-    stack: Vec<Value>,
-    strings: HashMap<Id, String>,
-    string_id: Id,
-    namespace: Vec<HashMap<String, Value>>,
+
+    stack: Vec<Value>, // Normal data stack
+
     call_stack: Vec<Addr>,
+
+    strings: HashMap<Id, String>,
+    strings_intern_pool: HashMap<String, Id>,
+    string_id: Id,
+
+    namespace: Vec<HashMap<String, Value>>,
     definitions: HashMap<String, Value>,
 }
 
@@ -39,6 +44,7 @@ impl Executor {
             span: FileSpan::default(),
             stack: Vec::new(),
             strings: HashMap::new(),
+            strings_intern_pool: HashMap::new(),
             string_id: 0,
             namespace: Vec::new(),
             call_stack: Vec::new(),
@@ -209,10 +215,16 @@ impl Executor {
                 }
                 Instr::PushString(value) => {
                     // Create a new string and push it onto the stack
-                    let id = self.string_id;
-                    self.strings.insert(id, value.clone());
-                    self.stack.push(Value::String(id));
-                    self.string_id += 1;
+                    if let Some(id) = self.strings_intern_pool.get(value) {
+                        self.stack.push(Value::String(*id));
+                    } else {
+                        let value = value.clone();
+                        let id = self.string_id;
+                        self.strings_intern_pool.insert(value.clone(), id);
+                        self.strings.insert(id, value);
+                        self.stack.push(Value::String(id));
+                        self.string_id += 1;
+                    }
                 }
                 _ => todo!(),
             }
