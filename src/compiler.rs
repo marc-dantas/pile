@@ -46,13 +46,6 @@ pub enum Op {
     Index,
     AssignAtIndex,
     
-    // Stack
-    Swap,
-    Over,
-    Dup,
-    Drop,
-    Rot,
-    
     // Other
     Trace,
 }
@@ -80,12 +73,7 @@ impl Op {
             OpKind::IsNil => Op::IsNil,
             OpKind::SeqIndex => Op::Index,
             OpKind::SeqAssignAtIndex => Op::AssignAtIndex,
-            OpKind::Swap => Op::Swap,
-            OpKind::Over => Op::Over,
             OpKind::Trace => Op::Trace,
-            OpKind::Dup => Op::Dup,
-            OpKind::Drop => Op::Drop,
-            OpKind::Rot => Op::Rot,
             _ => unreachable!("bug in the compiler, the operation {:?} should be implemented manually inside the compiler or added here.", op),
         }
     }
@@ -119,6 +107,11 @@ pub enum Instr {
     PushString(String),
     Return,
     Call(Addr),
+    Swap,
+    Over,
+    Duplicate,
+    Drop,
+    Rotate,
     SetSpan(FileSpan),
 }
 
@@ -231,6 +224,26 @@ impl Compiler {
                 Node::Operation(OpKind::Nil, span) =>   {
                     self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
                     self.instructions.push(Instr::Push(Value::Nil));
+                }
+                Node::Operation(OpKind::Swap, span) => {
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::Swap);
+                }
+                Node::Operation(OpKind::Over, span) => {
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::Over);
+                }
+                Node::Operation(OpKind::Dup, span) => {
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::Duplicate);
+                }
+                Node::Operation(OpKind::Drop, span) => {
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::Drop);
+                }
+                Node::Operation(OpKind::Rot, span) => {
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::Rotate);
                 }
                 Node::Operation(kind, span) => {
                     self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));

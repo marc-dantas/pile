@@ -125,7 +125,7 @@ impl Executor {
                 Ok(())
             }
             Op::Trace => {
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "trace".to_string(), 1))?;
+                let a = self.stack.last().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "trace".to_string(), 1))?;
                 println!("{:?}", a);
                 Ok(())
             }
@@ -151,11 +151,49 @@ impl Executor {
                         return Err(RuntimeError::StackUnderflow(self.span.clone(), "if".to_string(), 1));
                     }
                 }
-                Instr::ExecOp(op) => {
-                    self.run_op(*op)?;
-                }
                 Instr::Push(value) => {
                     self.stack.push(*value);
+                }
+                Instr::Drop => {
+                    if let None = self.stack.pop() {
+                        return Err(RuntimeError::StackUnderflow(self.span.clone(), "drop".to_string(), 1));
+                    }
+                }
+                Instr::Duplicate => {
+                    if let Some(value) = self.stack.last() {
+                        self.stack.push(*value);
+                    } else {
+                        return Err(RuntimeError::StackUnderflow(self.span.clone(), "dup".to_string(), 1));
+                    }
+                }
+                Instr::Swap => {
+                    if let (Some(a), Some(b)) = (self.stack.pop(), self.stack.pop()) {
+                        self.stack.push(a);
+                        self.stack.push(b);
+                    } else {
+                        return Err(RuntimeError::StackUnderflow(self.span.clone(), "swap".to_string(), 2));
+                    }
+                }
+                Instr::Over => {
+                    if let (Some(a), Some(b)) = (self.stack.pop(), self.stack.pop()) {
+                        self.stack.push(b);
+                        self.stack.push(a);
+                        self.stack.push(b);
+                    } else {
+                        return Err(RuntimeError::StackUnderflow(self.span.clone(), "over".to_string(), 2));
+                    }
+                }
+                Instr::Rotate => {
+                    if let (Some(a), Some(b), Some(c)) = (self.stack.pop(), self.stack.pop(), self.stack.pop()) {
+                        self.stack.push(b);
+                        self.stack.push(a);
+                        self.stack.push(c);
+                    } else {
+                        return Err(RuntimeError::StackUnderflow(self.span.clone(), "rot".to_string(), 3));
+                    }
+                }
+                Instr::ExecOp(op) => {
+                    self.run_op(*op)?;
                 }
                 Instr::BeginScope => {
                     self.namespace.push(HashMap::new());
@@ -209,7 +247,7 @@ impl Executor {
                         }
                     }
                 }
-                Instr::SetSpan(span) => {
+                Instr::SetSpan(span)  => {
                     // Set the current span for error reporting
                     self.span = span.clone();
                 }
@@ -226,7 +264,7 @@ impl Executor {
                         self.string_id += 1;
                     }
                 }
-                _ => todo!(),
+                Instr::ExecBuiltin(..) => todo!()
             }
             pc += 1;
         }
