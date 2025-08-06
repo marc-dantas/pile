@@ -42,7 +42,7 @@ pub fn run_program(program: ProgramTree, filename: &str) -> Result<(), RuntimeEr
     let c = Compiler::new();
     let program = c.compile(program, filename.to_string());
     for (pc, i) in program.iter().enumerate() {
-        println!("{}: {:?}", pc, i);
+        println!("{pc}: {i:?}");
     }
     let r = Executor::new(program);
     r.run()

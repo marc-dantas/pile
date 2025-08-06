@@ -124,6 +124,193 @@ impl Executor {
                 }
                 Ok(())
             }
+            Op::Exp => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "**".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "**".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => {
+                        if y >= 0 {
+                            let y = (y as u64).try_into().unwrap();
+                            self.stack.push(Value::Int(x.pow(y)));
+                        } else {
+                            let y = (-y as u64).try_into().unwrap();
+                            self.stack.push(Value::Float(1.0/(x.pow(y) as f64)));
+                        }
+                    }
+                    (Value::Float(x), Value::Float(y)) => {
+                        if y >= 0.0 {
+                            let y = (y as f64).try_into().unwrap();
+                            self.stack.push(Value::Float(x.powf(y)));
+                        } else {
+                            let y = (-y as f64).try_into().unwrap();
+                            self.stack.push(Value::Float(1.0/(x.powf(y) as f64)));
+                        }
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "**".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            }
+            Op::Gt => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), ">".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), ">".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => {
+                        self.stack.push(Value::Bool(x > y));
+                    }
+                    (Value::Float(x), Value::Float(y)) => {
+                        self.stack.push(Value::Bool(x > y));
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), ">".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            },
+            Op::Lt => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "<".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "<".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => {
+                        self.stack.push(Value::Bool(x < y));
+                    }
+                    (Value::Float(x), Value::Float(y)) => {
+                        self.stack.push(Value::Bool(x < y));
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "<".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            },
+            Op::Eq => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "=".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "=".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => {
+                        self.stack.push(Value::Bool(x == y));
+                    }
+                    (Value::Float(x), Value::Float(y)) => {
+                        self.stack.push(Value::Bool(x == y));
+                    }
+                    (Value::String(x), Value::String(y)) => {
+                        let x = self.strings.get(&x).unwrap();
+                        let y = self.strings.get(&y).unwrap();
+                        self.stack.push(Value::Bool(x == y));
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "=".to_string(), "two numeric values or strings".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            },
+            Op::Ge => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), ">=".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), ">=".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => {
+                        self.stack.push(Value::Bool(x >= y));
+                    }
+                    (Value::Float(x), Value::Float(y)) => {
+                        self.stack.push(Value::Bool(x >= y));
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), ">=".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            },
+            Op::Le => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "<=".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "<=".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => {
+                        self.stack.push(Value::Bool(x <= y));
+                    }
+                    (Value::Float(x), Value::Float(y)) => {
+                        self.stack.push(Value::Bool(x <= y));
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "<=".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            },
+            Op::Ne => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "!=".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "!=".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => {
+                        self.stack.push(Value::Bool(x != y));
+                    }
+                    (Value::Float(x), Value::Float(y)) => {
+                        self.stack.push(Value::Bool(x != y));
+                    }
+                    (Value::String(x), Value::String(y)) => {
+                        let x = self.strings.get(&x).unwrap();
+                        let y = self.strings.get(&y).unwrap();
+                        self.stack.push(Value::Bool(x != y));
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "!=".to_string(), "two numeric values or strings".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            },
+            Op::Shl => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "<<".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "<<".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => {
+                        self.stack.push(Value::Int(x << y));
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "<<".to_string(), "two integers".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            },
+            Op::Shr => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), ">>".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), ">>".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => {
+                        self.stack.push(Value::Int(x >> y));
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), ">>".to_string(), "two integers".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            },
+            Op::Bor => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "|".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "|".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => {
+                        self.stack.push(Value::Int(x | y));
+                    }
+                    (Value::Bool(x), Value::Bool(y)) => {
+                        self.stack.push(Value::Bool(x || y));
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "|".to_string(), "two integers or two floats".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            },
+            Op::Band => {
+                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "&".to_string(), 2))?;
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "&".to_string(), 2))?;
+                match (a, b) {
+                    (Value::Int(x), Value::Int(y)) => {
+                        self.stack.push(Value::Int(x & y));
+                    }
+                    (Value::Bool(x), Value::Bool(y)) => {
+                        self.stack.push(Value::Bool(x && y));
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "&".to_string(), "two integers or two floats".to_string(), format!("{:?} and {:?}", a, b))),
+                }
+                Ok(())
+            },
+            Op::BNot => {
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "~".to_string(), 1))?;
+                match a {
+                    Value::Int(x) => self.stack.push(Value::Int(!x)),
+                    Value::Bool(x) => self.stack.push(Value::Bool(!x)),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "~".to_string(), "an integer or a float".to_string(), format!("{:?}", a))),
+                }
+                Ok(())
+            },
+            Op::IsNil => {
+                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "?".to_string(), 1))?;
+                match a {
+                    Value::Nil => self.stack.push(Value::Bool(true)),
+                    _ => self.stack.push(Value::Bool(false)),
+                }
+                Ok(())
+            }
             Op::Trace => {
                 let a = self.stack.last().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "trace".to_string(), 1))?;
                 println!("{:?}", a);
