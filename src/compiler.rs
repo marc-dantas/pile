@@ -134,12 +134,19 @@ impl Compiler {
 
     pub fn compile(mut self, input: Vec<Node>, filename: String) -> Vec<Instr> {
         self.filename = filename;
-        self.compile_block(input);
+        self.compile_block(input, true);
         self.instructions
     }
 
-    fn compile_block(&mut self, block: Vec<Node>) {
-        self.instructions.push(Instr::BeginScope);
+    fn compile_block(&mut self, block: Vec<Node>, scoped: bool) {
+        // IMPORTANT TODO: Add scope for ifs and loops block.
+        //                 I removed because it would fuck up the scoping when doing recursion
+        //                 inside other scoped blocks because it "forgets" to close the scope
+        //                 that was opened because of ifs and loops inside the proc.
+        //                 Probable solution: Add more information about the origin of the scope and
+        //                                    make return instruction delete all the scopes that were created
+        //                                    inside the proc.
+        if scoped { self.instructions.push(Instr::BeginScope); }
 
         for stmt in block.into_iter() {
             match stmt {
@@ -152,7 +159,7 @@ impl Compiler {
                     self.instructions.push(Instr::Jump(0));
                     let proc_addr = self.instructions.len();
                     self.procs.insert(name, proc_addr);
-                    self.compile_block(block);
+                    self.compile_block(block, true);
                     self.instructions.push(Instr::Return);
                     self.instructions[backpatch] = Instr::Jump(self.instructions.len());
                 }
@@ -162,12 +169,12 @@ impl Compiler {
                     let cond_backpatch = self.instructions.len();
                     self.instructions.push(Instr::JumpIfNot(0));
                     
-                    self.compile_block(then_block);
+                    self.compile_block(then_block, false);
                     let escape_backpatch = self.instructions.len();
                     self.instructions.push(Instr::Jump(0));
                     let else_addr = self.instructions.len();
                     if let Some(else_block) = else_block {
-                        self.compile_block(else_block);
+                        self.compile_block(else_block, false);
                     }
                     let end = self.instructions.len();
                     self.instructions[escape_backpatch] = Instr::Jump(end);
@@ -179,7 +186,7 @@ impl Compiler {
                     let loop_start = self.instructions.len();
                     self.loop_stack.push((loop_start, Vec::new()));
 
-                    self.compile_block(block);
+                    self.compile_block(block, false);
 
                     self.instructions.push(Instr::Jump(loop_start));
 
@@ -192,7 +199,7 @@ impl Compiler {
                 }
                 Node::Def(name, block, span) => {
                     self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                    self.compile_block(block);
+                    self.compile_block(block, false);
                     self.instructions.push(Instr::SetDefinition(name));
                 }
                 Node::Operation(OpKind::Break, span) => {
@@ -211,6 +218,7 @@ impl Compiler {
                 }
                 Node::Operation(OpKind::Return, span) => {
                     self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::EndScope);
                     self.instructions.push(Instr::Return);
                 }
                 Node::Operation(OpKind::True, span) =>  {
@@ -277,7 +285,7 @@ impl Compiler {
                 _ => unimplemented!(), // Placeholder for other statement types
             }
         }
-        self.instructions.push(Instr::EndScope);
+        if scoped { self.instructions.push(Instr::EndScope); }
     }
 }
 

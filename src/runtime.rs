@@ -386,7 +386,7 @@ impl Executor {
                     self.namespace.push(HashMap::new());
                 }
                 Instr::EndScope => {
-                    self.namespace.pop();
+                    self.namespace.pop().unwrap();
                 }
                 Instr::Call(addr) => {
                     self.call_stack.push(pc + 1);
