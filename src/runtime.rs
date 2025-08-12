@@ -1,6 +1,6 @@
 use std::{collections::HashMap, hash::Hash};
 
-use crate::{compiler::{Addr, Id, Instr, Op, Value}, lexer::FileSpan};
+use crate::{compiler::{Addr, Builtin, Id, Instr, Op, Value}, lexer::FileSpan};
 
 #[derive(Debug, Clone)]
 pub enum RuntimeError {
@@ -320,6 +320,115 @@ impl Executor {
         }
     }
 
+    pub fn run_builtin(&mut self, builtin: Builtin) -> Result<(), RuntimeError> {
+        match builtin {
+            Builtin::print => {
+                if let Some(value) = self.stack.pop() {
+                    match value {
+                        Value::Nil => print!("nil"),
+                        Value::Bool(b) => print!("{}", b),
+                        Value::Int(i) => print!("{}", i),
+                        Value::Float(f) => print!("{}", f),
+                        Value::String(id) => print!("{}", self.strings.get(&id).unwrap()),
+                        Value::Array(_id) => todo!(),
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.span.clone(), "print".to_string(), 1));
+                }
+            },
+            Builtin::println => {
+                if let Some(value) = self.stack.pop() {
+                    match value {
+                        Value::Nil => println!("nil"),
+                        Value::Bool(b) => println!("{}", b),
+                        Value::Int(i) => println!("{}", i),
+                        Value::Float(f) => println!("{}", f),
+                        Value::String(id) => println!("{}", self.strings.get(&id).unwrap()),
+                        Value::Array(_id) => todo!(),
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.span.clone(), "println".to_string(), 1));
+                }
+            },
+            Builtin::eprint => {
+                if let Some(value) = self.stack.pop() {
+                    match value {
+                        Value::Nil => eprint!("nil"),
+                        Value::Bool(b) => eprint!("{}", b),
+                        Value::Int(i) => eprint!("{}", i),
+                        Value::Float(f) => eprint!("{}", f),
+                        Value::String(id) => eprint!("{}", self.strings.get(&id).unwrap()),
+                        Value::Array(_id) => todo!(),
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.span.clone(), "eprint".to_string(), 1));
+                }
+            },
+            Builtin::eprintln => {
+                if let Some(value) = self.stack.pop() {
+                    match value {
+                        Value::Nil => eprintln!("nil"),
+                        Value::Bool(b) => eprintln!("{}", b),
+                        Value::Int(i) => eprintln!("{}", i),
+                        Value::Float(f) => eprintln!("{}", f),
+                        Value::String(id) => eprintln!("{}", self.strings.get(&id).unwrap()),
+                        Value::Array(_id) => todo!(),
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.span.clone(), "eprintln".to_string(), 1));
+                }
+            },
+            Builtin::input => {
+                use std::io::Read;
+                let mut xs = String::new();
+                if let Ok(_) = std::io::stdin().read_to_string(&mut xs) {
+                    self.push_string(xs);
+                } else {
+                    self.stack.push(Value::Nil);
+                }
+            },
+            Builtin::inputln => {
+                let mut xs = String::new();
+                if let Ok(_) = std::io::stdin().read_line(&mut xs) {
+                    self.push_string(xs.trim().to_string());
+                } else {
+                    self.stack.push(Value::Nil);
+                }
+            },
+            Builtin::exit => {
+                if let Some(value) = self.stack.pop() {
+                    match value {
+                        Value::Int(x) => std::process::exit(x as i32),
+                        other => {
+                            return Err(RuntimeError::UnexpectedType(self.span.clone(), "exit".to_string(), "an integer".to_string(), format!("{:?}", other)));
+                        }
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.span.clone(), "exit".to_string(), 1));
+                }
+            },
+            Builtin::chr => {
+                todo!()
+            },
+            Builtin::ord => {
+                todo!()
+            },
+            Builtin::len => {
+                if let Some(value) = self.stack.pop() {
+                    match value {
+                        Value::String(id) => self.stack.push(Value::Int(self.strings.get(&id).unwrap().len() as i64)),
+                        other => {
+                            return Err(RuntimeError::UnexpectedType(self.span.clone(), "len".to_string(), "a string or an array".to_string(), format!("{:?}", other)));
+                        }
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.span.clone(), "len".to_string(), 1));
+                }
+            },
+        }
+        Ok(())
+    }
+
     pub fn run(mut self) -> Result<(), RuntimeError> {
         let mut pc = 0;
         while pc < self.program.len() {
@@ -451,10 +560,19 @@ impl Executor {
                         self.string_id += 1;
                     }
                 }
-                Instr::ExecBuiltin(..) => todo!()
+                Instr::ExecBuiltin(builtin) => {
+                    self.run_builtin(*builtin)?;
+                }
             }
             pc += 1;
         }
         Ok(())
+    }
+
+    fn push_string(&mut self, string: String) {
+        let id = self.string_id;
+        self.strings.insert(id, string);
+        self.stack.push(Value::String(id));
+        self.string_id += 1;
     }
 }

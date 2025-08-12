@@ -274,12 +274,23 @@ impl Compiler {
                     self.instructions.push(Instr::SetVariable(name));
                 }
                 Node::Symbol(name, span) => {
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
                     if let Some(addr) = self.procs.get(&name) {
-                        self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
                         self.instructions.push(Instr::Call(*addr));
                     } else {
-                        self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
-                        self.instructions.push(Instr::PushBinding(name));
+                        match name.as_str() {
+                            "print" => self.instructions.push(Instr::ExecBuiltin(Builtin::print)),
+                            "println" => self.instructions.push(Instr::ExecBuiltin(Builtin::println)),
+                            "eprint" => self.instructions.push(Instr::ExecBuiltin(Builtin::eprint)),
+                            "eprintln" => self.instructions.push(Instr::ExecBuiltin(Builtin::eprintln)),
+                            "input" => self.instructions.push(Instr::ExecBuiltin(Builtin::input)),
+                            "inputln" => self.instructions.push(Instr::ExecBuiltin(Builtin::inputln)),
+                            "exit" => self.instructions.push(Instr::ExecBuiltin(Builtin::exit)),
+                            "chr" => self.instructions.push(Instr::ExecBuiltin(Builtin::chr)),
+                            "ord" => self.instructions.push(Instr::ExecBuiltin(Builtin::ord)),
+                            "len" => self.instructions.push(Instr::ExecBuiltin(Builtin::len)),
+                            _ => self.instructions.push(Instr::PushBinding(name)),
+                        }
                     }
                 }
                 _ => unimplemented!(), // Placeholder for other statement types
