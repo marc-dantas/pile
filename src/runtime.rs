@@ -22,9 +22,15 @@ pub struct Executor {
 
     call_stack: Vec<Addr>,
 
-    strings: HashMap<Id, String>,
     strings_intern_pool: HashMap<String, Id>,
+    strings: HashMap<Id, String>,
     string_id: Id,
+
+    array_stack: Vec<usize>,
+    //               ^---- The length of the data stack at the point of BeginArray,
+    //                     so i can subtract and get the len of the array and get all the items
+    arrays: HashMap<Id, Vec<Value>>,
+    array_id: Id,
 
     namespace: Vec<HashMap<String, Value>>,
     definitions: HashMap<String, Value>,
@@ -46,6 +52,9 @@ impl Executor {
             strings: HashMap::new(),
             strings_intern_pool: HashMap::new(),
             string_id: 0,
+            array_stack: Vec::new(),
+            arrays: HashMap::new(),
+            array_id: 0,
             namespace: Vec::new(),
             call_stack: Vec::new(),
             definitions: HashMap::new(),
@@ -562,6 +571,21 @@ impl Executor {
                 }
                 Instr::ExecBuiltin(builtin) => {
                     self.run_builtin(*builtin)?;
+                }
+                Instr::BeginArray => {
+                    self.array_stack.push(self.stack.len());
+                }
+                Instr::EndArray => {
+                    let old_stack = self.array_stack.pop().unwrap();
+                    let new_stack = self.stack.len();
+                    let array: Vec<Value>;
+                    if (new_stack - old_stack) > 0 {
+                        array = (&self.stack[old_stack..new_stack]).iter().map(|x| *x).collect();
+                    } else {
+                        array = vec![];
+                    }
+                    self.arrays.insert(self.array_id, array);
+                    self.array_id += 1;
                 }
             }
             pc += 1;

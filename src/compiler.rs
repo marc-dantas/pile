@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{lexer::FileSpan, parser::{Node, OpKind, ProgramTree}};
+use crate::{lexer::FileSpan, parser::{Node, OpKind}};
 
 #[derive(Debug, Clone, Copy)]
+#[allow(non_camel_case_types)]
 pub enum Builtin {
     print,
     println,
@@ -105,6 +106,8 @@ pub enum Instr {
     SetDefinition(String),
     PushBinding(String),
     PushString(String),
+    BeginArray,
+    EndArray,
     Return,
     Call(Addr),
     Swap,
@@ -201,6 +204,12 @@ impl Compiler {
                     self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
                     self.compile_block(block, false);
                     self.instructions.push(Instr::SetDefinition(name));
+                }
+                Node::Array(block, span) => {
+                    self.instructions.push(Instr::SetSpan(span.to_filespan(self.filename.clone())));
+                    self.instructions.push(Instr::BeginArray);
+                    self.compile_block(block, false);
+                    self.instructions.push(Instr::EndArray);
                 }
                 Node::Operation(OpKind::Break, span) => {
                     if let Some((_, breaks)) = self.loop_stack.last_mut() {

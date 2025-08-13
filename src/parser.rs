@@ -377,11 +377,12 @@ impl<'a> Parser<'a> {
 
     fn parse_array(&mut self) -> Result<Node, ParseError> {
         let mut body = Vec::new();
+        let span = self.current_span.unwrap();
 
         while let Some(token) = self.lexer.next() {
             if let Token { value: x, kind: TokenKind::Word, .. } = &token {
                 if x.as_str() == "end" {
-                    return Ok(Node::Array(body, token.span));
+                    return Ok(Node::Array(body, span));
                 }
             }
             body.push(self.parse_expr(token)?);
