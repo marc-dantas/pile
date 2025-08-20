@@ -417,15 +417,47 @@ impl Executor {
                 }
             },
             Builtin::chr => {
-                todo!()
+                if let Some(value) = self.stack.pop() {
+                    match value {
+                        Value::Int(i) => {
+                            if let Some(c) = std::char::from_u32(i as u32) {
+                                self.push_string(c.to_string());
+                            } else {
+                                self.stack.push(Value::Nil);
+                            }
+                        },
+                        other => {
+                            return Err(RuntimeError::UnexpectedType(self.span.clone(), "chr".to_string(), "an integer".to_string(), format!("{:?}", other)));
+                        }
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.span.clone(), "chr".to_string(), 1));
+                }
             },
             Builtin::ord => {
-                todo!()
+                if let Some(value) = self.stack.pop() {
+                    match value {
+                        Value::String(id) => {
+                            let string = self.strings.get(&id).unwrap();
+                            if let Some(c) = string.chars().next() {
+                                self.stack.push(Value::Int(c as i64));
+                            } else {
+                                return Err(RuntimeError::UnexpectedType(self.span.clone(), "ord".to_string(), "a non-empty string".to_string(), format!("{:?}", value)));
+                            }
+                        },
+                        other => {
+                            return Err(RuntimeError::UnexpectedType(self.span.clone(), "ord".to_string(), "a string".to_string(), format!("{:?}", other)));
+                        }
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.span.clone(), "ord".to_string(), 1));
+                }
             },
             Builtin::len => {
                 if let Some(value) = self.stack.pop() {
                     match value {
                         Value::String(id) => self.stack.push(Value::Int(self.strings.get(&id).unwrap().len() as i64)),
+                        Value::Array(id) => self.stack.push(Value::Int(self.arrays.get(&id).unwrap().len() as i64)),
                         other => {
                             return Err(RuntimeError::UnexpectedType(self.span.clone(), "len".to_string(), "a string or an array".to_string(), format!("{:?}", other)));
                         }
