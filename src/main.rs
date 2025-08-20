@@ -38,13 +38,19 @@ pub fn parse(filename: &str, source: String) -> Result<ProgramTree, ParseError> 
     p.parse()
 }
 
+pub fn disassemble_program(program: ProgramTree, filename: &str) {
+    let c = Compiler::new();
+    let instructions = c.compile(program, filename.to_string());
+    println!("{}", filename);
+    println!("  {:>18} | instruction", "address");
+    for (i, instr) in instructions.iter().enumerate() {
+        println!("  0x{:0>16X} | {}", i, instr);
+    }
+}
+
 pub fn run_program(program: ProgramTree, filename: &str) -> Result<(), RuntimeError> {
     let c = Compiler::new();
     let program = c.compile(program, filename.to_string());
-    println!("\"{}\":", filename);
-    for (pc, i) in program.iter().enumerate() {
-        println!("{pc:>5}: {i:?}");
-    }
     let r = Executor::new(program);
     r.run()
 }
@@ -71,6 +77,19 @@ fn main() {
 
             if a.show_version {
                 show_version(VERSION);
+                std::process::exit(0);
+            }
+
+            if a.disassemble {
+                if let Some(source) = read_file(&a.filename) {
+                    match parse(&a.filename, source) {
+                        Ok(p) => disassemble_program(p, &a.filename),
+                        Err(e) => error::parse_error(e),
+                    }
+                } else {
+                    show_usage();
+                    error::fatal(&format!("couldn't read file {}.", a.filename));
+                }
                 std::process::exit(0);
             }
 

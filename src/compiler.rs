@@ -80,6 +80,34 @@ impl Op {
     }
 }
 
+impl std::fmt::Display for Op {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Op::Add => write!(f, "'+'"),
+            Op::Sub => write!(f, "'-'"),
+            Op::Mul => write!(f, "'*'"),
+            Op::Div => write!(f, "'/'"),
+            Op::Mod => write!(f, "'%'"),
+            Op::Exp => write!(f, "'**'"),
+            Op::Gt => write!(f, "'>'"),
+            Op::Lt => write!(f, "'<'"),
+            Op::Eq => write!(f, "'=='"),
+            Op::Ge => write!(f, "'>='"),
+            Op::Le => write!(f, "'<='"),
+            Op::Ne => write!(f, "'!='"),
+            Op::Shl => write!(f, "'<<'"),
+            Op::Shr => write!(f, "'>>'"),
+            Op::Bor => write!(f, "'|'"),
+            Op::Band => write!(f, "'&'"),
+            Op::BNot => write!(f, "'~'"),
+            Op::IsNil => write!(f, "'?'"),
+            Op::Index => write!(f, "'@'"),
+            Op::AssignAtIndex => write!(f, "'!'"),
+            Op::Trace => write!(f, "'trace'"),
+        }
+    }
+}
+
 pub type Addr = usize;
 pub type Id = usize;
 
@@ -91,6 +119,19 @@ pub enum Value {
     Float(f64),
     String(Id),
     Array(Id),
+}
+
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Value::Nil => write!(f, "nil"),
+            Value::Bool(b) => write!(f, "bool {}", b),
+            Value::Int(i) => write!(f, "int {}", i),
+            Value::Float(fl) => write!(f, "float {}", fl),
+            Value::String(id) => write!(f, "string(0x{:X})", id),
+            Value::Array(id) => write!(f, "array(0x{:X})", id),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -116,6 +157,34 @@ pub enum Instr {
     Drop,
     Rotate,
     SetSpan(FileSpan),
+}
+
+impl std::fmt::Display for Instr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Instr::ExecBuiltin(builtin) => write!(f, "builtin {:?}", builtin),
+            Instr::Jump(addr) => write!(f, "jump 0x{:0>16X}", addr),
+            Instr::JumpIfNot(addr) => write!(f, "jumpifnot 0x{:0>16X}", addr),
+            Instr::ExecOp(op) => write!(f, "op {}", op),
+            Instr::Push(value) => write!(f, "push {}", value),
+            Instr::BeginScope => write!(f, "beginscope"),
+            Instr::EndScope => write!(f, "endscope"),
+            Instr::SetVariable(name) => write!(f, "set $'{}'", name),
+            Instr::SetDefinition(name) => write!(f, "set $'{}'", name),
+            Instr::PushBinding(name) => write!(f, "push $'{}'", name),
+            Instr::PushString(string) => write!(f, "push string \"{}\"", string),
+            Instr::BeginArray => write!(f, "beginarray"),
+            Instr::EndArray => write!(f, "endarray"),
+            Instr::Return => write!(f, "return"),
+            Instr::Call(addr) => write!(f, "call 0x{:0>16X}", addr),
+            Instr::Swap => write!(f, "swap"),
+            Instr::Over => write!(f, "over"),
+            Instr::Duplicate => write!(f, "dup"),
+            Instr::Drop => write!(f, "drop"),
+            Instr::Rotate => write!(f, "rot"),
+            Instr::SetSpan(span) => write!(f, "setspan {}", span),
+        }
+    }
 }
 
 pub struct Compiler {

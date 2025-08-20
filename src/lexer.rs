@@ -36,6 +36,12 @@ pub struct FileSpan {
     pub col: usize,
 }
 
+impl std::fmt::Display for FileSpan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}:{}", self.filename, self.line, self.col)
+    }
+}
+
 // Accepts the character after \ and returns the corresponding escaped character
 pub fn escape_char(c: char) -> Option<char> {
     match c {
