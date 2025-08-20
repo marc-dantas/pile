@@ -101,7 +101,7 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
             throw(
                 "runtime error",
                 &format!(
-                    "unexpected type: `{n}` expects {x} datatype(s) on the stack to work, but got {y}."
+                    "unexpected type: `{n}` expects {x} on the stack to work, but got {y}."
                 ),
                 span.clone(),
                 Some("try checking the values before the operation."),
