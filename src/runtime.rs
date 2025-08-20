@@ -64,8 +64,8 @@ impl Executor {
     fn run_op(&mut self, op: Op) -> Result<(), RuntimeError> {
         match op {
             Op::Add => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "+".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "+".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "+".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "+".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => self.stack.push(Value::Int(x.overflowing_add(y).0)),
                     (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x + y)),
@@ -74,8 +74,8 @@ impl Executor {
                 Ok(())
             }
             Op::Sub => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "-".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "-".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "-".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "-".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => self.stack.push(Value::Int(x.overflowing_sub(y).0)),
                     (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x - y)),
@@ -84,8 +84,8 @@ impl Executor {
                 Ok(())
             }
             Op::Mul => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "*".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "*".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "*".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "*".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => self.stack.push(Value::Int(x.overflowing_mul(y).0)),
                     (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x * y)),
@@ -94,8 +94,8 @@ impl Executor {
                 Ok(())
             }
             Op::Div => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "/".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "/".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "/".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "/".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         if y == 0 {
@@ -114,8 +114,8 @@ impl Executor {
                 Ok(())
             }
             Op::Mod => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "%".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "%".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "%".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "%".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         if y == 0 {
@@ -134,8 +134,8 @@ impl Executor {
                 Ok(())
             }
             Op::Exp => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "**".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "**".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "**".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "**".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         if y >= 0 {
@@ -160,8 +160,8 @@ impl Executor {
                 Ok(())
             }
             Op::Gt => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), ">".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), ">".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), ">".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), ">".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         self.stack.push(Value::Bool(x > y));
@@ -174,8 +174,8 @@ impl Executor {
                 Ok(())
             },
             Op::Lt => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "<".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "<".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "<".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "<".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         self.stack.push(Value::Bool(x < y));
@@ -188,8 +188,8 @@ impl Executor {
                 Ok(())
             },
             Op::Eq => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "=".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "=".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "=".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "=".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         self.stack.push(Value::Bool(x == y));
@@ -207,8 +207,8 @@ impl Executor {
                 Ok(())
             },
             Op::Ge => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), ">=".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), ">=".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), ">=".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), ">=".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         self.stack.push(Value::Bool(x >= y));
@@ -221,8 +221,8 @@ impl Executor {
                 Ok(())
             },
             Op::Le => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "<=".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "<=".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "<=".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "<=".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         self.stack.push(Value::Bool(x <= y));
@@ -235,8 +235,8 @@ impl Executor {
                 Ok(())
             },
             Op::Ne => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "!=".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "!=".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "!=".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "!=".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         self.stack.push(Value::Bool(x != y));
@@ -254,8 +254,8 @@ impl Executor {
                 Ok(())
             },
             Op::Shl => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "<<".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "<<".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "<<".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "<<".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         self.stack.push(Value::Int(x << y));
@@ -265,8 +265,8 @@ impl Executor {
                 Ok(())
             },
             Op::Shr => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), ">>".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), ">>".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), ">>".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), ">>".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         self.stack.push(Value::Int(x >> y));
@@ -276,8 +276,8 @@ impl Executor {
                 Ok(())
             },
             Op::Bor => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "|".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "|".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "|".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "|".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         self.stack.push(Value::Int(x | y));
@@ -290,8 +290,8 @@ impl Executor {
                 Ok(())
             },
             Op::Band => {
-                let b = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "&".to_string(), 2))?;
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "&".to_string(), 2))?;
+                let b = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "&".to_string(), 2))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "&".to_string(), 2))?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         self.stack.push(Value::Int(x & y));
@@ -304,7 +304,7 @@ impl Executor {
                 Ok(())
             },
             Op::BNot => {
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "~".to_string(), 1))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "~".to_string(), 1))?;
                 match a {
                     Value::Int(x) => self.stack.push(Value::Int(!x)),
                     Value::Bool(x) => self.stack.push(Value::Bool(!x)),
@@ -313,7 +313,7 @@ impl Executor {
                 Ok(())
             },
             Op::IsNil => {
-                let a = self.stack.pop().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "?".to_string(), 1))?;
+                let a = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "?".to_string(), 1))?;
                 match a {
                     Value::Nil => self.stack.push(Value::Bool(true)),
                     _ => self.stack.push(Value::Bool(false)),
@@ -321,11 +321,61 @@ impl Executor {
                 Ok(())
             }
             Op::Trace => {
-                let a = self.stack.last().ok_or(RuntimeError::StackUnderflow(self.span.clone(), "trace".to_string(), 1))?;
+                let a = self.stack.last().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "trace".to_string(), 1))?;
                 println!("{:?}", a);
                 Ok(())
             }
-            _ => todo!(),
+            Op::Index => {
+                let index = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "@".to_string(), 2))?;
+                let seq = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "@".to_string(), 2))?;
+                match (seq, index) {
+                    (Value::Array(id), Value::Int(i)) => {
+                        let array = self.arrays.get(&id).unwrap();
+                        if let Some(value) = array.get(i as usize) {
+                            self.stack.push(value.clone());
+                        } else {
+                            return Err(RuntimeError::ArrayOutOfBounds(self.span.clone(), i, array.len()));
+                        }
+                    }
+                    (Value::String(id), Value::Int(i)) => {
+                        let string = self.strings.get(&id).unwrap();
+                        if let Some(value) = string.chars().nth(i as usize) {
+                            self.stack.push(Value::Int(value as i64));
+                        } else {
+                            return Err(RuntimeError::StringOutOfBounds(self.span.clone(), i, string.len()));
+                        }
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "@".to_string(), "array/string and an integer".to_string(), format!("{:?} and {:?}", seq, index))),
+                }
+                Ok(())
+            }
+            Op::AssignAtIndex => {
+                let value = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "!".to_string(), 3))?;
+                let index = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "!".to_string(), 3))?;
+                let seq = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "!".to_string(), 3))?;
+                match (seq, index, value) {
+                    (Value::Array(id), Value::Int(i), value) => {
+                        let array = self.arrays.get_mut(&id).unwrap();
+                        if i as usize >= array.len() {
+                            return Err(RuntimeError::ArrayOutOfBounds(self.span.clone(), i, array.len()));
+                        }
+                        array[i as usize] = value;
+                    }
+                    (Value::String(id), Value::Int(i), Value::Int(chrcode)) => {
+                        let string = self.strings.get_mut(&id).unwrap();
+                        if i as usize >= string.len() {
+                            return Err(RuntimeError::StringOutOfBounds(self.span.clone(), i, string.len()));
+                        }
+                        if let Some(chr) = std::char::from_u32(chrcode as u32) {
+                            string.replace_range(i as usize..i as usize + 1, &chr.to_string());
+                        } else {
+                            string.replace_range(i as usize..i as usize + 1, "\0");
+                        }
+                    }
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "!".to_string(), "(string, int, int) or (array, int, any)".to_string(), format!("({:?}, {:?}, {:?})", seq, index, value))),
+                }
+                Ok(())
+            }
         }
     }
 
@@ -339,7 +389,7 @@ impl Executor {
                         Value::Int(i) => print!("{}", i),
                         Value::Float(f) => print!("{}", f),
                         Value::String(id) => print!("{}", self.strings.get(&id).unwrap()),
-                        Value::Array(_id) => todo!(),
+                        _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "print".to_string(), "printable value".to_string(), format!("{:?}", value))),
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(self.span.clone(), "print".to_string(), 1));
@@ -353,7 +403,7 @@ impl Executor {
                         Value::Int(i) => println!("{}", i),
                         Value::Float(f) => println!("{}", f),
                         Value::String(id) => println!("{}", self.strings.get(&id).unwrap()),
-                        Value::Array(_id) => todo!(),
+                        _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "println".to_string(), "printable value".to_string(), format!("{:?}", value))),
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(self.span.clone(), "println".to_string(), 1));
@@ -367,7 +417,7 @@ impl Executor {
                         Value::Int(i) => eprint!("{}", i),
                         Value::Float(f) => eprint!("{}", f),
                         Value::String(id) => eprint!("{}", self.strings.get(&id).unwrap()),
-                        Value::Array(_id) => todo!(),
+                        _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "eprint".to_string(), "printable value".to_string(), format!("{:?}", value))),
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(self.span.clone(), "eprint".to_string(), 1));
@@ -381,7 +431,7 @@ impl Executor {
                         Value::Int(i) => eprintln!("{}", i),
                         Value::Float(f) => eprintln!("{}", f),
                         Value::String(id) => eprintln!("{}", self.strings.get(&id).unwrap()),
-                        Value::Array(_id) => todo!(),
+                        _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "eprintln".to_string(), "printable value".to_string(), format!("{:?}", value))),
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(self.span.clone(), "eprintln".to_string(), 1));
@@ -610,13 +660,18 @@ impl Executor {
                 Instr::EndArray => {
                     let old_stack = self.array_stack.pop().unwrap();
                     let new_stack = self.stack.len();
-                    let array: Vec<Value>;
-                    if (new_stack - old_stack) > 0 {
-                        array = (&self.stack[old_stack..new_stack]).iter().map(|x| *x).collect();
-                    } else {
-                        array = vec![];
+                    let mut array: Vec<Value> = Vec::new();
+                    let len = (new_stack - old_stack);
+                    for _ in 0..len {
+                        if let Some(value) = self.stack.pop() {
+                            array.push(value);
+                            continue;
+                        }
+                        unreachable!()
                     }
+                    array.reverse();
                     self.arrays.insert(self.array_id, array);
+                    self.stack.push(Value::Array(self.array_id));
                     self.array_id += 1;
                 }
             }
