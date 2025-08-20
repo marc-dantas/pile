@@ -108,7 +108,7 @@ pub enum Node {
     Loop(Vec<Node>, Span),
     Array(Vec<Node>, Span),
     Let(String, Span),
-    AsLet(Vec<Token>, Vec<Node>, Span),
+    AsLet(Vec<Token>, Span),
     Import(String, Span),
     For(Token, Vec<Node>, Span),
     Operation(OpKind, Span),
@@ -255,10 +255,12 @@ impl<'a> Parser<'a> {
 
     fn parse_aslet(&mut self) -> Result<Node, ParseError> {
         let mut variables = Vec::new();
+        let mut closed = false;
 
         while let Some(token) = self.lexer.next() {
             if let Token { value: x, kind: TokenKind::Word, .. } = &token {
                 if x.as_str() == "let" {
+                    closed = true;
                     break;
                 }
             }
@@ -271,22 +273,13 @@ impl<'a> Parser<'a> {
             }
             variables.push(token);
         }
-        
-        let mut body = Vec::new();
-
-        while let Some(token) = self.lexer.next() {
-            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
-                if x.as_str() == "end" {
-                    return Ok(Node::AsLet(variables, body, token.span));
-                }
-            }
-            body.push(self.parse_expr(token)?);
+        if !closed {
+            return Err(ParseError::UnexpectedEOF(
+                self.current_span.unwrap().to_filespan(self.filename.to_string()),
+                "let".to_string(),
+            ));
         }
-        
-        Err(ParseError::UnterminatedBlock(
-            self.current_span.unwrap().to_filespan(self.filename.to_string()),
-            "as..let".to_string(),
-        ))
+        Ok(Node::AsLet(variables, self.current_span.unwrap()))
     }
 
     fn parse_def(&mut self) -> Result<Node, ParseError> {

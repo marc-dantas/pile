@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{lexer::FileSpan, parser::{Node, OpKind}};
+use crate::{lexer::{FileSpan, Token}, parser::{Node, OpKind}};
 
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
@@ -369,6 +369,13 @@ impl Compiler {
                             "len" => self.instructions.push(Instr::ExecBuiltin(Builtin::len)),
                             _ => self.instructions.push(Instr::PushBinding(name)),
                         }
+                    }
+                }
+                Node::AsLet(variables, .. ) => {
+                    for var in variables.into_iter().rev() {
+                        let Token{ value: x, span: var_span, .. } = var;
+                        self.instructions.push(Instr::SetSpan(var_span.to_filespan(self.filename.clone())));
+                        self.instructions.push(Instr::SetVariable(x));
                     }
                 }
                 _ => unimplemented!(), // Placeholder for other statement types
