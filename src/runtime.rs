@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap};
 
 use crate::{compiler::{Addr, Builtin, Id, Instr, Op, Value}, lexer::FileSpan};
 
@@ -69,7 +69,7 @@ impl Executor {
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => self.stack.push(Value::Int(x.overflowing_add(y).0)),
                     (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x + y)),
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "+".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "+".to_string(), "two numeric values".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             }
@@ -79,7 +79,7 @@ impl Executor {
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => self.stack.push(Value::Int(x.overflowing_sub(y).0)),
                     (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x - y)),
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "-".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "-".to_string(), "two numeric values".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             }
@@ -89,7 +89,7 @@ impl Executor {
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => self.stack.push(Value::Int(x.overflowing_mul(y).0)),
                     (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x * y)),
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "*".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "*".to_string(), "two numeric values".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             }
@@ -109,7 +109,7 @@ impl Executor {
                         }
                         self.stack.push(Value::Float(x / y));
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "/".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "/".to_string(), "two numeric values".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             }
@@ -129,7 +129,7 @@ impl Executor {
                         }
                         self.stack.push(Value::Float(x % y));
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "%".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "%".to_string(), "two numeric values".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             }
@@ -155,7 +155,7 @@ impl Executor {
                             self.stack.push(Value::Float(1.0/(x.powf(y) as f64)));
                         }
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "**".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "**".to_string(), "two numeric values".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             }
@@ -169,7 +169,7 @@ impl Executor {
                     (Value::Float(x), Value::Float(y)) => {
                         self.stack.push(Value::Bool(x > y));
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), ">".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), ">".to_string(), "two numeric values".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             },
@@ -183,7 +183,7 @@ impl Executor {
                     (Value::Float(x), Value::Float(y)) => {
                         self.stack.push(Value::Bool(x < y));
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "<".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "<".to_string(), "two numeric values".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             },
@@ -202,7 +202,7 @@ impl Executor {
                         let y = self.strings.get(&y).unwrap();
                         self.stack.push(Value::Bool(x == y));
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "=".to_string(), "two numeric values or strings".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "=".to_string(), "two numeric values or strings".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             },
@@ -216,7 +216,7 @@ impl Executor {
                     (Value::Float(x), Value::Float(y)) => {
                         self.stack.push(Value::Bool(x >= y));
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), ">=".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), ">=".to_string(), "two numeric values".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             },
@@ -230,7 +230,7 @@ impl Executor {
                     (Value::Float(x), Value::Float(y)) => {
                         self.stack.push(Value::Bool(x <= y));
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "<=".to_string(), "two numeric values".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "<=".to_string(), "two numeric values".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             },
@@ -249,7 +249,7 @@ impl Executor {
                         let y = self.strings.get(&y).unwrap();
                         self.stack.push(Value::Bool(x != y));
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "!=".to_string(), "two numeric values or strings".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "!=".to_string(), "two numeric values or strings".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             },
@@ -260,7 +260,7 @@ impl Executor {
                     (Value::Int(x), Value::Int(y)) => {
                         self.stack.push(Value::Int(x << y));
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "<<".to_string(), "two integers".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "<<".to_string(), "two integers".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             },
@@ -271,7 +271,7 @@ impl Executor {
                     (Value::Int(x), Value::Int(y)) => {
                         self.stack.push(Value::Int(x >> y));
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), ">>".to_string(), "two integers".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), ">>".to_string(), "two integers".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             },
@@ -285,7 +285,7 @@ impl Executor {
                     (Value::Bool(x), Value::Bool(y)) => {
                         self.stack.push(Value::Bool(x || y));
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "|".to_string(), "two integers or two floats".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "|".to_string(), "two integers or two floats".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             },
@@ -299,7 +299,7 @@ impl Executor {
                     (Value::Bool(x), Value::Bool(y)) => {
                         self.stack.push(Value::Bool(x && y));
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "&".to_string(), "two integers or two floats".to_string(), format!("{:?} and {:?}", a, b))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "&".to_string(), "two integers or two floats".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
             },
@@ -308,7 +308,7 @@ impl Executor {
                 match a {
                     Value::Int(x) => self.stack.push(Value::Int(!x)),
                     Value::Bool(x) => self.stack.push(Value::Bool(!x)),
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "~".to_string(), "an integer or a float".to_string(), format!("{:?}", a))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "~".to_string(), "an integer or a float".to_string(), format!("{}", a))),
                 }
                 Ok(())
             },
@@ -322,7 +322,7 @@ impl Executor {
             }
             Op::Trace => {
                 let a = self.stack.last().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "trace".to_string(), 1))?;
-                println!("{:?}", a);
+                println!("{}", a);
                 Ok(())
             }
             Op::Index => {
@@ -345,7 +345,7 @@ impl Executor {
                             return Err(RuntimeError::StringOutOfBounds(self.span.clone(), i, string.len()));
                         }
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "@".to_string(), "array/string and an integer".to_string(), format!("{:?} and {:?}", seq, index))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "@".to_string(), "array/string and an integer".to_string(), format!("{} and {}", seq, index))),
                 }
                 Ok(())
             }
@@ -372,7 +372,7 @@ impl Executor {
                             string.replace_range(i as usize..i as usize + 1, "\0");
                         }
                     }
-                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "!".to_string(), "(string, int, int) or (array, int, any)".to_string(), format!("({:?}, {:?}, {:?})", seq, index, value))),
+                    _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "!".to_string(), "(string, int, int) or (array, int, any)".to_string(), format!("({}, {}, {})", seq, index, value))),
                 }
                 Ok(())
             }
@@ -389,7 +389,7 @@ impl Executor {
                         Value::Int(i) => print!("{}", i),
                         Value::Float(f) => print!("{}", f),
                         Value::String(id) => print!("{}", self.strings.get(&id).unwrap()),
-                        _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "print".to_string(), "printable value".to_string(), format!("{:?}", value))),
+                        _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "print".to_string(), "printable value".to_string(), format!("{}", value))),
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(self.span.clone(), "print".to_string(), 1));
@@ -403,7 +403,7 @@ impl Executor {
                         Value::Int(i) => println!("{}", i),
                         Value::Float(f) => println!("{}", f),
                         Value::String(id) => println!("{}", self.strings.get(&id).unwrap()),
-                        _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "println".to_string(), "printable value".to_string(), format!("{:?}", value))),
+                        _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "println".to_string(), "printable value".to_string(), format!("{}", value))),
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(self.span.clone(), "println".to_string(), 1));
@@ -417,7 +417,7 @@ impl Executor {
                         Value::Int(i) => eprint!("{}", i),
                         Value::Float(f) => eprint!("{}", f),
                         Value::String(id) => eprint!("{}", self.strings.get(&id).unwrap()),
-                        _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "eprint".to_string(), "printable value".to_string(), format!("{:?}", value))),
+                        _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "eprint".to_string(), "printable value".to_string(), format!("{}", value))),
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(self.span.clone(), "eprint".to_string(), 1));
@@ -431,7 +431,7 @@ impl Executor {
                         Value::Int(i) => eprintln!("{}", i),
                         Value::Float(f) => eprintln!("{}", f),
                         Value::String(id) => eprintln!("{}", self.strings.get(&id).unwrap()),
-                        _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "eprintln".to_string(), "printable value".to_string(), format!("{:?}", value))),
+                        _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "eprintln".to_string(), "printable value".to_string(), format!("{}", value))),
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(self.span.clone(), "eprintln".to_string(), 1));
@@ -459,7 +459,7 @@ impl Executor {
                     match value {
                         Value::Int(x) => std::process::exit(x as i32),
                         other => {
-                            return Err(RuntimeError::UnexpectedType(self.span.clone(), "exit".to_string(), "an integer".to_string(), format!("{:?}", other)));
+                            return Err(RuntimeError::UnexpectedType(self.span.clone(), "exit".to_string(), "an integer".to_string(), format!("{}", other)));
                         }
                     }
                 } else {
@@ -477,7 +477,7 @@ impl Executor {
                             }
                         },
                         other => {
-                            return Err(RuntimeError::UnexpectedType(self.span.clone(), "chr".to_string(), "an integer".to_string(), format!("{:?}", other)));
+                            return Err(RuntimeError::UnexpectedType(self.span.clone(), "chr".to_string(), "an integer".to_string(), format!("{}", other)));
                         }
                     }
                 } else {
@@ -492,11 +492,11 @@ impl Executor {
                             if let Some(c) = string.chars().next() {
                                 self.stack.push(Value::Int(c as i64));
                             } else {
-                                return Err(RuntimeError::UnexpectedType(self.span.clone(), "ord".to_string(), "a non-empty string".to_string(), format!("{:?}", value)));
+                                return Err(RuntimeError::UnexpectedType(self.span.clone(), "ord".to_string(), "a non-empty string".to_string(), format!("{}", value)));
                             }
                         },
                         other => {
-                            return Err(RuntimeError::UnexpectedType(self.span.clone(), "ord".to_string(), "a string".to_string(), format!("{:?}", other)));
+                            return Err(RuntimeError::UnexpectedType(self.span.clone(), "ord".to_string(), "a string".to_string(), format!("{}", other)));
                         }
                     }
                 } else {
@@ -509,7 +509,7 @@ impl Executor {
                         Value::String(id) => self.stack.push(Value::Int(self.strings.get(&id).unwrap().len() as i64)),
                         Value::Array(id) => self.stack.push(Value::Int(self.arrays.get(&id).unwrap().len() as i64)),
                         other => {
-                            return Err(RuntimeError::UnexpectedType(self.span.clone(), "len".to_string(), "a string or an array".to_string(), format!("{:?}", other)));
+                            return Err(RuntimeError::UnexpectedType(self.span.clone(), "len".to_string(), "a string or an array".to_string(), format!("{}", other)));
                         }
                     }
                 } else {
@@ -661,7 +661,7 @@ impl Executor {
                     let old_stack = self.array_stack.pop().unwrap();
                     let new_stack = self.stack.len();
                     let mut array: Vec<Value> = Vec::new();
-                    let len = (new_stack - old_stack);
+                    let len = new_stack - old_stack;
                     for _ in 0..len {
                         if let Some(value) = self.stack.pop() {
                             array.push(value);

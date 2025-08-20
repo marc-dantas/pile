@@ -128,8 +128,8 @@ impl std::fmt::Display for Value {
             Value::Bool(b) => write!(f, "bool {}", b),
             Value::Int(i) => write!(f, "int {}", i),
             Value::Float(fl) => write!(f, "float {}", fl),
-            Value::String(id) => write!(f, "string(0x{:X})", id),
-            Value::Array(id) => write!(f, "array(0x{:X})", id),
+            Value::String(id) => write!(f, "string(0x{:0>16X})", id),
+            Value::Array(id) => write!(f, "array(0x{:0>16X})", id),
         }
     }
 }
