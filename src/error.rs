@@ -212,7 +212,7 @@ pub fn cli_error(e: CLIError) {
     }
 }
 
-pub fn fatal(message: &str) {
+pub fn fatal(message: &str) -> ! {
     eprintln!("pile: fatal: {message}");
     std::process::exit(1);
 }

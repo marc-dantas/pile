@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::util::try_compile_from_file;
 
 use crate::{lexer::{FileSpan, Token}, parser::{Node, OpKind}};
 
@@ -222,6 +223,9 @@ impl Compiler {
 
         for stmt in block.into_iter() {
             match stmt {
+                Node::Import(name, span) => {
+                    self.instructions.extend(try_compile_from_file(name));
+                }
                 Node::Proc(name, block, span) => {
                     // NOTE: This SetSpan instruction is not really necessary,
                     // but it will eventually be useful for a future step debugger.
