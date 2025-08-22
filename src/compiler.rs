@@ -223,7 +223,7 @@ impl Compiler {
 
         for stmt in block.into_iter() {
             match stmt {
-                Node::Import(name, span) => {
+                Node::Import(name, _span) => {
                     self.instructions.extend(try_compile_from_file(name));
                 }
                 Node::Proc(name, block, span) => {

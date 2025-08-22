@@ -8,7 +8,6 @@ pub enum RuntimeError {
     UnexpectedType(FileSpan, String, String, String), // when there's an operation tries to operate with an invalid datatype
     InvalidSymbol(FileSpan, String), // used when a word isn't defined
     EmptyDefinition(FileSpan, String), // when a definition is empty
-    ProcRedefinition(FileSpan, String), // when a procedure name is already taken
     ArrayOutOfBounds(FileSpan, i64, usize), // when tries to index array at invalid index
     StringOutOfBounds(FileSpan, i64, usize), // when tries to index string at invalid index
     DivisionByZero(FileSpan), // when tries to divide by zero

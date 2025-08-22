@@ -6,8 +6,6 @@ mod parser;
 mod runtime;
 mod util;
 use util::*;
-use std::fs::File;
-use std::io::Read;
 use cli::*;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");

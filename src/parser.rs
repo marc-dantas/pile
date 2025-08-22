@@ -97,6 +97,7 @@ pub enum OpKind {
     SeqAssignAtIndex,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Node {
     IntLit(i64, Span),

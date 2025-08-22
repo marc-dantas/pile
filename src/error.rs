@@ -108,15 +108,6 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
                 call,
             );
         }
-        RuntimeError::ProcRedefinition(span, x) => {
-            throw(
-                "runtime error",
-                &format!("procedure redefinition: `{x}`."),
-                span.clone(),
-                None,
-                call,
-            );
-        }
         RuntimeError::DivisionByZero(span) => {
             throw(
                 "runtime error",
