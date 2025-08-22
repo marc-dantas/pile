@@ -339,7 +339,7 @@ impl Executor {
                     (Value::String(id), Value::Int(i)) => {
                         let string = self.strings.get(&id).unwrap();
                         if let Some(value) = string.chars().nth(i as usize) {
-                            self.stack.push(Value::Int(value as i64));
+                            self.push_string(value.to_string());
                         } else {
                             return Err(RuntimeError::StringOutOfBounds(self.span.clone(), i, string.len()));
                         }
