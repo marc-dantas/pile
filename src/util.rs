@@ -51,6 +51,11 @@ pub fn try_parse(filename: &str, source: String) -> ProgramTree {
     std::process::exit(0);
 }
 
+pub fn try_parse_from_file(filename: &str) -> ProgramTree {
+    let source = try_read_file(filename);
+    try_parse(filename, source)
+}
+
 pub fn disassemble_program(program: ProgramTree, filename: &str) {
     let c = Compiler::new();
     let instructions = c.compile(program, filename.to_string());
@@ -64,10 +69,6 @@ pub fn disassemble_program(program: ProgramTree, filename: &str) {
 pub fn compile_program(program: ProgramTree, filename: String) -> Vec<Instr> {
     let c = Compiler::new();
     c.compile(program, filename)
-}
-
-pub fn try_compile_from_file(filename: String) -> Vec<Instr> {
-    compile_program(try_parse(&filename, try_read_file(&filename)), filename)
 }
 
 pub fn run_program(program: ProgramTree, filename: &str) -> Result<(), RuntimeError> {
