@@ -402,6 +402,7 @@ impl Executor {
                         Value::String(id) => print!("{}", self.strings.get(&id).unwrap()),
                         _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "print".to_string(), "printable value".to_string(), format!("{}", value))),
                     }
+                    std::io::Write::flush(&mut std::io::stdout()).unwrap();
                 } else {
                     return Err(RuntimeError::StackUnderflow(self.span.clone(), "print".to_string(), 1));
                 }
@@ -430,6 +431,7 @@ impl Executor {
                         Value::String(id) => eprint!("{}", self.strings.get(&id).unwrap()),
                         _ => return Err(RuntimeError::UnexpectedType(self.span.clone(), "eprint".to_string(), "printable value".to_string(), format!("{}", value))),
                     }
+                    std::io::Write::flush(&mut std::io::stdout()).unwrap();
                 } else {
                     return Err(RuntimeError::StackUnderflow(self.span.clone(), "eprint".to_string(), 1));
                 }
