@@ -177,6 +177,7 @@ impl<'a> Iterator for Lexer<'a> {
                                 if let Some(esc) = self.input.content.next() {
                                     if let Some(c) = escape_char(esc) {
                                         buffer.push(c);
+                                        self.span.col += 1; // Consider backslash in col
                                     } else {
                                         throw(
                                             "token error",
