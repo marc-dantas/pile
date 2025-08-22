@@ -1,3 +1,0 @@
-proc test 
-    "hello" println
-end
