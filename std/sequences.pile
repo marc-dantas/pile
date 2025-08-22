@@ -32,18 +32,17 @@ end
 # Prints an arbitrary array (for debug purposes)
 # ( a -- )
 proc printarray
-    as a let
-        "array " print
-        0 loop dup a len = if break end
-            a over @ dup typeof "array" = if
-                printarray " " print
-            else
-                print " " print
-            end
-            1 +
-        end drop
-        "end" print
-    end
+    let a
+    "array " print
+    0 loop dup a len = if break end
+        a over @ dup typeof "array" = if
+            printarray " " print
+        else
+            print " " print
+        end
+        1 +
+    end drop
+    "end" print
 end
 
 # Pushes each item of array `a` directly on the stack
@@ -60,35 +59,32 @@ end
 # Pushes a reversed version of array `a1` on the stack
 # ( a1 -- a2 )
 proc reversed
-    dup len 1 + as max let
-        array
-            0 loop dup max = if break end
-                over over 0 swap - @
-                rot rot
-                1 +
-            end
-            drop drop
+    dup len 1 + let max
+    array
+        0 loop dup max = if break end
+            over over 0 swap - @
+            rot rot
+            1 +
         end
+        drop drop
     end
 end
 
 # Copies an array recursively and returns the copied array
 # ( a1 -- a2 )
-proc cpy
-    as a1 let
-        array
-            0 loop dup a1 len = if break end
-                a1 over @ as item let
-                    item typeof "array" = if
-                        item cpy
-                    else
-                        item
-                    end
-                end
-                swap
-                1 +
-            end drop
-        end
+proc copy
+    let a1
+    array
+        0 loop dup a1 len = if break end
+            a1 over @ let item
+            item typeof "array" = if
+                item cpy
+            else
+                item
+            end
+            swap
+            1 +
+        end drop
     end
 end
 
@@ -97,12 +93,11 @@ end
 # ( a b s -- x )
 proc iter
     as a b s let
-        array
-            loop
-                a b > if break end
-                a
-                a s + let a
-            end
+    array
+        loop
+            a b > if break end
+            a
+            a s + let a
         end
     end
 end
