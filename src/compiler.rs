@@ -16,6 +16,7 @@ pub enum Builtin {
     chr,
     ord,
     len,
+    typeof_,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -371,6 +372,7 @@ impl Compiler {
                             "chr" => self.instructions.push(Instr::ExecBuiltin(Builtin::chr)),
                             "ord" => self.instructions.push(Instr::ExecBuiltin(Builtin::ord)),
                             "len" => self.instructions.push(Instr::ExecBuiltin(Builtin::len)),
+                            "typeof" => self.instructions.push(Instr::ExecBuiltin(Builtin::typeof_)),
                             _ => self.instructions.push(Instr::PushBinding(name)),
                         }
                     }
