@@ -380,6 +380,18 @@ impl Executor {
 
     pub fn run_builtin(&mut self, builtin: Builtin) -> Result<(), RuntimeError> {
         match builtin {
+            Builtin::typeof_ => {
+                let value = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "typeof".to_string(), 1))?;
+                let type_name = match value {
+                    Value::Nil => "nil",
+                    Value::Bool(_) => "bool",
+                    Value::Int(_) => "int",
+                    Value::Float(_) => "float",
+                    Value::String(_) => "string",
+                    Value::Array(_) => "array",
+                };
+                self.push_string(type_name.to_string());
+            }
             Builtin::print => {
                 if let Some(value) = self.stack.pop() {
                     match value {
