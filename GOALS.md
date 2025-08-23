@@ -68,6 +68,7 @@ Definitely going to happen someday. Probably not exactly like described but it w
   * Idea: Include type conversion and additional I/O builtins.
 - [ ] Improve performance
     * Idea: Create a virtual machine for Pile.
+- [ ] Implemented Garbage Collection
 - [ ] First stable release implementation
 
 ## Just ideas
