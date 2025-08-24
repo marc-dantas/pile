@@ -61,7 +61,7 @@ pub fn is_valid_identifier(value: &str) -> bool {
         && !is_op(value)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum OpKind {
     Add,
     Sub,
@@ -97,6 +97,7 @@ pub enum OpKind {
     SeqAssignAtIndex,
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum Node {
     IntLit(i64, Span),
@@ -108,7 +109,7 @@ pub enum Node {
     Loop(Vec<Node>, Span),
     Array(Vec<Node>, Span),
     Let(String, Span),
-    AsLet(Vec<Token>, Vec<Node>, Span),
+    AsLet(Vec<Token>, Span),
     Import(String, Span),
     For(Token, Vec<Node>, Span),
     Operation(OpKind, Span),
@@ -150,6 +151,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expr(&mut self, token: Token) -> Result<Node, ParseError> {
+        self.current_span = Some(token.span);
         match token.kind {
             TokenKind::Int => Ok(Node::IntLit(token.value.parse().unwrap(), token.span)),
             TokenKind::Float => Ok(Node::FloatLit(token.value.parse().unwrap(), token.span)),
@@ -254,10 +256,12 @@ impl<'a> Parser<'a> {
 
     fn parse_aslet(&mut self) -> Result<Node, ParseError> {
         let mut variables = Vec::new();
+        let mut closed = false;
 
         while let Some(token) = self.lexer.next() {
             if let Token { value: x, kind: TokenKind::Word, .. } = &token {
                 if x.as_str() == "let" {
+                    closed = true;
                     break;
                 }
             }
@@ -270,22 +274,13 @@ impl<'a> Parser<'a> {
             }
             variables.push(token);
         }
-        
-        let mut body = Vec::new();
-
-        while let Some(token) = self.lexer.next() {
-            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
-                if x.as_str() == "end" {
-                    return Ok(Node::AsLet(variables, body, token.span));
-                }
-            }
-            body.push(self.parse_expr(token)?);
+        if !closed {
+            return Err(ParseError::UnexpectedEOF(
+                self.current_span.unwrap().to_filespan(self.filename.to_string()),
+                "let".to_string(),
+            ));
         }
-        
-        Err(ParseError::UnterminatedBlock(
-            self.current_span.unwrap().to_filespan(self.filename.to_string()),
-            "as..let".to_string(),
-        ))
+        Ok(Node::AsLet(variables, self.current_span.unwrap()))
     }
 
     fn parse_def(&mut self) -> Result<Node, ParseError> {
@@ -315,13 +310,14 @@ impl<'a> Parser<'a> {
         
         Err(ParseError::UnterminatedBlock(
             def_name.span.to_filespan(self.filename.to_string()),
-            "proc".to_string(),
+            "def".to_string(),
         ))
     }
 
     fn parse_if(&mut self) -> Result<Node, ParseError> {
         let mut if_body = Vec::new();
         let else_body = None;
+        let if_span = self.current_span.unwrap();
 
         while let Some(token) = self.lexer.next() {
             match &token {
@@ -330,7 +326,7 @@ impl<'a> Parser<'a> {
                     while let Some(token) = self.lexer.next() {
                         match &token {
                             Token { value: x, kind: TokenKind::Word, .. } if x == "end" => {
-                                return Ok(Node::If(if_body, Some(else_block), token.span));
+                                return Ok(Node::If(if_body, Some(else_block), if_span));
                             }
                             _ => {}
                         }
@@ -342,7 +338,7 @@ impl<'a> Parser<'a> {
                     ));
                 }
                 Token { value: x, kind: TokenKind::Word, .. } if x == "end" => {
-                    return Ok(Node::If(if_body, else_body, token.span));
+                    return Ok(Node::If(if_body, else_body, if_span));
                 }
                 _ => {}
             }
@@ -350,7 +346,7 @@ impl<'a> Parser<'a> {
         }
 
         Err(ParseError::UnterminatedBlock(
-            self.current_span.unwrap().to_filespan(self.filename.to_string()),
+            if_span.to_filespan(self.filename.to_string()),
             "if".to_string(),
         ))
     }
@@ -375,11 +371,12 @@ impl<'a> Parser<'a> {
 
     fn parse_array(&mut self) -> Result<Node, ParseError> {
         let mut body = Vec::new();
+        let span = self.current_span.unwrap();
 
         while let Some(token) = self.lexer.next() {
             if let Token { value: x, kind: TokenKind::Word, .. } = &token {
                 if x.as_str() == "end" {
-                    return Ok(Node::Array(body, token.span));
+                    return Ok(Node::Array(body, span));
                 }
             }
             body.push(self.parse_expr(token)?);

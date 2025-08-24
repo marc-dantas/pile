@@ -29,11 +29,17 @@ pub struct Span {
     pub col: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct FileSpan {
     pub filename: String,
     pub line: usize,
     pub col: usize,
+}
+
+impl std::fmt::Display for FileSpan {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}:{}:{}", self.filename, self.line, self.col)
+    }
 }
 
 // Accepts the character after \ and returns the corresponding escaped character
@@ -171,6 +177,7 @@ impl<'a> Iterator for Lexer<'a> {
                                 if let Some(esc) = self.input.content.next() {
                                     if let Some(c) = escape_char(esc) {
                                         buffer.push(c);
+                                        self.span.col += 1; // Consider backslash in col
                                     } else {
                                         throw(
                                             "token error",

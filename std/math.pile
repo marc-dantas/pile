@@ -46,10 +46,9 @@ end
 # ( x a b -- y )
 proc clamp
     as x a b let
-        x a < if a return end
-        x b > if b return end
-        x
-    end
+    x a < if a return end
+    x b > if b return end
+    x
 end
 
 # TODO: Implement ln(x)

@@ -8,50 +8,50 @@ use crate::{
 
 fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
     match e {
-        // TODO: plz implement a call stack. this is totally a hack and will not produce good error messages
-        RuntimeError::ProcedureError { inner, call: proc_call } => {
-            if let Some(c) = call {
-                match_runtime_error(inner, Some(c));
-            } else {
-                match_runtime_error(inner, Some(proc_call.clone()));
-            }
-        }
-        RuntimeError::RecursionDepthOverflow(span) => {
-            throw(
-                "runtime error",
-                &format!("recursion depth overflow: procedure call lead to too many recursive iterations."),
-                span.clone(),
-                Some("probably you are doing something wrong."),
-                call,
-            );
-        }
-        RuntimeError::ImportError(span, path) => {
-            throw(
-                "runtime error",
-                &format!("import error: could not import \"{path}\"."),
-                span.clone(),
-                Some("maybe the file you are trying to import doesn't actually exist."),
-                call,
-            );
-        }
-        RuntimeError::ReadMemoryOutOfBounds(span, addr) => {
-            throw(
-                "runtime error",
-                &format!("memory out of bounds: tried to read memory at invalid address 0X{:X} ({addr}).", addr),
-                span.clone(),
-                Some("check if you are using `mem` correctly."),
-                call,
-            );
-        }
-        RuntimeError::WriteMemoryOutOfBounds(span, what, addr) => {
-            throw(
-                "runtime error",
-                &format!("memory out of bounds: tried to write {what} memory at invalid address 0X{:X} ({addr}).", addr),
-                span.clone(),
-                Some("check if you are using `mem` correctly."),
-                call,
-            );
-        }
+        // // TODO: plz implement a call stack. this is totally a hack and will not produce good error messages
+        // RuntimeError::ProcedureError { inner, call: proc_call } => {
+        //     if let Some(c) = call {
+        //         match_runtime_error(inner, Some(c));
+        //     } else {
+        //         match_runtime_error(inner, Some(proc_call.clone()));
+        //     }
+        // }
+        // RuntimeError::RecursionDepthOverflow(span) => {
+        //     throw(
+        //         "runtime error",
+        //         &format!("recursion depth overflow: procedure call lead to too many recursive iterations."),
+        //         span.clone(),
+        //         Some("probably you are doing something wrong."),
+        //         call,
+        //     );
+        // }
+        // RuntimeError::ImportError(span, path) => {
+        //     throw(
+        //         "runtime error",
+        //         &format!("import error: could not import \"{path}\"."),
+        //         span.clone(),
+        //         Some("maybe the file you are trying to import doesn't actually exist."),
+        //         call,
+        //     );
+        // }
+        // RuntimeError::ReadMemoryOutOfBounds(span, addr) => {
+        //     throw(
+        //         "runtime error",
+        //         &format!("memory out of bounds: tried to read memory at invalid address 0X{:X} ({addr}).", addr),
+        //         span.clone(),
+        //         Some("check if you are using `mem` correctly."),
+        //         call,
+        //     );
+        // }
+        // RuntimeError::WriteMemoryOutOfBounds(span, what, addr) => {
+        //     throw(
+        //         "runtime error",
+        //         &format!("memory out of bounds: tried to write {what} memory at invalid address 0X{:X} ({addr}).", addr),
+        //         span.clone(),
+        //         Some("check if you are using `mem` correctly."),
+        //         call,
+        //     );
+        // }
         RuntimeError::ArrayOutOfBounds(span, index, len) => {
             throw(
                 "runtime error",
@@ -70,10 +70,10 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
                 call,
             );
         }
-        RuntimeError::InvalidWord(span, x) => {
+        RuntimeError::InvalidSymbol(span, x) => {
             throw(
                 "runtime error",
-                &format!("invalid word: `{x}` is not defined."),
+                &format!("invalid symbol: `{x}` is not defined."),
                 span.clone(),
                 Some("maybe a typo?"),
                 call,
@@ -82,18 +82,18 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
         RuntimeError::EmptyDefinition(span, x) => {
             throw(
                 "runtime error",
-                &format!("empty definition: `{x}`."),
+                &format!("found empty definition: the expression inside {x} leads to no value on the stack."),
                 span.clone(),
-                Some("add values to the definition body."),
+                None,
                 call,
             );
         }
-        RuntimeError::StackUnderflow(span, n, _) => {
+        RuntimeError::StackUnderflow(span, op, n) => {
             throw(
                 "runtime error",
-                &format!("stack underflow: not enough values on top of the stack to satisfy `{n}`."),
+                &format!("stack underflow: too few values on the stack to satisfy `{op}` (expected {n})"),
                 span.clone(),
-                Some("try checking the values before the operation."),
+                Some(&format!("use `trace` operation to see the values on the stack without removing them.")),
                 call,
             );
         }
@@ -101,57 +101,45 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
             throw(
                 "runtime error",
                 &format!(
-                    "unexpected type: `{n}` expects {x} datatype(s) on the stack to work, but got {y}."
+                    "unexpected type: `{n}` expects {x} on the stack to work, but got {y}."
                 ),
                 span.clone(),
                 Some("try checking the values before the operation."),
                 call,
             );
         }
-        RuntimeError::ProcRedefinition(span, x) => {
+        RuntimeError::DivisionByZero(span) => {
             throw(
                 "runtime error",
-                &format!("procedure redefinition: `{x}`."),
+                &format!("division by zero."),
                 span.clone(),
                 None,
                 call,
             );
         }
-        RuntimeError::DefRedefinition(span, x) => {
-            throw(
-                "runtime error",
-                &format!("definition redefinition: `{x}`."),
-                span.clone(),
-                None,
-                call,
-            );
-        }
-        RuntimeError::ValueError(span, n, x, y) => {
-            throw(
-                "runtime error",
-                &format!("value error: operation `{n}` expected valid literal value for {x}, but got {y}."),
-                span.clone(),
-                Some(&format!("likely caused by an invalid conversion to {x}.")),
-                call,
-            );
-        }
-        RuntimeError::UnboundVariable(span, s) => {
-            throw(
-                "runtime error",
-                &format!("unbound variable: variable `{s}` has no value to be bound."),
-                span.clone(),
-                Some(&format!("push values on the stack before using `{s}`.")),
-                call,
-            );
-        }
+        // RuntimeError::ValueError(span, n, x, y) => {
+        //     throw(
+        //         "runtime error",
+        //         &format!("value error: operation `{n}` expected valid literal value for {x}, but got {y}."),
+        //         span.clone(),
+        //         Some(&format!("likely caused by an invalid conversion to {x}.")),
+        //         call,
+        //     );
+        // }
+        // RuntimeError::UnboundVariable(span, s) => {
+        //     throw(
+        //         "runtime error",
+        //         &format!("unbound variable: variable `{s}` has no value to be bound."),
+        //         span.clone(),
+        //         Some(&format!("push values on the stack before using `{s}`.")),
+        //         call,
+        //     );
+        // }
     }
 }
 
 pub fn runtime_error(e: RuntimeError) {
     match e {
-        RuntimeError::ProcedureError { call: c, inner: i } => {
-            match_runtime_error(i.as_ref(), Some(c));
-        }
         x => match_runtime_error(&x, None),
     }
 }
@@ -215,7 +203,7 @@ pub fn cli_error(e: CLIError) {
     }
 }
 
-pub fn fatal(message: &str) {
+pub fn fatal(message: &str) -> ! {
     eprintln!("pile: fatal: {message}");
     std::process::exit(1);
 }
