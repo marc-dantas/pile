@@ -58,6 +58,8 @@
     ```
 - [X] String escaping
   * Final: use the backslash syntax to write escaped characters in string literals and char literals.
+- [X] Improve performance
+    * Final: Implementation of a virtual machine for Pile.
 
 ## To Be Done
 Definitely going to happen someday. Probably not exactly like described but it will happen.
@@ -66,8 +68,6 @@ Definitely going to happen someday. Probably not exactly like described but it w
   * Auto-descriptive
 - [ ] More builtins
   * Idea: Include type conversion and additional I/O builtins.
-- [ ] Improve performance
-    * Idea: Create a virtual machine for Pile.
 - [ ] Implemented Garbage Collection
 - [ ] First stable release implementation
 
