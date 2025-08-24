@@ -380,6 +380,73 @@ impl Executor {
 
     pub fn run_builtin(&mut self, builtin: Builtin) -> Result<(), RuntimeError> {
         match builtin {
+            Builtin::toint => {
+                if let Some(value) = self.stack.pop() {
+                    match value {
+                        Value::Int(i) => self.stack.push(Value::Int(i)),
+                        Value::Float(f) => self.stack.push(Value::Int(f as i64)),
+                        Value::String(id) => {
+                            let s = self.strings.get(&id).unwrap();
+                            if let Ok(i) = s.parse::<i64>() {
+                                self.stack.push(Value::Int(i));
+                            } else {
+                                self.stack.push(Value::Nil);
+                            }
+                        },
+                        Value::Bool(b) => self.stack.push(Value::Int(if b { 1 } else { 0 })),
+                        _ => self.stack.push(Value::Nil),
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.span.clone(), "toint".to_string(), 1));
+                }
+            }
+            Builtin::tofloat => {
+                if let Some(value) = self.stack.pop() {
+                    match value {
+                        Value::Int(i) => { self.stack.push(Value::Float(i as f64))},
+                        Value::Float(f) => self.stack.push(Value::Float(f)),
+                        Value::String(id) => {
+                            let s = self.strings.get(&id).unwrap();
+                            if let Ok(f) = s.parse::<f64>() {
+                                self.stack.push(Value::Float(f));
+                            } else {
+                                self.stack.push(Value::Nil);
+                            }
+                        },
+                        Value::Bool(b) => self.stack.push(Value::Float(if b { 1.0 } else { 0.0 })),
+                        _ => self.stack.push(Value::Nil),
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.span.clone(), "tofloat".to_string(), 1));
+                }
+            }
+            Builtin::tostring => {
+                if let Some(value) = self.stack.pop() {
+                    self.push_string(format!("{}", value));
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.span.clone(), "tostring".to_string(), 1));
+                }
+            }
+            Builtin::tobool => {
+                if let Some(value) = self.stack.pop() {
+                    match value {
+                        Value::Bool(b) => self.stack.push(Value::Bool(b)),
+                        Value::Nil => self.stack.push(Value::Bool(false)),
+                        Value::Int(i) => self.stack.push(Value::Bool(i != 0)),
+                        Value::Float(f) => self.stack.push(Value::Bool(f != 0.0)),
+                        Value::String(id) => {
+                            let s = self.strings.get(&id).unwrap();
+                            self.stack.push(Value::Bool(!s.is_empty()));
+                        },
+                        Value::Array(id) => {
+                            let a = self.arrays.get(&id).unwrap();
+                            self.stack.push(Value::Bool(!a.is_empty()));
+                        },
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.span.clone(), "tobool".to_string(), 1));
+                }
+            }
             Builtin::typeof_ => {
                 let value = self.stack.pop().ok_or_else(|| RuntimeError::StackUnderflow(self.span.clone(), "typeof".to_string(), 1))?;
                 let type_name = match value {

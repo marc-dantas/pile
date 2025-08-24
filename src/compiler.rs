@@ -17,6 +17,10 @@ pub enum Builtin {
     ord,
     len,
     typeof_,
+    toint,
+    tofloat,
+    tostring,
+    tobool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -373,6 +377,10 @@ impl Compiler {
                             "ord" => self.instructions.push(Instr::ExecBuiltin(Builtin::ord)),
                             "len" => self.instructions.push(Instr::ExecBuiltin(Builtin::len)),
                             "typeof" => self.instructions.push(Instr::ExecBuiltin(Builtin::typeof_)),
+                            "toint" => self.instructions.push(Instr::ExecBuiltin(Builtin::toint)),
+                            "tofloat" => self.instructions.push(Instr::ExecBuiltin(Builtin::tofloat)),
+                            "tostring" => self.instructions.push(Instr::ExecBuiltin(Builtin::toint)),
+                            "tobool" => self.instructions.push(Instr::ExecBuiltin(Builtin::toint)),
                             _ => self.instructions.push(Instr::PushBinding(name)),
                         }
                     }
