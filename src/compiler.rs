@@ -379,8 +379,8 @@ impl Compiler {
                             "typeof" => self.instructions.push(Instr::ExecBuiltin(Builtin::typeof_)),
                             "toint" => self.instructions.push(Instr::ExecBuiltin(Builtin::toint)),
                             "tofloat" => self.instructions.push(Instr::ExecBuiltin(Builtin::tofloat)),
-                            "tostring" => self.instructions.push(Instr::ExecBuiltin(Builtin::toint)),
-                            "tobool" => self.instructions.push(Instr::ExecBuiltin(Builtin::toint)),
+                            "tostring" => self.instructions.push(Instr::ExecBuiltin(Builtin::tostring)),
+                            "tobool" => self.instructions.push(Instr::ExecBuiltin(Builtin::tobool)),
                             _ => self.instructions.push(Instr::PushBinding(name)),
                         }
                     }
