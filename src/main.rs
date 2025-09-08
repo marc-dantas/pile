@@ -4,8 +4,8 @@ mod lexer;
 mod compiler;
 mod parser;
 mod runtime;
-mod util;
-use util::*;
+mod core;
+use core::*;
 use cli::*;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");

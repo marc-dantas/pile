@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::lexer::Span;
-use crate::util::try_parse_from_file;
+use crate::core::try_parse_from_file;
 
 use crate::{lexer::{FileSpan, Token}, parser::{Node, OpKind}};
 
