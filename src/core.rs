@@ -58,7 +58,7 @@ pub fn try_parse_from_file(filename: &str) -> ProgramTree {
 
 pub fn disassemble_program(program: ProgramTree, filename: &str) {
     let c = Compiler::new();
-    let instructions = c.compile(program, filename.to_string());
+    let (instructions, _) = c.compile(program, filename.to_string());
     println!("{}", filename);
     println!("  {:>18} | instruction", "address");
     for (i, instr) in instructions.iter().enumerate() {
@@ -66,14 +66,14 @@ pub fn disassemble_program(program: ProgramTree, filename: &str) {
     }
 }
 
-pub fn compile_program(program: ProgramTree, filename: String) -> Vec<Instr> {
+pub fn compile_program(program: ProgramTree, filename: String) -> (Vec<Instr>, Vec<FileSpan>) {
     let c = Compiler::new();
     c.compile(program, filename)
 }
 
 pub fn run_program(program: ProgramTree, filename: &str) -> Result<(), RuntimeError> {
-    let instructions = compile_program(program, filename.to_string());
-    let r = Executor::new(instructions);
+    let (instructions, spans) = compile_program(program, filename.to_string());
+    let r = Executor::new(instructions, spans);
     r.run()
 }
 
