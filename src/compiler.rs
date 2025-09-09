@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use crate::lexer::Span;
 use crate::core::try_parse_from_file;
 
 use crate::{lexer::{FileSpan, Token}, parser::{Node, OpKind}};
@@ -230,7 +229,10 @@ impl Compiler {
         for stmt in block.into_iter() {
             match stmt {
                 Node::Import(name, _span) => {
+                    let prev_filename = self.filename.to_owned();
+                    self.filename = name.clone();
                     self.compile_block(try_parse_from_file(&name), true);
+                    self.filename = prev_filename;
                 }
                 Node::Proc(name, block, span) => {
                     // NOTE: This SetSpan instruction is not really necessary,
