@@ -66,15 +66,14 @@ pub fn disassemble_program(program: ProgramTree, filename: &str) {
     }
 }
 
-pub fn compile_program<'a>(program: ProgramTree, filename: String) -> (Vec<Instr>, String) {
+pub fn compile_program(program: ProgramTree, filename: String) -> Vec<Instr> {
     let c = Compiler::new();
-    let n = c.filename.clone();
-    (c.compile(program, filename), n)
+    c.compile(program, filename)
 }
 
 pub fn run_program(program: ProgramTree, filename: &str) -> Result<(), RuntimeError> {
-    let (instructions, filename) = compile_program(program, filename.to_string());
-    let r = Executor::new(instructions, &filename);
+    let instructions = compile_program(program, filename.to_string());
+    let r = Executor::new(instructions);
     r.run()
 }
 

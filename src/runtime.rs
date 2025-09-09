@@ -13,9 +13,8 @@ pub enum RuntimeError {
     DivisionByZero(FileSpan), // when tries to divide by zero
 }
 
-pub struct Executor<'a> {
+pub struct Executor {
     pub program: Vec<Instr>,
-    pub filename: &'a str,
     span: FileSpan,
 
     stack: Vec<Value>, // Normal data stack
@@ -43,11 +42,10 @@ fn is_truthy(value: Value) -> bool {
     }
 }
 
-impl<'a> Executor<'a> {
-    pub fn new(program: Vec<Instr>, filename: &'a str) -> Executor<'a> {
+impl Executor {
+    pub fn new(program: Vec<Instr>) -> Self {
         Self {
             program,
-            filename,
             span: FileSpan::default(),
             stack: Vec::new(),
             strings: HashMap::new(),
@@ -718,7 +716,7 @@ impl<'a> Executor<'a> {
                 }
                 Instr::SetSpan(span)  => {
                     // Set the current span for error reporting
-                    self.span = span.to_filespan(self.filename.to_string());
+                    self.span = span.clone();
                 }
                 Instr::PushString(value) => {
                     // Create a new string and push it onto the stack
