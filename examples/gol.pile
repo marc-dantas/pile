@@ -1,0 +1,100 @@
+import "std/sequences.pile"
+
+def W 10 end
+def H 10 end
+
+proc renderGrid let grid
+	0 loop dup H = if break end
+		0 loop dup W = if break end
+			as y x let
+			
+			y W * x + let idx
+			grid idx @ ~ if " . " else " # " end
+			print
+
+			y x
+			1 +
+		end drop
+		"" println
+		1 +
+	end drop
+end
+
+proc getCoordinate as x y width let
+	y width * x +
+end
+
+proc countNbors as
+	grid
+	width
+	height
+	x
+	y
+let
+	y 1 - dup 0 <       if drop height 1 -  end let up
+	y 1 + dup height >= if drop 0 end let down
+	x 1 - dup 0 <       if drop width 1 - end let left
+	x 1 + dup width >=  if drop 0 end let right
+
+	0
+	grid right y    width getCoordinate @ if 1 + end
+	grid left  y    width getCoordinate @ if 1 + end
+	grid x     up   width getCoordinate @ if 1 + end
+	grid x     down width getCoordinate @ if 1 + end
+	grid right down width getCoordinate @ if 1 + end
+	grid left  down width getCoordinate @ if 1 + end
+	grid right up   width getCoordinate @ if 1 + end
+	grid left  up   width getCoordinate @ if 1 + end
+end
+
+proc tick as base target width height let
+	0 loop dup height = if break end
+		0 loop dup width = if break end
+			as y x let
+			
+			x y width getCoordinate let cell
+			base width height x y countNbors let nbors
+			
+			base cell @ if
+				nbors 2 < if false end
+				nbors 2 = nbors 3 = | if true end
+				nbors 3 > if false end
+			else false nbors 3 = if ~ end end
+				let state
+			
+			target cell state !
+
+			y x
+			1 +
+		end drop
+		1 +
+	end drop
+end
+
+proc main
+	array false W H * repeat end let grid1
+	array false W H * repeat end let grid2
+	
+	# Glider
+	grid1 2 2 W getCoordinate true !
+	grid1 3 3 W getCoordinate true !
+	grid1 3 4 W getCoordinate true !
+	grid1 2 4 W getCoordinate true !
+	grid1 1 4 W getCoordinate true !
+
+	loop
+		# Tick
+		grid1 grid2 W H tick
+
+		# Invert buffers
+		grid1 let temp
+		grid2 let grid1
+		temp let grid2
+
+		# Render next generation
+		grid1 renderGrid
+
+		inputln drop
+	end
+end
+main
