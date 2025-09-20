@@ -58,11 +58,15 @@ pub fn try_parse_from_file(filename: &str) -> ProgramTree {
 
 pub fn disassemble_program(program: ProgramTree, filename: &str) {
     let c = Compiler::new();
-    let (instructions, _) = c.compile(program, filename.to_string());
+    let (instructions, spans) = c.compile(program, filename.to_string());
     println!("{}", filename);
     println!("  {:>18} | instruction", "address");
     for (i, instr) in instructions.iter().enumerate() {
-        println!("  0x{:0>16X} | {}", i, instr);
+        if let &Instr::SetSpan(s) = instr {
+            println!("  0x{:0>16X} | {} ; {}", i, instr, spans.get(s).unwrap());
+        } else {
+            println!("  0x{:0>16X} | {}", i, instr);
+        }
     }
 }
 
