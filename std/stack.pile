@@ -1,0 +1,22 @@
+# ( a b -- a b a b )
+# https://forth-standard.org/standard/core/TwoDUP
+proc dup2 over over end
+
+# ( a b --  )
+# https://forth-standard.org/standard/core/TwoDROP
+proc drop2 drop drop end
+
+# ( a b c d -- a b c d a b )
+# https://forth-standard.org/standard/core/TwoDROP
+proc over2
+	as a b c d let
+	a b c d a b
+end
+
+# ( a b -- b )
+# https://forth-standard.org/standard/core/NIP
+proc nip  swap drop end
+
+# ( a b -- b a b )
+# https://forth-standard.org/standard/core/TUCK
+proc tuck swap over end

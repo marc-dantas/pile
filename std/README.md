@@ -6,6 +6,7 @@ Pile programming language that may be part of the standard library.
 - [Math](./math.pile)
 - [Sequences](./sequences.pile)
 - [Formatting](./fmt.pile)
+- [Extra stack operations](./stack.pile)
 
 ---
 
