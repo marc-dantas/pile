@@ -1,19 +1,11 @@
-# Executes a range starting from 0 to `n`
-# ( n -- 0 1 2 .. n )
-proc zrange
-    0 loop dup rot over over = if break end
-        rot
-        1 +
-    end
-    drop drop
-end
-
-# Executes a range starting from `n` to `m`
-# ( n m -- m m+1 m+2 .. m+n )
-proc nrange
-    swap loop dup rot over over = if break end
-        rot
-        1 +
+# Executes a range starting from `a` to `b` by step `s`
+# ( a b s -- ... )
+proc range
+    let step
+    loop over over >= if break end
+        over
+        step +
+        swap
     end
     drop drop
 end
