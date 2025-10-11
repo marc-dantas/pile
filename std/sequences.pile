@@ -21,22 +21,6 @@ proc repeat
     drop drop
 end
 
-# Prints an arbitrary array (for debug purposes)
-# ( a -- )
-proc printarray
-    let a
-    "array " print
-    0 loop dup a len = if break end
-        a over @ dup typeof "array" = if
-            printarray " " print
-        else
-            print " " print
-        end
-        1 +
-    end drop
-    "end" print
-end
-
 # Pushes each item of array `a` directly on the stack
 # ( a -- a[0] a[1] ... )
 proc unwrap
