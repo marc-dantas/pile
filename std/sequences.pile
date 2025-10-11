@@ -63,3 +63,19 @@ proc copy
         end drop
     end
 end
+
+# Traverses the array `a` linearly and searches for `q`.
+# If the query is found, it lets the index on the stack. Otherwise, nil.
+# ( a q -- i )
+proc find as a q let
+    nil let found
+    a len let l
+    0 loop dup l >= if break end
+        a over @ q = if
+            dup let found
+            break
+        end
+        1 +
+    end drop
+    found
+end
