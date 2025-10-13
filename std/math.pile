@@ -10,19 +10,19 @@ def log2e 1.442695040888963 end
 
 # Takes a number and returns -1 if it is negative or 1 if positive
 # ( n -- s )
-proc sign
+proc Sign
     0 < if -1 else 1 end
 end
 
 # Takes a number and returns its absolute value
 # ( a -- b )
-proc abs
-    dup sign *
+proc Abs
+    dup Sign *
 end
 
 # Takes 2 numbers and returns the number with the lowest value
 # ( a b -- a ) or ( a b -- b )
-proc min
+proc Min
     over over < if
         drop
     else
@@ -32,7 +32,7 @@ end
 
 # Takes 2 numbers and returns the number with the highest value
 # ( a b -- a ) or ( a b -- b )
-proc max
+proc Max
     over over > if
         drop
     else
@@ -44,7 +44,7 @@ end
 # and not greater than the specified maximum `b`. If the value is within the 
 # range, it is returned unchanged (`x`).
 # ( x a b -- y )
-proc clamp
+proc Clamp
     as x a b let
     x a < if a return end
     x b > if b return end

@@ -1,6 +1,6 @@
 # Executes a range starting from `a` to `b` by step `s`
 # ( a b s -- ... )
-proc range
+proc Range
     let step
     loop over over >= if break end
         over
@@ -12,7 +12,7 @@ end
 
 # Pushes `x` by `n` times on the stack 
 # ( x n -- x x .. n )
-proc repeat
+proc Repeat
     loop dup 0 = if break end
         over
         swap
@@ -23,7 +23,7 @@ end
 
 # Pushes each item of array `a` directly on the stack
 # ( a -- a[0] a[1] ... )
-proc unwrap
+proc Unwrap
     let arr
     0 loop dup arr len = if break end
         arr over @
@@ -34,7 +34,7 @@ end
 
 # Pushes a reversed version of array `a1` on the stack
 # ( a1 -- a2 )
-proc reversed
+proc Reversed
     dup len 1 + let max
     array
         0 loop dup max = if break end
@@ -48,7 +48,7 @@ end
 
 # Copies an array recursively and returns the copied array
 # ( a1 -- a2 )
-proc copy
+proc Copy
     let a1
     array
         0 loop dup a1 len = if break end
@@ -67,7 +67,7 @@ end
 # Traverses the array `a` linearly and searches for `q`.
 # If the query is found, it lets the index on the stack. Otherwise, nil.
 # ( a q -- i )
-proc find as a q let
+proc Find as a q let
     nil let found
     a len let l
     0 loop dup l >= if break end
