@@ -1,10 +1,11 @@
 # Circle area in Pile programming language
+import "std/io.pile"
 import "std/math.pile"
 
-proc circle_area
+proc CircleArea
     let radius
     radius tofloat dup * PI *
 end
 
-10 circle_area println
-4 circle_area println
+10 CircleArea Print
+4 CircleArea Print

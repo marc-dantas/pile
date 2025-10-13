@@ -1,7 +1,7 @@
 # Name program in Pile programming language
-import "std/fmt.pile"
+import "std/io.pile"
 
-"What is your name? " print
-inputln let x
+STDOUT "What is your name? " write
+Input let x
 
-x "Your name is %." fprintln
+"Your name is " x "." + + Print

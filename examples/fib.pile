@@ -1,5 +1,7 @@
 # Fibonacci sequence in Pile programming language
-proc fib
+import "std/io.pile"
+
+proc Fib
     0 1 as n a b let
     n 1 <= if n return end
     2 loop dup n 1 + = if break end
@@ -11,4 +13,4 @@ proc fib
     b
 end
 
-69 fib println
+69 Fib Print

@@ -1,30 +1,31 @@
 import "std/sequences.pile"
+import "std/io.pile"
 
 def W 10 end
 def H 10 end
 
-proc renderGrid let grid
+proc RenderGrid let grid
 	0 loop dup H = if break end
 		0 loop dup W = if break end
 			as y x let
 			
 			y W * x + let idx
 			grid idx @ ~ if " . " else " # " end
-			print
+			STDOUT swap write
 
 			y x
 			1 +
 		end drop
-		"" println
+		STDOUT "\n" write
 		1 +
 	end drop
 end
 
-proc getCoordinate as x y width let
+proc GetCoordinate as x y width let
 	y width * x +
 end
 
-proc countNbors as
+proc CountNbors as
 	grid
 	width
 	height
@@ -32,28 +33,28 @@ proc countNbors as
 	y
 let
 	y 1 - dup 0 <       if drop height 1 -  end let up
-	y 1 + dup height >= if drop 0 end let down
-	x 1 - dup 0 <       if drop width 1 - end let left
-	x 1 + dup width >=  if drop 0 end let right
+	y 1 + dup height >= if drop 0           end let down
+	x 1 - dup 0 <       if drop width 1 -   end let left
+	x 1 + dup width >=  if drop 0           end let right
 
 	0
-	grid right y    width getCoordinate @ if 1 + end
-	grid left  y    width getCoordinate @ if 1 + end
-	grid x     up   width getCoordinate @ if 1 + end
-	grid x     down width getCoordinate @ if 1 + end
-	grid right down width getCoordinate @ if 1 + end
-	grid left  down width getCoordinate @ if 1 + end
-	grid right up   width getCoordinate @ if 1 + end
-	grid left  up   width getCoordinate @ if 1 + end
+	grid right y    width GetCoordinate @ if 1 + end
+	grid left  y    width GetCoordinate @ if 1 + end
+	grid x     up   width GetCoordinate @ if 1 + end
+	grid x     down width GetCoordinate @ if 1 + end
+	grid right down width GetCoordinate @ if 1 + end
+	grid left  down width GetCoordinate @ if 1 + end
+	grid right up   width GetCoordinate @ if 1 + end
+	grid left  up   width GetCoordinate @ if 1 + end
 end
 
-proc tick as base target width height let
+proc Tick as base target width height let
 	0 loop dup height = if break end
 		0 loop dup width = if break end
 			as y x let
 			
-			x y width getCoordinate let cell
-			base width height x y countNbors let nbors
+			x y width GetCoordinate let cell
+			base width height x y CountNbors let nbors
 			
 			base cell @ if
 				nbors 2 < if false end
@@ -71,20 +72,20 @@ proc tick as base target width height let
 	end drop
 end
 
-proc main
-	array false W H * repeat end let grid1
-	array false W H * repeat end let grid2
+proc Main
+	array false W H * Repeat end let grid1
+	array false W H * Repeat end let grid2
 	
 	# Glider
-	grid1 2 2 W getCoordinate true !
-	grid1 3 3 W getCoordinate true !
-	grid1 3 4 W getCoordinate true !
-	grid1 2 4 W getCoordinate true !
-	grid1 1 4 W getCoordinate true !
+	grid1 2 2 W GetCoordinate true !
+	grid1 3 3 W GetCoordinate true !
+	grid1 3 4 W GetCoordinate true !
+	grid1 2 4 W GetCoordinate true !
+	grid1 1 4 W GetCoordinate true !
 
 	loop
 		# Tick
-		grid1 grid2 W H tick
+		grid1 grid2 W H Tick
 
 		# Invert buffers
 		grid1 let temp
@@ -92,9 +93,9 @@ proc main
 		temp let grid2
 
 		# Render next generation
-		grid1 renderGrid
+		grid1 RenderGrid
 
-		inputln drop
+		Input drop
 	end
 end
-main
+Main

@@ -1,5 +1,7 @@
 # Even or Odd in Pile programming language
-proc even_odd
+import "std/io.pile"
+
+proc EvenOdd
     let n
     n 2 % 0 = if
         "even"
@@ -8,8 +10,7 @@ proc even_odd
     end
 end
 
-"Number input: " print inputln
+STDOUT "Number input: " write
+Input toint EvenOdd let choice
 
-toint even_odd
-
-"The number is " print println
+"The number is " choice + Print

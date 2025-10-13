@@ -1,5 +1,5 @@
 # Palindrome in Pile programming language
-proc is_palindrome
+proc IsPalindrome
     0 over
     loop
         dup 0 = if break end
@@ -9,4 +9,4 @@ proc is_palindrome
     rot rot = swap drop
 end
 
-9009 is_palindrome
+9009 IsPalindrome

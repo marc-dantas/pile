@@ -1,8 +1,10 @@
 # Count to ten in Pile programming language
+import "std/io.pile"
+
 0 let counter
 
 loop
-    counter println
+    counter Print
     counter 10 = if
         break
     end

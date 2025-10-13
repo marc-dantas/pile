@@ -1,10 +1,12 @@
 # Truth machine in Pile programming language
-inputln toint dup ? ~ if
+import "std/io.pile"
+
+Input toint dup ? ~ if
     loop
         dup 0 = if
-            0 println
+            0 Print
             break
         end
-        1 println
+        1 Print
     end
 end

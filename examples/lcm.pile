@@ -1,23 +1,7 @@
 # Least common multiple in Pile programming language
+import "std/io.pile"
 
-# version of lcm using variables
-# proc lcm
-#     let b let a
-#     b a > if b else a end
-#     let greater
-#     loop
-#         greater a % 0 =
-#         greater b % 0 =
-#         & if
-#             greater let result
-#             break
-#         end
-#         greater 1 + let greater
-#     end
-#     result
-# end
-
-proc lcm
+proc Lcm
     over over > if
         over
     else
@@ -36,4 +20,4 @@ proc lcm
     rot rot drop drop
 end
 
-420 69 lcm println
+420 69 Lcm Print

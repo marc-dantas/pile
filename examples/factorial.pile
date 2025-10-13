@@ -1,12 +1,14 @@
 # Recursive factorial in Pile programming language
-proc fact
+import "std/io.pile"
+
+proc Fact
     let n
     n 1 <= if
         1
     else
-        n n 1 - fact *
+        n n 1 - Fact *
     end
 end
 
-10 fact println
-20 fact println
+10 Fact Print
+20 Fact Print
