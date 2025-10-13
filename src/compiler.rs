@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::{Read, Write};
 use crate::core::try_parse_from_file;
 
 use crate::{lexer::{FileSpan, Token}, parser::{Node, OpKind}};
@@ -10,6 +12,9 @@ pub enum Builtin {
     println,
     eprint,
     eprintln,
+    open,
+    write,
+    read,
     input,
     inputln,
     exit,
@@ -117,6 +122,65 @@ impl std::fmt::Display for Op {
 pub type Addr = usize;
 pub type Id = usize;
 
+#[derive(Debug)]
+pub enum FileLike {
+    File(File),
+    Stdin(std::io::Stdin),
+    Stdout(std::io::Stdout),
+    Stderr(std::io::Stderr),
+}
+
+impl FileLike {
+    pub fn read(&mut self) -> Option<(String, std::io::Result<usize>)> {
+        let mut value = None;
+        let mut buf: String = String::new();
+        match self {
+            FileLike::File(f) => {
+                let a = f.read_to_string(&mut buf);
+                value = Some((buf, a));
+            },
+            FileLike::Stdin(f) => {
+                let a = f.read_to_string(&mut buf);
+                value = Some((buf, a));
+            },
+            FileLike::Stdout(..) => {},
+            FileLike::Stderr(..) => {},
+        };
+        value
+    }
+
+    pub fn write(&mut self, buf: &String) -> Option<std::io::Result<usize>> {
+        let mut value = None;
+        match self {
+            FileLike::File(f) => {
+                value = Some(f.write(buf.as_bytes()));
+            },
+            FileLike::Stdin(f) => {},
+            FileLike::Stdout(f) => {
+                value = Some(f.write(buf.as_bytes()));
+            },
+            FileLike::Stderr(f) => {
+                value = Some(f.write(buf.as_bytes()));
+            },
+        };
+        value
+    }
+}
+
+#[derive(Debug)]
+pub enum Data {
+    File(FileLike),
+}
+
+impl std::fmt::Display for Data {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Data::File(..) => write!(f, "file"),
+        }
+    }
+}
+
+
 #[derive(Debug, Clone, Copy)]
 pub enum Value {
     Nil,
@@ -125,6 +189,7 @@ pub enum Value {
     Float(f64),
     String(Id),
     Array(Id),
+    Data(Id),
 }
 
 impl std::fmt::Display for Value {
@@ -136,6 +201,7 @@ impl std::fmt::Display for Value {
             Value::Float(fl) => write!(f, "float {}", fl),
             Value::String(id) => write!(f, "string(0x{:0>16X})", id),
             Value::Array(id) => write!(f, "array(0x{:0>16X})", id),
+            Value::Data(id) => write!(f, "data(0x{:0>16X})", id),
         }
     }
 }
@@ -405,6 +471,9 @@ impl Compiler {
                             "eprintln" => self.instructions.push(Instr::ExecBuiltin(Builtin::eprintln)),
                             "input" => self.instructions.push(Instr::ExecBuiltin(Builtin::input)),
                             "inputln" => self.instructions.push(Instr::ExecBuiltin(Builtin::inputln)),
+                            "open" => self.instructions.push(Instr::ExecBuiltin(Builtin::open)),
+                            "write" => self.instructions.push(Instr::ExecBuiltin(Builtin::write)),
+                            "read" => self.instructions.push(Instr::ExecBuiltin(Builtin::read)),
                             "exit" => self.instructions.push(Instr::ExecBuiltin(Builtin::exit)),
                             "chr" => self.instructions.push(Instr::ExecBuiltin(Builtin::chr)),
                             "ord" => self.instructions.push(Instr::ExecBuiltin(Builtin::ord)),

@@ -8,50 +8,15 @@ use crate::{
 
 fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
     match e {
-        // // TODO: plz implement a call stack. this is totally a hack and will not produce good error messages
-        // RuntimeError::ProcedureError { inner, call: proc_call } => {
-        //     if let Some(c) = call {
-        //         match_runtime_error(inner, Some(c));
-        //     } else {
-        //         match_runtime_error(inner, Some(proc_call.clone()));
-        //     }
-        // }
-        // RuntimeError::RecursionDepthOverflow(span) => {
-        //     throw(
-        //         "runtime error",
-        //         &format!("recursion depth overflow: procedure call lead to too many recursive iterations."),
-        //         span.clone(),
-        //         Some("probably you are doing something wrong."),
-        //         call,
-        //     );
-        // }
-        // RuntimeError::ImportError(span, path) => {
-        //     throw(
-        //         "runtime error",
-        //         &format!("import error: could not import \"{path}\"."),
-        //         span.clone(),
-        //         Some("maybe the file you are trying to import doesn't actually exist."),
-        //         call,
-        //     );
-        // }
-        // RuntimeError::ReadMemoryOutOfBounds(span, addr) => {
-        //     throw(
-        //         "runtime error",
-        //         &format!("memory out of bounds: tried to read memory at invalid address 0X{:X} ({addr}).", addr),
-        //         span.clone(),
-        //         Some("check if you are using `mem` correctly."),
-        //         call,
-        //     );
-        // }
-        // RuntimeError::WriteMemoryOutOfBounds(span, what, addr) => {
-        //     throw(
-        //         "runtime error",
-        //         &format!("memory out of bounds: tried to write {what} memory at invalid address 0X{:X} ({addr}).", addr),
-        //         span.clone(),
-        //         Some("check if you are using `mem` correctly."),
-        //         call,
-        //     );
-        // }
+        RuntimeError::Custom(span, message) => {
+            throw(
+                "runtime error",
+                &format!("{message}"),
+                span.clone(),
+                None,
+                call,
+            );
+        }
         RuntimeError::ArrayOutOfBounds(span, index, len) => {
             throw(
                 "runtime error",

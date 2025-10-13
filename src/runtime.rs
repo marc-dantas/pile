@@ -1,6 +1,6 @@
-use std::{collections::HashMap};
 
-use crate::{compiler::{Addr, Builtin, Id, Instr, Op, Value}, lexer::FileSpan};
+use std::{collections::HashMap, fs::{File, OpenOptions}, io::{stdout, Read, Write}, os::fd::{AsFd, AsRawFd}};
+use crate::{compiler::{Addr, Builtin, Data, FileLike, Id, Instr, Op, Value}, lexer::FileSpan};
 
 #[derive(Debug, Clone)]
 pub enum RuntimeError {
@@ -11,6 +11,7 @@ pub enum RuntimeError {
     ArrayOutOfBounds(FileSpan, i64, usize), // when tries to index array at invalid index
     StringOutOfBounds(FileSpan, i64, usize), // when tries to index string at invalid index
     DivisionByZero(FileSpan), // when tries to divide by zero
+    Custom(FileSpan, String), // custom error thrown by misc thing
 }
 
 pub struct Executor {
@@ -31,6 +32,9 @@ pub struct Executor {
     //                     so i can subtract and get the len of the array and get all the items
     arrays: HashMap<Id, Vec<Value>>,
     array_id: Id,
+
+    datas: HashMap<Id, Data>,
+    datas_id: Id,
 
     namespace: Vec<HashMap<String, Value>>,
     definitions: HashMap<String, Value>,
@@ -56,6 +60,8 @@ impl Executor {
             array_stack: Vec::new(),
             arrays: HashMap::new(),
             array_id: 0,
+            datas: HashMap::new(),
+            datas_id: 0,
             namespace: Vec::new(),
             call_stack: Vec::new(),
             definitions: HashMap::new(),
@@ -450,6 +456,9 @@ impl Executor {
                             let a = self.arrays.get(&id).unwrap();
                             self.stack.push(Value::Bool(!a.is_empty()));
                         },
+                        x => {
+                            return Err(RuntimeError::UnexpectedType(self.get_span(), "tobool".to_string(), "bool, nil, int, float, string or array".to_string(), format!("{}", x)));
+                        }
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(self.get_span(), "tobool".to_string(), 1));
@@ -464,6 +473,7 @@ impl Executor {
                     Value::Float(_) => "float",
                     Value::String(_) => "string",
                     Value::Array(_) => "array",
+                    Value::Data(_) => "data",
                 };
                 self.push_string(type_name.to_string());
             }
@@ -542,6 +552,85 @@ impl Executor {
                     self.stack.push(Value::Nil);
                 }
             },
+            Builtin::open => {
+                if let Some(path) = self.stack.pop() {
+                    if let Value::String(path) = path {
+                        let path = self.strings.get(&path).unwrap();
+                        match OpenOptions::new()
+                               .write(true)
+                               .read(true)
+                               .truncate(false)
+                               .create(true)
+                               .open(path) {
+                            Ok(f) => {
+                                self.datas.insert(self.datas_id, Data::File(FileLike::File(f)));
+                                self.stack.push(Value::Data(self.datas_id));
+                                self.datas_id += 1;
+                            }
+                            Err(e) => {
+                                return Err(RuntimeError::Custom(self.get_span(), format!("file error: {}", e.to_string())));
+                            }
+                        }
+                    } else {
+                        return Err(RuntimeError::UnexpectedType(self.get_span(), "open".to_string(), "string".to_string(), format!("{}", path)));
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.get_span(), "open".to_string(), 1));
+                }
+            },
+            Builtin::write => {
+                if let (Some(buf), Some(file)) = (self.stack.pop(), self.stack.pop()) {
+                    if let (Value::Data(file), Value::String(buf)) = (file, buf) {
+                        let span = self.get_span();
+                        let file = self.datas.get_mut(&file).unwrap();
+                        let buf = self.strings.get(&buf).unwrap();
+                        if let Data::File(file) = file {
+                            match file.write(buf) {
+                                Some(std::io::Result::Err(e)) => {
+                                    return Err(RuntimeError::Custom(self.get_span(), format!("file error: {}", e.to_string())));
+                                }
+                                None => {
+                                    return Err(RuntimeError::Custom(self.get_span(), format!("file error: not able to write")));
+                                }
+                                _ => {}
+                            }
+                        } else {
+                            return Err(RuntimeError::UnexpectedType(span, "write".to_string(), "file and a string".to_string(), format!("{}", file)));
+                        }
+                    } else {
+                        return Err(RuntimeError::UnexpectedType(self.get_span(), "write".to_string(), "file and a string".to_string(), format!("{}", file)));
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.get_span(), "write".to_string(), 2));
+                }
+            },
+            Builtin::read => {
+                if let Some(file) = self.stack.pop() {
+                    if let Value::Data(file) = file {
+                        let span = self.get_span();
+                        let file = self.datas.get_mut(&file).unwrap();
+                        if let Data::File(file) = file {
+                            match file.read() {
+                                Some((_, std::io::Result::Err(e))) => {
+                                    return Err(RuntimeError::Custom(self.get_span(), format!("file error: {}", e.to_string())));
+                                }
+                                None => {
+                                    return Err(RuntimeError::Custom(self.get_span(), format!("file error: not able to read")));
+                                }
+                                Some((b, std::io::Result::Ok(_))) => {
+                                    self.push_string(b);
+                                }
+                            }
+                        } else {
+                            return Err(RuntimeError::UnexpectedType(span, "read".to_string(), "file".to_string(), format!("{}", file)));
+                        }
+                    } else {
+                        return Err(RuntimeError::UnexpectedType(self.get_span(), "read".to_string(), "file".to_string(), format!("{}", file)));
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.get_span(), "read".to_string(), 1));
+                }
+            },
             Builtin::exit => {
                 if let Some(value) = self.stack.pop() {
                     match value {
@@ -608,7 +697,26 @@ impl Executor {
         Ok(())
     }
 
+    pub fn new_data(&mut self, data: Data) -> Value {
+        let id = self.datas_id;
+        self.datas.insert(id, data);
+        self.datas_id += 1;
+        return Value::Data(id);
+    }
+
+    fn header(&mut self) {
+        let data = self.new_data(Data::File(FileLike::Stdin(std::io::stdin())));
+        self.definitions.insert("STDIN".to_string(), data);
+        let data = self.new_data(Data::File(FileLike::Stdout(std::io::stdout())));
+        self.definitions.insert("STDOUT".to_string(), data);
+        let data = self.new_data(Data::File(FileLike::Stderr(std::io::stderr())));
+        self.definitions.insert("STDERR".to_string(), data);
+    }
+
     pub fn run(mut self) -> Result<(), RuntimeError> {
+        // Program Header
+        self.header();
+
         let mut pc = 0;
         while pc < self.program.len() {
             match &self.program[pc] {
