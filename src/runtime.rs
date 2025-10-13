@@ -80,6 +80,11 @@ impl Executor {
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => self.stack.push(Value::Int(x.overflowing_add(y).0)),
                     (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x + y)),
+                    (Value::String(x), Value::String(y)) => {
+                        let x = self.strings.get(&x).unwrap();
+                        let y = self.strings.get(&y).unwrap();
+                        self.push_string(format!("{x}{y}"));
+                    },
                     _ => return Err(RuntimeError::UnexpectedType(self.get_span(), "+".to_string(), "two numeric values".to_string(), format!("{} and {}", a, b))),
                 }
                 Ok(())
@@ -436,7 +441,7 @@ impl Executor {
             }
             Builtin::tostring => {
                 if let Some(value) = self.stack.pop() {
-                    self.push_string(format!("{}", value));
+                    self.push_string(self.display_value(value));
                 } else {
                     return Err(RuntimeError::StackUnderflow(self.get_span(), "tostring".to_string(), 1));
                 }
@@ -649,13 +654,7 @@ impl Executor {
         Ok(())
     }
 
-    pub fn new_data(&mut self, data: Data) -> Value {
-        let id = self.datas_id;
-        self.datas.insert(id, data);
-        self.datas_id += 1;
-        return Value::Data(id);
-    }
-
+    
     fn header(&mut self) {
         let data = self.new_data(Data::File(FileLike::Stdin(std::io::stdin())));
         self.definitions.insert("STDIN".to_string(), data);
@@ -666,11 +665,11 @@ impl Executor {
         let data = self.new_data(Data::File(FileLike::Stderr(std::io::stderr())));
         self.definitions.insert("STDERR".to_string(), data);
     }
-
+    
     pub fn run(mut self) -> Result<(), RuntimeError> {
         // Program Header
         self.header();
-
+        
         let mut pc = 0;
         while pc < self.program.len() {
             match &self.program[pc] {
@@ -830,10 +829,40 @@ impl Executor {
         Ok(())
     }
 
+    fn display_value(&self, value: Value) -> String {
+        match value {
+            Value::Bool(b) => format!("{b}"),
+            Value::Int(i) => format!("{i}"),
+            Value::Float(f) => format!("{f}"),
+            Value::Nil => String::from("nil"),
+            Value::Array(a) => {
+                let a = self.arrays.get(&a).unwrap();
+                let mut s = String::from("array ");
+                for i in a {
+                    s.push_str(&self.display_value(*i));
+                    s.push(' ');
+                }
+                s.push_str("end");
+                s
+            },
+            Value::String(s) => {
+                self.strings.get(&s).unwrap().to_owned()
+            }
+            other => format!("{other}"),
+        }
+    }
+
     fn push_string(&mut self, string: String) {
         let id = self.string_id;
         self.strings.insert(id, string);
         self.stack.push(Value::String(id));
         self.string_id += 1;
+    }
+
+    pub fn new_data(&mut self, data: Data) -> Value {
+        let id = self.datas_id;
+        self.datas.insert(id, data);
+        self.datas_id += 1;
+        return Value::Data(id);
     }
 }
