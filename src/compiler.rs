@@ -8,15 +8,9 @@ use crate::{lexer::{FileSpan, Token}, parser::{Node, OpKind}};
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
 pub enum Builtin {
-    print,
-    println,
-    eprint,
-    eprintln,
     open,
     write,
     read,
-    input,
-    inputln,
     exit,
     chr,
     ord,
@@ -465,12 +459,6 @@ impl Compiler {
                         self.instructions.push(Instr::Call(*addr));
                     } else {
                         match name.as_str() {
-                            "print" => self.instructions.push(Instr::ExecBuiltin(Builtin::print)),
-                            "println" => self.instructions.push(Instr::ExecBuiltin(Builtin::println)),
-                            "eprint" => self.instructions.push(Instr::ExecBuiltin(Builtin::eprint)),
-                            "eprintln" => self.instructions.push(Instr::ExecBuiltin(Builtin::eprintln)),
-                            "input" => self.instructions.push(Instr::ExecBuiltin(Builtin::input)),
-                            "inputln" => self.instructions.push(Instr::ExecBuiltin(Builtin::inputln)),
                             "open" => self.instructions.push(Instr::ExecBuiltin(Builtin::open)),
                             "write" => self.instructions.push(Instr::ExecBuiltin(Builtin::write)),
                             "read" => self.instructions.push(Instr::ExecBuiltin(Builtin::read)),
