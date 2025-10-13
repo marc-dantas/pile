@@ -1,0 +1,12 @@
+# Writes value to standard output with a trailing newline character.
+# ( a -- )
+proc Print
+    STDOUT swap tostring "\n" + write
+end
+
+# Reads one line from standard input and lets the line read on the
+# stack including the trailing newline character
+# ( -- l )
+proc Input
+    STDIN readline
+end
