@@ -1,5 +1,5 @@
 
-use std::{collections::HashMap, fs::{File, OpenOptions}, io::{stdout, Read, Write}, os::fd::{AsFd, AsRawFd}};
+use std::{collections::HashMap, fs::{File, OpenOptions}, io::{stdout, BufReader, Read, Write}, os::fd::{AsFd, AsRawFd}};
 use crate::{compiler::{Addr, Builtin, Data, FileLike, Id, Instr, Op, Value}, lexer::FileSpan};
 
 #[derive(Debug, Clone)]
@@ -556,6 +556,33 @@ impl Executor {
                     return Err(RuntimeError::StackUnderflow(self.get_span(), "read".to_string(), 1));
                 }
             },
+            Builtin::readline => {
+                if let Some(file) = self.stack.pop() {
+                    if let Value::Data(file) = file {
+                        let span = self.get_span();
+                        let file = self.datas.get_mut(&file).unwrap();
+                        if let Data::File(file) = file {
+                            match file.readline() {
+                                Some((_, std::io::Result::Err(e))) => {
+                                    return Err(RuntimeError::Custom(self.get_span(), format!("file error: {}", e.to_string())));
+                                }
+                                None => {
+                                    return Err(RuntimeError::Custom(self.get_span(), format!("file error: not able to read line")));
+                                }
+                                Some((b, std::io::Result::Ok(_))) => {
+                                    self.push_string(b);
+                                }
+                            }
+                        } else {
+                            return Err(RuntimeError::UnexpectedType(span, "readline".to_string(), "file".to_string(), format!("{}", file)));
+                        }
+                    } else {
+                        return Err(RuntimeError::UnexpectedType(self.get_span(), "readline".to_string(), "file".to_string(), format!("{}", file)));
+                    }
+                } else {
+                    return Err(RuntimeError::StackUnderflow(self.get_span(), "readline".to_string(), 1));
+                }
+            },
             Builtin::exit => {
                 if let Some(value) = self.stack.pop() {
                     match value {
@@ -632,8 +659,10 @@ impl Executor {
     fn header(&mut self) {
         let data = self.new_data(Data::File(FileLike::Stdin(std::io::stdin())));
         self.definitions.insert("STDIN".to_string(), data);
+        
         let data = self.new_data(Data::File(FileLike::Stdout(std::io::stdout())));
         self.definitions.insert("STDOUT".to_string(), data);
+        
         let data = self.new_data(Data::File(FileLike::Stderr(std::io::stderr())));
         self.definitions.insert("STDERR".to_string(), data);
     }

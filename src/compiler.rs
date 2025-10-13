@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{Read, Write};
+use std::fs::{read, File};
+use std::io::{Read, Write, BufRead};
 use crate::core::try_parse_from_file;
 
 use crate::{lexer::{FileSpan, Token}, parser::{Node, OpKind}};
@@ -11,6 +11,7 @@ pub enum Builtin {
     open,
     write,
     read,
+    readline,
     exit,
     chr,
     ord,
@@ -142,6 +143,23 @@ impl FileLike {
         };
         value
     }
+    
+    pub fn readline(&mut self) -> Option<(String, std::io::Result<usize>)> {
+        let mut value = None;
+        let mut buf: String = String::new();
+        match self {
+            FileLike::Stdin(f) => {
+                let a = f.read_line(&mut buf);
+                value = Some((buf, a));
+            },
+            FileLike::File(..) => {},
+            FileLike::Stdout(..) => {},
+            FileLike::Stderr(..) => {},
+        };
+        value
+    }
+
+
 
     pub fn write(&mut self, buf: &String) -> Option<std::io::Result<usize>> {
         let mut value = None;
