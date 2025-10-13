@@ -480,6 +480,7 @@ impl Compiler {
                             "open" => self.instructions.push(Instr::ExecBuiltin(Builtin::open)),
                             "write" => self.instructions.push(Instr::ExecBuiltin(Builtin::write)),
                             "read" => self.instructions.push(Instr::ExecBuiltin(Builtin::read)),
+                            "readline" => self.instructions.push(Instr::ExecBuiltin(Builtin::readline)),
                             "exit" => self.instructions.push(Instr::ExecBuiltin(Builtin::exit)),
                             "chr" => self.instructions.push(Instr::ExecBuiltin(Builtin::chr)),
                             "ord" => self.instructions.push(Instr::ExecBuiltin(Builtin::ord)),
