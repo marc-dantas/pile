@@ -1,9 +1,12 @@
+use crate::core::try_parse_from_file;
 use std::collections::HashMap;
 use std::fs::{read, File};
-use std::io::{Read, Write, BufRead};
-use crate::core::try_parse_from_file;
+use std::io::{BufRead, Read, Write};
 
-use crate::{lexer::{FileSpan, Token}, parser::{Node, OpKind}};
+use crate::{
+    lexer::{FileSpan, Token},
+    parser::{Node, OpKind},
+};
 
 #[derive(Debug, Clone, Copy)]
 #[allow(non_camel_case_types)]
@@ -32,7 +35,7 @@ pub enum Op {
     Div,
     Mod,
     Exp,
-    
+
     // Relational
     Gt,
     Lt,
@@ -52,7 +55,7 @@ pub enum Op {
     IsNil,
     Index,
     AssignAtIndex,
-    
+
     // Other
     Trace,
 }
@@ -133,17 +136,17 @@ impl FileLike {
             FileLike::File(f) => {
                 let a = f.read_to_string(&mut buf);
                 value = Some((buf, a));
-            },
+            }
             FileLike::Stdin(f) => {
                 let a = f.read_to_string(&mut buf);
                 value = Some((buf, a));
-            },
-            FileLike::Stdout(..) => {},
-            FileLike::Stderr(..) => {},
+            }
+            FileLike::Stdout(..) => {}
+            FileLike::Stderr(..) => {}
         };
         value
     }
-    
+
     pub fn readline(&mut self) -> Option<(String, std::io::Result<usize>)> {
         let mut value = None;
         let mut buf: String = String::new();
@@ -151,29 +154,27 @@ impl FileLike {
             FileLike::Stdin(f) => {
                 let a = f.read_line(&mut buf);
                 value = Some((buf, a));
-            },
-            FileLike::File(..) => {},
-            FileLike::Stdout(..) => {},
-            FileLike::Stderr(..) => {},
+            }
+            FileLike::File(..) => {}
+            FileLike::Stdout(..) => {}
+            FileLike::Stderr(..) => {}
         };
         value
     }
-
-
 
     pub fn write(&mut self, buf: &String) -> Option<std::io::Result<usize>> {
         let mut value = None;
         match self {
             FileLike::File(f) => {
                 value = Some(f.write(buf.as_bytes()));
-            },
-            FileLike::Stdin(f) => {},
+            }
+            FileLike::Stdin(f) => {}
             FileLike::Stdout(f) => {
                 value = Some(f.write(buf.as_bytes()));
-            },
+            }
             FileLike::Stderr(f) => {
                 value = Some(f.write(buf.as_bytes()));
-            },
+            }
         };
         value
     }
@@ -191,7 +192,6 @@ impl std::fmt::Display for Data {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Copy)]
 pub enum Value {
@@ -233,6 +233,9 @@ pub enum Instr {
     PushString(String),
     BeginArray,
     EndArray,
+    BeginIter,
+    EndIter,
+    Next,
     Return,
     Call(Addr),
     Swap,
@@ -267,6 +270,9 @@ impl std::fmt::Display for Instr {
             Instr::Drop => write!(f, "drop"),
             Instr::Rotate => write!(f, "rot"),
             Instr::SetSpan(span) => write!(f, "setspan {}", span),
+            Instr::BeginIter => write!(f, "beginiter"),
+            Instr::EndIter => write!(f, "enditer"),
+            Instr::Next => write!(f, "next"),
         }
     }
 }
@@ -276,7 +282,7 @@ pub struct Compiler {
     spans: Vec<FileSpan>,
     instructions: Vec<Instr>,
     procs: HashMap<String, Addr>,
-    loop_stack: Vec<(Addr, Vec<Addr>)>
+    loop_stack: Vec<(Addr, Vec<Addr>)>,
 }
 
 impl Compiler {
@@ -310,7 +316,9 @@ impl Compiler {
         //                 Probable solution: Add more information about the origin of the scope and
         //                                    make return instruction delete all the scopes that were created
         //                                    inside the proc.
-        if scoped { self.instructions.push(Instr::BeginScope); }
+        if scoped {
+            self.instructions.push(Instr::BeginScope);
+        }
 
         for stmt in block.into_iter() {
             match stmt {
@@ -325,7 +333,7 @@ impl Compiler {
                     // NOTE: This SetSpan instruction is not really necessary,
                     // but it will eventually be useful for a future step debugger.
                     self.instructions.push(Instr::SetSpan(span_id));
-                    
+
                     let backpatch = self.instructions.len();
                     self.instructions.push(Instr::Jump(0));
                     let proc_addr = self.instructions.len();
@@ -337,10 +345,10 @@ impl Compiler {
                 Node::If(then_block, else_block, span) => {
                     let span_id = self.add_span(span.to_filespan(self.filename.clone()));
                     self.instructions.push(Instr::SetSpan(span_id));
-                    
+
                     let cond_backpatch = self.instructions.len();
                     self.instructions.push(Instr::JumpIfNot(0));
-                    
+
                     self.compile_block(then_block, false);
                     let escape_backpatch = self.instructions.len();
                     self.instructions.push(Instr::Jump(0));
@@ -405,7 +413,7 @@ impl Compiler {
                     self.instructions.push(Instr::EndScope);
                     self.instructions.push(Instr::Return);
                 }
-                Node::Operation(OpKind::True, span) =>  {
+                Node::Operation(OpKind::True, span) => {
                     let span_id = self.add_span(span.to_filespan(self.filename.clone()));
                     self.instructions.push(Instr::SetSpan(span_id));
                     self.instructions.push(Instr::Push(Value::Bool(true)));
@@ -415,7 +423,7 @@ impl Compiler {
                     self.instructions.push(Instr::SetSpan(span_id));
                     self.instructions.push(Instr::Push(Value::Bool(false)));
                 }
-                Node::Operation(OpKind::Nil, span) =>   {
+                Node::Operation(OpKind::Nil, span) => {
                     let span_id = self.add_span(span.to_filespan(self.filename.clone()));
                     self.instructions.push(Instr::SetSpan(span_id));
                     self.instructions.push(Instr::Push(Value::Nil));
@@ -480,32 +488,62 @@ impl Compiler {
                             "open" => self.instructions.push(Instr::ExecBuiltin(Builtin::open)),
                             "write" => self.instructions.push(Instr::ExecBuiltin(Builtin::write)),
                             "read" => self.instructions.push(Instr::ExecBuiltin(Builtin::read)),
-                            "readline" => self.instructions.push(Instr::ExecBuiltin(Builtin::readline)),
+                            "readline" => self
+                                .instructions
+                                .push(Instr::ExecBuiltin(Builtin::readline)),
                             "exit" => self.instructions.push(Instr::ExecBuiltin(Builtin::exit)),
                             "chr" => self.instructions.push(Instr::ExecBuiltin(Builtin::chr)),
                             "ord" => self.instructions.push(Instr::ExecBuiltin(Builtin::ord)),
                             "len" => self.instructions.push(Instr::ExecBuiltin(Builtin::len)),
-                            "typeof" => self.instructions.push(Instr::ExecBuiltin(Builtin::typeof_)),
+                            "typeof" => {
+                                self.instructions.push(Instr::ExecBuiltin(Builtin::typeof_))
+                            }
                             "toint" => self.instructions.push(Instr::ExecBuiltin(Builtin::toint)),
-                            "tofloat" => self.instructions.push(Instr::ExecBuiltin(Builtin::tofloat)),
-                            "tostring" => self.instructions.push(Instr::ExecBuiltin(Builtin::tostring)),
+                            "tofloat" => {
+                                self.instructions.push(Instr::ExecBuiltin(Builtin::tofloat))
+                            }
+                            "tostring" => self
+                                .instructions
+                                .push(Instr::ExecBuiltin(Builtin::tostring)),
                             "tobool" => self.instructions.push(Instr::ExecBuiltin(Builtin::tobool)),
                             _ => self.instructions.push(Instr::PushBinding(name)),
                         }
                     }
                 }
-                Node::AsLet(variables, .. ) => {
+                Node::AsLet(variables, ..) => {
                     for var in variables.into_iter().rev() {
-                        let Token{ value: x, span: var_span, .. } = var;
+                        let Token {
+                            value: x,
+                            span: var_span,
+                            ..
+                        } = var;
                         let span_id = self.add_span(var_span.to_filespan(self.filename.clone()));
                         self.instructions.push(Instr::SetSpan(span_id));
                         self.instructions.push(Instr::SetVariable(x));
                     }
                 }
-                _ => unimplemented!(), // Placeholder for other statement types
+                Node::For(variable, block, span) => {
+                    let span_id = self.add_span(span.to_filespan(self.filename.clone()));
+                    self.instructions.push(Instr::SetSpan(span_id));
+                    self.instructions.push(Instr::BeginIter);
+                    let start = self.instructions.len();
+
+                    self.instructions.push(Instr::Next);
+                    self.instructions.push(Instr::Duplicate);
+                    let jump_to_end = self.instructions.len();
+                    self.instructions.push(Instr::JumpIfNot(0));
+                    self.instructions.push(Instr::SetVariable(variable.value));
+                    self.compile_block(block, false);
+                    self.instructions.push(Instr::Jump(start));
+
+                    let end = self.instructions.len();
+                    self.instructions.push(Instr::EndIter);
+                    self.instructions[jump_to_end] = Instr::JumpIfNot(end);
+                }
             }
         }
-        if scoped { self.instructions.push(Instr::EndScope); }
+        if scoped {
+            self.instructions.push(Instr::EndScope);
+        }
     }
 }
-

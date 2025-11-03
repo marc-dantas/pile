@@ -9,13 +9,13 @@ def read_source_code_lines(dirpath: str) -> int:
     lines = 0
     if not isdir(dirpath):
         return -1
-    
+
     for p in listdir(dirpath):
         if isdir(join(dirpath, p)):
             continue
         with open(join(dirpath, p), "r") as f:
             lines += len(f.readlines())
-    
+
     return lines
 
 

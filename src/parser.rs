@@ -34,8 +34,7 @@ pub fn is_op(value: &str) -> bool {
 pub fn is_reserved_word(value: &str) -> bool {
     matches!(
         value,
-        "if"
-            | "as"
+        "if" | "as"
             | "loop"
             | "proc"
             | "end"
@@ -50,6 +49,7 @@ pub fn is_reserved_word(value: &str) -> bool {
             | "nil"
             | "array"
             | "import"
+            | "for"
     )
 }
 
@@ -167,7 +167,9 @@ impl<'a> Parser<'a> {
                 "import" => self.parse_import(),
                 "for" => self.parse_for(),
                 "end" => Err(ParseError::UnmatchedBlock(
-                    self.current_span.unwrap().to_filespan(self.filename.to_string())
+                    self.current_span
+                        .unwrap()
+                        .to_filespan(self.filename.to_string()),
                 )),
                 "+" => Ok(Node::Operation(OpKind::Add, token.span)),
                 "-" => Ok(Node::Operation(OpKind::Sub, token.span)),
@@ -209,7 +211,10 @@ impl<'a> Parser<'a> {
     fn parse_proc(&mut self) -> Result<Node, ParseError> {
         let proc_name = self.lexer.next().ok_or_else(|| {
             let span = self.current_span.unwrap();
-            ParseError::UnexpectedEOF(span.to_filespan(self.filename.to_string()), "valid identifier".to_string())
+            ParseError::UnexpectedEOF(
+                span.to_filespan(self.filename.to_string()),
+                "valid identifier".to_string(),
+            )
         })?;
 
         if !is_valid_identifier(&proc_name.value) {
@@ -223,7 +228,12 @@ impl<'a> Parser<'a> {
         let mut body = Vec::new();
 
         while let Some(token) = self.lexer.next() {
-            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+            if let Token {
+                value: x,
+                kind: TokenKind::Word,
+                ..
+            } = &token
+            {
                 if x.as_str() == "end" {
                     return Ok(Node::Proc(proc_name.value, body, proc_name.span));
                 }
@@ -240,7 +250,10 @@ impl<'a> Parser<'a> {
     fn parse_let(&mut self) -> Result<Node, ParseError> {
         let variable = self.lexer.next().ok_or_else(|| {
             let span = self.current_span.unwrap();
-            ParseError::UnexpectedEOF(span.to_filespan(self.filename.to_string()), "valid identifier".to_string())
+            ParseError::UnexpectedEOF(
+                span.to_filespan(self.filename.to_string()),
+                "valid identifier".to_string(),
+            )
         })?;
 
         if !is_valid_identifier(&variable.value) {
@@ -259,7 +272,12 @@ impl<'a> Parser<'a> {
         let mut closed = false;
 
         while let Some(token) = self.lexer.next() {
-            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+            if let Token {
+                value: x,
+                kind: TokenKind::Word,
+                ..
+            } = &token
+            {
                 if x.as_str() == "let" {
                     closed = true;
                     break;
@@ -276,7 +294,9 @@ impl<'a> Parser<'a> {
         }
         if !closed {
             return Err(ParseError::UnexpectedEOF(
-                self.current_span.unwrap().to_filespan(self.filename.to_string()),
+                self.current_span
+                    .unwrap()
+                    .to_filespan(self.filename.to_string()),
                 "let".to_string(),
             ));
         }
@@ -286,7 +306,10 @@ impl<'a> Parser<'a> {
     fn parse_def(&mut self) -> Result<Node, ParseError> {
         let def_name = self.lexer.next().ok_or_else(|| {
             let span = self.current_span.unwrap();
-            ParseError::UnexpectedEOF(span.to_filespan(self.filename.to_string()), "valid identifier".to_string())
+            ParseError::UnexpectedEOF(
+                span.to_filespan(self.filename.to_string()),
+                "valid identifier".to_string(),
+            )
         })?;
 
         if !is_valid_identifier(&def_name.value) {
@@ -296,18 +319,23 @@ impl<'a> Parser<'a> {
                 "valid identifier".to_string(),
             ));
         }
-        
+
         let mut body = Vec::new();
-        
+
         while let Some(token) = self.lexer.next() {
-            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+            if let Token {
+                value: x,
+                kind: TokenKind::Word,
+                ..
+            } = &token
+            {
                 if x.as_str() == "end" {
                     return Ok(Node::Def(def_name.value, body, def_name.span));
                 }
             }
             body.push(self.parse_expr(token)?);
         }
-        
+
         Err(ParseError::UnterminatedBlock(
             def_name.span.to_filespan(self.filename.to_string()),
             "def".to_string(),
@@ -321,11 +349,19 @@ impl<'a> Parser<'a> {
 
         while let Some(token) = self.lexer.next() {
             match &token {
-                Token { value: x, kind: TokenKind::Word, .. } if x == "else" => {
+                Token {
+                    value: x,
+                    kind: TokenKind::Word,
+                    ..
+                } if x == "else" => {
                     let mut else_block = Vec::new();
                     while let Some(token) = self.lexer.next() {
                         match &token {
-                            Token { value: x, kind: TokenKind::Word, .. } if x == "end" => {
+                            Token {
+                                value: x,
+                                kind: TokenKind::Word,
+                                ..
+                            } if x == "end" => {
                                 return Ok(Node::If(if_body, Some(else_block), if_span));
                             }
                             _ => {}
@@ -337,7 +373,11 @@ impl<'a> Parser<'a> {
                         "else".to_string(),
                     ));
                 }
-                Token { value: x, kind: TokenKind::Word, .. } if x == "end" => {
+                Token {
+                    value: x,
+                    kind: TokenKind::Word,
+                    ..
+                } if x == "end" => {
                     return Ok(Node::If(if_body, else_body, if_span));
                 }
                 _ => {}
@@ -355,7 +395,12 @@ impl<'a> Parser<'a> {
         let mut body = Vec::new();
 
         while let Some(token) = self.lexer.next() {
-            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+            if let Token {
+                value: x,
+                kind: TokenKind::Word,
+                ..
+            } = &token
+            {
                 if x.as_str() == "end" {
                     return Ok(Node::Loop(body, token.span));
                 }
@@ -364,7 +409,9 @@ impl<'a> Parser<'a> {
         }
 
         Err(ParseError::UnterminatedBlock(
-            self.current_span.unwrap().to_filespan(self.filename.to_string()),
+            self.current_span
+                .unwrap()
+                .to_filespan(self.filename.to_string()),
             "loop".to_string(),
         ))
     }
@@ -374,7 +421,12 @@ impl<'a> Parser<'a> {
         let span = self.current_span.unwrap();
 
         while let Some(token) = self.lexer.next() {
-            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+            if let Token {
+                value: x,
+                kind: TokenKind::Word,
+                ..
+            } = &token
+            {
                 if x.as_str() == "end" {
                     return Ok(Node::Array(body, span));
                 }
@@ -383,7 +435,9 @@ impl<'a> Parser<'a> {
         }
 
         Err(ParseError::UnterminatedBlock(
-            self.current_span.unwrap().to_filespan(self.filename.to_string()),
+            self.current_span
+                .unwrap()
+                .to_filespan(self.filename.to_string()),
             "array".to_string(),
         ))
     }
@@ -391,7 +445,10 @@ impl<'a> Parser<'a> {
     fn parse_import(&mut self) -> Result<Node, ParseError> {
         let path_token = self.lexer.next().ok_or_else(|| {
             let span = self.current_span.unwrap();
-            ParseError::UnexpectedEOF(span.to_filespan(self.filename.to_string()), "valid identifier".to_string())
+            ParseError::UnexpectedEOF(
+                span.to_filespan(self.filename.to_string()),
+                "valid identifier".to_string(),
+            )
         })?;
         if path_token.kind != TokenKind::String {
             return Err(ParseError::UnexpectedToken(
@@ -406,7 +463,10 @@ impl<'a> Parser<'a> {
     fn parse_for(&mut self) -> Result<Node, ParseError> {
         let variable = self.lexer.next().ok_or_else(|| {
             let span = self.current_span.unwrap();
-            ParseError::UnexpectedEOF(span.to_filespan(self.filename.to_string()), "valid identifier".to_string())
+            ParseError::UnexpectedEOF(
+                span.to_filespan(self.filename.to_string()),
+                "valid identifier".to_string(),
+            )
         })?;
 
         if !is_valid_identifier(&variable.value) {
@@ -420,7 +480,12 @@ impl<'a> Parser<'a> {
         let mut body = Vec::new();
 
         while let Some(token) = self.lexer.next() {
-            if let Token { value: x, kind: TokenKind::Word, .. } = &token {
+            if let Token {
+                value: x,
+                kind: TokenKind::Word,
+                ..
+            } = &token
+            {
                 if x.as_str() == "end" {
                     return Ok(Node::For(variable, body, token.span));
                 }
@@ -429,7 +494,9 @@ impl<'a> Parser<'a> {
         }
 
         Err(ParseError::UnterminatedBlock(
-            self.current_span.unwrap().to_filespan(self.filename.to_string()),
+            self.current_span
+                .unwrap()
+                .to_filespan(self.filename.to_string()),
             "for".to_string(),
         ))
     }
