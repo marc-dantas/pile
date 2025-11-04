@@ -2,13 +2,7 @@ use crate::{
     compiler::{Addr, Builtin, Data, FileLike, Id, Instr, Op, Value},
     lexer::FileSpan,
 };
-use std::{
-    collections::HashMap,
-    fs::{File, OpenOptions},
-    io::{stdout, BufReader, Read, Write},
-    os::fd::{AsFd, AsRawFd},
-    sync::mpsc::Iter,
-};
+use std::{collections::HashMap, fs::OpenOptions};
 
 #[derive(Debug, Clone)]
 pub enum RuntimeError {

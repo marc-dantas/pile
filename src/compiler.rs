@@ -1,7 +1,7 @@
 use crate::core::try_parse_from_file;
 use std::collections::HashMap;
-use std::fs::{read, File};
-use std::io::{BufRead, Read, Write};
+use std::fs::File;
+use std::io::{Read, Write};
 
 use crate::{
     lexer::{FileSpan, Token},
