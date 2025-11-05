@@ -162,18 +162,18 @@ impl FileLike {
         value
     }
 
-    pub fn write(&mut self, buf: &String) -> Option<std::io::Result<usize>> {
+    pub fn write(&mut self, buf: &[u8]) -> Option<std::io::Result<usize>> {
         let mut value = None;
         match self {
             FileLike::File(f) => {
-                value = Some(f.write(buf.as_bytes()));
+                value = Some(f.write(buf));
             }
             FileLike::Stdin(f) => {}
             FileLike::Stdout(f) => {
-                value = Some(f.write(buf.as_bytes()));
+                value = Some(f.write(buf));
             }
             FileLike::Stderr(f) => {
-                value = Some(f.write(buf.as_bytes()));
+                value = Some(f.write(buf));
             }
         };
         value
