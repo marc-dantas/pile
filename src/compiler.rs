@@ -129,17 +129,17 @@ pub enum FileLike {
 }
 
 impl FileLike {
-    pub fn read(&mut self) -> Option<(String, std::io::Result<usize>)> {
+    pub fn read(&mut self) -> Option<(Vec<u8>, std::io::Result<usize>)> {
         let mut value = None;
-        let mut buf: String = String::new();
+        let mut buf = Vec::new();
         match self {
             FileLike::File(f) => {
-                let a = f.read_to_string(&mut buf);
+                let a = f.read_to_end(&mut buf);
                 value = Some((buf, a));
             }
             FileLike::Stdin(f) => {
-                let a = f.read_to_string(&mut buf);
-                value = Some((buf, a));
+                let a = f.read_to_end(&mut buf);
+                value = Some((buf.to_vec(), a));
             }
             FileLike::Stdout(..) => {}
             FileLike::Stderr(..) => {}
