@@ -2,7 +2,7 @@ use crate::{
     compiler::{Addr, Builtin, Data, FileLike, Id, Instr, Op, Value},
     lexer::FileSpan,
 };
-use std::{collections::HashMap, fs::OpenOptions};
+use std::{collections::HashMap, fs::OpenOptions, str};
 
 #[derive(Debug, Clone)]
 pub enum RuntimeError {
@@ -16,31 +16,9 @@ pub enum RuntimeError {
     Custom(FileSpan, String),                         // custom error thrown by misc thing
 }
 
-struct RuntimeIterator<T> {
-    items: Vec<T>,
-    point: usize,
-}
-
-impl<T: Copy> RuntimeIterator<T> {
-    pub fn new(items: impl Iterator<Item = T>) -> Self {
-        Self {
-            items: items.collect(),
-            point: 0,
-        }
-    }
-
-    pub fn from_vec(vec: Vec<T>) -> Self {
-        Self {
-            items: vec,
-            point: 0,
-        }
-    }
-
-    pub fn next(&mut self) -> Option<T> {
-        let i = self.items.get(self.point).map(|x| *x);
-        self.point += 1;
-        return i;
-    }
+enum IteratorOver {
+    Values(Id),
+    Bytes(Id),
 }
 
 pub struct Executor {
@@ -53,7 +31,7 @@ pub struct Executor {
     call_stack: Vec<Addr>,
 
     strings_intern_pool: HashMap<String, Id>,
-    strings: HashMap<Id, String>,
+    strings: HashMap<Id, Vec<u8>>,
     string_id: Id,
 
     array_stack: Vec<usize>,
@@ -62,7 +40,7 @@ pub struct Executor {
     arrays: HashMap<Id, Vec<Value>>,
     array_id: Id,
 
-    iterators: Vec<RuntimeIterator<Value>>,
+    iterators: Vec<(IteratorOver, usize)>,
 
     datas: HashMap<Id, Data>,
     datas_id: Id,
@@ -121,7 +99,10 @@ impl Executor {
                     (Value::String(x), Value::String(y)) => {
                         let x = self.strings.get(&x).unwrap();
                         let y = self.strings.get(&y).unwrap();
-                        self.push_string(format!("{x}{y}"));
+                        let mut concat = Vec::new();
+                        concat.extend(x);
+                        concat.extend(y);
+                        self.push_string(concat);
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
@@ -590,8 +571,8 @@ impl Executor {
                     }
                     (Value::String(id), Value::Int(i)) => {
                         let string = self.strings.get(&id).unwrap();
-                        if let Some(value) = string.chars().nth(i as usize) {
-                            self.push_string(value.to_string());
+                        if let Some(value) = string.get(i as usize) {
+                            self.stack.push(Value::Int(*value as i64));
                         } else {
                             return Err(RuntimeError::StringOutOfBounds(
                                 self.get_span(),
@@ -644,11 +625,7 @@ impl Executor {
                                 string_len,
                             ));
                         }
-                        if let Some(chr) = std::char::from_u32(chrcode as u32) {
-                            string.replace_range(i as usize..i as usize + 1, &chr.to_string());
-                        } else {
-                            string.replace_range(i as usize..i as usize + 1, "\0");
-                        }
+                        string[i as usize] = chrcode as u8;
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
@@ -673,6 +650,7 @@ impl Executor {
                         Value::Float(f) => self.stack.push(Value::Int(f as i64)),
                         Value::String(id) => {
                             let s = self.strings.get(&id).unwrap();
+                            let s = unsafe { std::str::from_utf8_unchecked(&s) };
                             if let Ok(i) = s.parse::<i64>() {
                                 self.stack.push(Value::Int(i));
                             } else {
@@ -697,6 +675,7 @@ impl Executor {
                         Value::Float(f) => self.stack.push(Value::Float(f)),
                         Value::String(id) => {
                             let s = self.strings.get(&id).unwrap();
+                            let s = unsafe { std::str::from_utf8_unchecked(&s) };
                             if let Ok(f) = s.parse::<f64>() {
                                 self.stack.push(Value::Float(f));
                             } else {
@@ -716,7 +695,7 @@ impl Executor {
             }
             Builtin::tostring => {
                 if let Some(value) = self.stack.pop() {
-                    self.push_string(self.display_value(value));
+                    self.push_string(self.display_value(value).as_bytes().to_vec());
                 } else {
                     return Err(RuntimeError::StackUnderflow(
                         self.get_span(),
@@ -770,12 +749,12 @@ impl Executor {
                     Value::Array(_) => "array",
                     Value::Data(_) => "data",
                 };
-                self.push_string(type_name.to_string());
+                self.push_string(type_name.as_bytes().to_vec());
             }
             Builtin::open => {
                 if let Some(path) = self.stack.pop() {
                     if let Value::String(path) = path {
-                        let path = self.strings.get(&path).unwrap();
+                        let path = self.load_string_utf8(path)?;
                         match OpenOptions::new()
                             .write(true)
                             .read(true)
@@ -925,7 +904,7 @@ impl Executor {
                                     ));
                                 }
                                 Some((b, std::io::Result::Ok(_))) => {
-                                    self.push_string(b);
+                                    self.push_string(b.as_bytes().to_vec());
                                 }
                             }
                         } else {
@@ -977,8 +956,12 @@ impl Executor {
                 if let Some(value) = self.stack.pop() {
                     match value {
                         Value::Int(i) => {
-                            if let Some(c) = std::char::from_u32(i as u32) {
-                                self.push_string(c.to_string());
+                            if let Ok(c) = std::str::from_utf8(
+                                (unsafe { char::from_u32_unchecked(i as u32) })
+                                    .to_string()
+                                    .as_bytes(),
+                            ) {
+                                self.push_string(c.as_bytes().to_vec());
                             } else {
                                 self.stack.push(Value::Nil);
                             }
@@ -1004,14 +987,14 @@ impl Executor {
                 if let Some(value) = self.stack.pop() {
                     match value {
                         Value::String(id) => {
-                            let string = self.strings.get(&id).unwrap();
+                            let string = self.load_string_utf8(id)?;
                             if let Some(c) = string.chars().next() {
                                 self.stack.push(Value::Int(c as i64));
                             } else {
                                 return Err(RuntimeError::UnexpectedType(
                                     self.get_span(),
                                     "ord".to_string(),
-                                    "a non-empty string".to_string(),
+                                    "a string with exactly one character".to_string(),
                                     format!("{}", value),
                                 ));
                             }
@@ -1236,7 +1219,7 @@ impl Executor {
                         let value = value.clone();
                         let id = self.string_id;
                         self.strings_intern_pool.insert(value.clone(), id);
-                        self.strings.insert(id, value);
+                        self.strings.insert(id, value.as_bytes().to_vec());
                         self.stack.push(Value::String(id));
                         self.string_id += 1;
                     }
@@ -1268,26 +1251,35 @@ impl Executor {
                     self.iterators.pop();
                 }
                 Instr::Next => {
-                    let it = self.iterators.last_mut().unwrap();
-                    if let Some(x) = it.next() {
-                        self.stack.push(x);
-                    } else {
-                        self.stack.push(Value::Nil);
+                    let (it, point) = self.iterators.last_mut().unwrap();
+                    match it {
+                        IteratorOver::Values(vs) => {
+                            let vs = self.arrays.get(&vs).unwrap();
+                            if let Some(next) = vs.get(*point) {
+                                self.stack.push(*next);
+                            } else {
+                                self.stack.push(Value::Nil);
+                            }
+                        }
+                        IteratorOver::Bytes(bs) => {
+                            let bs = self.strings.get(&bs).unwrap();
+                            if let Some(next) = bs.get(*point) {
+                                self.stack.push(Value::Int(*next as i64));
+                            } else {
+                                self.stack.push(Value::Nil);
+                            }
+                        }
                     }
+                    *point += 1;
                 }
                 Instr::BeginIter => {
                     if let Some(it) = self.stack.pop() {
                         match it {
                             Value::Array(id) => {
-                                let it = self.arrays.get(&id).unwrap();
-                                self.iterators
-                                    .push(RuntimeIterator::new(it.iter().map(|x| *x)));
+                                self.iterators.push((IteratorOver::Values(id), 0));
                             }
                             Value::String(id) => {
-                                let it = self.strings.get(&id).unwrap();
-                                self.iterators.push(RuntimeIterator::new(
-                                    it.chars().map(|x| Value::Int(x as u32 as i64)),
-                                ));
+                                self.iterators.push((IteratorOver::Bytes(id), 0));
                             }
                             other => {
                                 return Err(RuntimeError::UnexpectedType(
@@ -1329,12 +1321,20 @@ impl Executor {
                 s.push_str("end");
                 s
             }
-            Value::String(s) => self.strings.get(&s).unwrap().to_owned(),
+            Value::String(s) => self.load_string_utf8(s).unwrap(),
             other => format!("{other}"),
         }
     }
 
-    fn push_string(&mut self, string: String) {
+    fn load_string_utf8(&self, id: Id) -> Result<String, RuntimeError> {
+        let s = self.strings.get(&id).unwrap();
+        match std::str::from_utf8(&s) {
+            Ok(s) => Ok(s.to_string()),
+            Err(e) => Err(RuntimeError::Custom(self.get_span(), e.to_string())),
+        }
+    }
+
+    fn push_string(&mut self, string: Vec<u8>) {
         let id = self.string_id;
         self.strings.insert(id, string);
         self.stack.push(Value::String(id));
