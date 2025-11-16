@@ -10,7 +10,7 @@ proc Range
     drop drop
 end
 
-# Pushes `x` by `n` times on the stack 
+# Pushes `x` by `n` times on the stack
 # ( x n -- x x .. n )
 proc Repeat
     loop dup 0 = if break end
@@ -32,7 +32,7 @@ proc Unwrap
     end drop
 end
 
-# Pushes a reversed version of array `a1` on the stack
+# Pushes a (new) reversed version of array `a1` on the stack
 # ( a1 -- a2 )
 proc Reversed
     dup len 1 + let max
@@ -54,7 +54,7 @@ proc Copy
         0 loop dup a1 len = if break end
             a1 over @ let item
             item typeof "array" = if
-                item cpy
+                item Copy
             else
                 item
             end
