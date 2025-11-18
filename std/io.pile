@@ -1,7 +1,20 @@
-# Writes value to standard output with a trailing newline character.
+# Writes value as text to standard output with a trailing newline character.
 # ( a -- )
 proc Print
     STDOUT swap tostring "\n" + write
+end
+
+# Writes value to file `f` as text with a trailing newline character.
+# ( f xs -- )
+proc FilePrint
+    swap tostring "\n" + write
+end
+
+# Reads all content of a given file path, lets nil on the stack if could not perform operation
+# ( p -- c )
+proc ReadEntireFile
+    open dup ? if return end
+    read
 end
 
 # Reads one line from standard input and lets the line read on the
