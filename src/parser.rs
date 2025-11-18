@@ -61,6 +61,15 @@ pub fn is_valid_identifier(value: &str) -> bool {
         && !is_op(value)
 }
 
+pub fn is_valid_proc_name(value: &str) -> bool {
+    !value.chars().next().map_or(false, |c| c.is_digit(10))
+        && value
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '.')
+        && !is_reserved_word(value)
+        && !is_op(value)
+}
+
 #[derive(Debug, Copy, Clone)]
 pub enum OpKind {
     Add,
@@ -217,7 +226,7 @@ impl<'a> Parser<'a> {
             )
         })?;
 
-        if !is_valid_identifier(&proc_name.value) {
+        if !is_valid_proc_name(&proc_name.value) {
             return Err(ParseError::UnexpectedToken(
                 proc_name.span.to_filespan(self.filename.to_string()),
                 proc_name.value,
