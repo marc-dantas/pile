@@ -56,6 +56,11 @@ fn is_truthy(value: Value) -> bool {
     }
 }
 
+// File mode enumeration constants
+const FILE_READ: i64 = 0;
+const FILE_WRITE: i64 = 1;
+const FILE_APPEND: i64 = 2;
+
 impl Executor {
     pub fn new(program: Vec<Instr>, spans: Vec<FileSpan>) -> Self {
         Self {
@@ -752,27 +757,36 @@ impl Executor {
                 self.push_string(type_name.as_bytes().to_vec());
             }
             Builtin::open => {
-                if let Some(path) = self.stack.pop() {
+                if let (Some(mode), Some(path)) = (self.stack.pop(), self.stack.pop()) {
                     if let Value::String(path) = path {
                         let path = self.load_string_utf8(path)?;
-                        match OpenOptions::new()
-                            .write(true)
-                            .read(true)
-                            .truncate(false)
-                            .create(true)
-                            .open(path)
-                        {
+                        let mut open = OpenOptions::new();
+                        match mode {
+                            Value::Int(FILE_READ) => {
+                                open.read(true).write(false).create(false);
+                            }
+                            Value::Int(FILE_WRITE) => {
+                                open.read(true).write(true).truncate(true).create(true);
+                            }
+                            Value::Int(FILE_APPEND) => {
+                                open.read(true).append(true).truncate(false).create(true);
+                            }
+                            x => {
+                                return Err(RuntimeError::Custom(
+                                    self.get_span(),
+                                    format!("invalid file mode: {x}"),
+                                ))
+                            }
+                        }
+                        match open.open(path) {
                             Ok(f) => {
                                 self.datas
                                     .insert(self.datas_id, Data::File(FileLike::File(f)));
                                 self.stack.push(Value::Data(self.datas_id));
                                 self.datas_id += 1;
                             }
-                            Err(e) => {
-                                return Err(RuntimeError::Custom(
-                                    self.get_span(),
-                                    format!("file error: {}", e.to_string()),
-                                ));
+                            Err(_) => {
+                                self.stack.push(Value::Nil);
                             }
                         }
                     } else {
@@ -1055,11 +1069,11 @@ impl Executor {
         let data = self.new_data(Data::File(FileLike::Stderr(std::io::stderr())));
         self.definitions.insert("STDERR".to_string(), data);
         self.definitions
-            .insert("FILE_READ".to_string(), Value::Int(0));
+            .insert("FILE_READ".to_string(), Value::Int(FILE_READ));
         self.definitions
-            .insert("FILE_WRITE".to_string(), Value::Int(1));
+            .insert("FILE_WRITE".to_string(), Value::Int(FILE_WRITE));
         self.definitions
-            .insert("FILE_APPEND".to_string(), Value::Int(2));
+            .insert("FILE_APPEND".to_string(), Value::Int(FILE_APPEND));
     }
 
     pub fn run(mut self) -> Result<(), RuntimeError> {
