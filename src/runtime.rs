@@ -2,7 +2,7 @@ use crate::{
     compiler::{Addr, Builtin, Data, FileLike, Id, Instr, Op, Value},
     lexer::FileSpan,
 };
-use std::{collections::HashMap, fs::OpenOptions, str};
+use std::{collections::HashMap, fs::OpenOptions};
 
 #[derive(Debug, Clone)]
 pub enum RuntimeError {
@@ -1047,14 +1047,19 @@ impl Executor {
     }
 
     fn header(&mut self) {
+        // File-related constants
         let data = self.new_data(Data::File(FileLike::Stdin(std::io::stdin())));
         self.definitions.insert("STDIN".to_string(), data);
-
         let data = self.new_data(Data::File(FileLike::Stdout(std::io::stdout())));
         self.definitions.insert("STDOUT".to_string(), data);
-
         let data = self.new_data(Data::File(FileLike::Stderr(std::io::stderr())));
         self.definitions.insert("STDERR".to_string(), data);
+        self.definitions
+            .insert("FILE_READ".to_string(), Value::Int(0));
+        self.definitions
+            .insert("FILE_WRITE".to_string(), Value::Int(1));
+        self.definitions
+            .insert("FILE_APPEND".to_string(), Value::Int(2));
     }
 
     pub fn run(mut self) -> Result<(), RuntimeError> {
