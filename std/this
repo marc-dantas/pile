@@ -1,13 +1,13 @@
-"Concatenative language" println
-"" println
-"There are many ways to categorize programming languages; one is to define them as either" println
-"'concatenative' or 'applicative'. In an applicative language, things are evaluated by applying" println
-"functions to arguments. This includes almost all programming languages in wide use, such as" println
-"C, Python, ML, Haskell, and Java. In a concatenative programming language, things are" println
-"evaluated by composing several functions which all operate on a single piece of data, passed" println
-"from function to function. This piece of data is usually in the form of a stack. Additionally, in" println
-"concatenative languages, this function composition is indicated by concatenating programs." println
-"Examples of concatenative languages include Forth, Joy, PostScript, Cat, and Factor." println
-"" println
-"https://concatenative.org/wiki/view/Concatenative%20language" println
+"Concatenative language\n" STDOUT swap write
+"\n" STDOUT swap write
+"There are many ways to categorize programming languages; one is to define them as either\n" STDOUT swap write
+"'concatenative' or 'applicative'. In an applicative language, things are evaluated by applying\n" STDOUT swap write
+"functions to arguments. This includes almost all programming languages in wide use, such as\n" STDOUT swap write
+"C, Python, ML, Haskell, and Java. In a concatenative programming language, things are\n" STDOUT swap write
+"evaluated by composing several functions which all operate on a single piece of data, passed\n" STDOUT swap write
+"from function to function. This piece of data is usually in the form of a stack. Additionally, in\n" STDOUT swap write
+"concatenative languages, this function composition is indicated by concatenating programs.\n" STDOUT swap write
+"Examples of concatenative languages include Forth, Joy, PostScript, Cat, and Factor.\n" STDOUT swap write
+"\n" STDOUT swap write
+"https://concatenative.org/wiki/view/Concatenative%20language\n" STDOUT swap write
 0 exit
