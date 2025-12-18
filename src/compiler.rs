@@ -533,12 +533,22 @@ impl Compiler {
                     let jump_to_end = self.instructions.len();
                     self.instructions.push(Instr::JumpIfNot(0));
                     self.instructions.push(Instr::SetVariable(variable.value));
+                    self.loop_stack.push((start, Vec::new()));
+
                     self.compile_block(block, false);
+
                     self.instructions.push(Instr::Jump(start));
 
+                    let (_, breaks) = self.loop_stack.pop().unwrap();
                     let end = self.instructions.len();
+                    // NOTE: the EndIter Instruction MUST be executed to assure the correct iterators are properly managed
+                    //       this is why the end of the loop is actually before EndIter.
                     self.instructions.push(Instr::EndIter);
                     self.instructions[jump_to_end] = Instr::JumpIfNot(end);
+
+                    for break_addr in breaks {
+                        self.instructions[break_addr] = Instr::Jump(end);
+                    }
                 }
             }
         }
