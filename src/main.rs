@@ -5,6 +5,9 @@ mod compiler;
 mod parser;
 mod runtime;
 mod core;
+
+use std::env;
+
 use core::*;
 use cli::*;
 

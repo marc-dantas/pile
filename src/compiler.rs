@@ -140,7 +140,7 @@ impl FileLike {
             }
             FileLike::Stdin(f) => {
                 let a = f.read_to_end(&mut buf);
-                value = Some((buf.to_vec(), a));
+                value = Some((buf, a));
             }
             FileLike::Stdout(..) => {}
             FileLike::Stderr(..) => {}
