@@ -65,7 +65,7 @@ pub fn is_valid_proc_name(value: &str) -> bool {
     !value.chars().next().map_or(false, |c| c.is_digit(10))
         && value
             .chars()
-            .all(|c| c.is_alphanumeric() || c == '_' || c == '.')
+            .all(|c| c.is_alphanumeric() || c == '_')
         && !is_reserved_word(value)
         && !is_op(value)
 }
