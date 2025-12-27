@@ -25,7 +25,7 @@ fn main() {
             }
 
             let source = try_read_file(&a.filename);
-            
+
             if a.disassemble {
                 disassemble_program(
                     try_parse(&a.filename, source),
@@ -33,7 +33,6 @@ fn main() {
                 );
                 std::process::exit(0);
             }
-
             if a.parse_only {
                 println!("{:#?}", try_parse(&a.filename, source));
                 std::process::exit(0);

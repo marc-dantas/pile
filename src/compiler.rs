@@ -1,4 +1,5 @@
-use crate::core::try_parse_from_file;
+use crate::error::throw;
+use crate::core::{read_file, try_parse};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -322,11 +323,28 @@ impl Compiler {
 
         for stmt in block.into_iter() {
             match stmt {
-                Node::Import(name, _span) => {
+                Node::Import(name, span) => {
                     let prev_filename = self.filename.to_owned();
                     self.filename = name.clone();
-                    self.compile_block(try_parse_from_file(&name), true);
-                    self.filename = prev_filename;
+                    if let Some(content) = read_file(&name) {
+                        self.compile_block(try_parse(&name, content), true);
+                        self.filename = prev_filename;
+                    } else {
+                        throw(
+                            "import error",
+                            &format!(
+                                "could not find file to import \"{name}\".",
+                            ),
+                            &vec![
+                                FileSpan {
+                                    filename: prev_filename,
+                                    line: span.line,
+                                    col: span.col
+                                }
+                            ],
+                            None
+                        );
+                    }
                 }
                 Node::Proc(name, block, span) => {
                     let span_id = self.add_span(span.to_filespan(self.filename.clone()));
