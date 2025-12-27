@@ -4,16 +4,18 @@ use crate::{
 };
 use std::{collections::HashMap, fs::OpenOptions};
 
+pub type FileSpanStack = Vec<FileSpan>;
+
 #[derive(Debug, Clone)]
 pub enum RuntimeError {
-    StackUnderflow(FileSpan, String, usize), // when there's too few data on the stack to perform operation
-    UnexpectedType(FileSpan, String, String, String), // when there's an operation tries to operate with an invalid datatype
-    InvalidSymbol(FileSpan, String),                  // used when a word isn't defined
-    EmptyDefinition(FileSpan, String),                // when a definition is empty
-    ArrayOutOfBounds(FileSpan, i64, usize),           // when tries to index array at invalid index
-    StringOutOfBounds(FileSpan, i64, usize),          // when tries to index string at invalid index
-    DivisionByZero(FileSpan),                         // when tries to divide by zero
-    Custom(FileSpan, String),                         // custom error thrown by misc thing
+    StackUnderflow(FileSpanStack, String, usize), // when there's too few data on the stack to perform operation
+    UnexpectedType(FileSpanStack, String, String, String), // when there's an operation tries to operate with an invalid datatype
+    InvalidSymbol(FileSpanStack, String),                  // used when a word isn't defined
+    EmptyDefinition(FileSpanStack, String),                // when a definition is empty
+    ArrayOutOfBounds(FileSpanStack, i64, usize),           // when tries to index array at invalid index
+    StringOutOfBounds(FileSpanStack, i64, usize),          // when tries to index string at invalid index
+    DivisionByZero(FileSpanStack),                         // when tries to divide by zero
+    Custom(FileSpanStack, String),                         // custom error thrown by misc thing
 }
 
 enum IteratorOver {
@@ -28,7 +30,8 @@ pub struct Executor {
 
     stack: Vec<Value>, // Normal data stack
 
-    call_stack: Vec<Addr>,
+    //                     vvvvv this is the ID of the span when the call happens so i can trace back in error reporting
+    call_stack: Vec<(Addr, usize)>,
 
     strings_intern_pool: HashMap<String, Id>,
     strings: HashMap<Id, Vec<u8>>,
@@ -83,18 +86,26 @@ impl Executor {
         }
     }
 
-    fn get_span(&self) -> FileSpan {
-        self.spans.get(self.span).unwrap().clone()
+    fn get_span(&self, id: usize) -> FileSpan {
+        self.spans.get(id).unwrap().clone()
+    }
+
+    fn get_call_stack_filespan(&self) -> Vec<FileSpan> {
+        let mut fs = vec![self.get_span(self.span)];
+        for (_, fs_id) in &self.call_stack {
+            fs.push(self.get_span(*fs_id));
+        }
+        return fs;
     }
 
     fn run_op(&mut self, op: Op) -> Result<(), RuntimeError> {
         match op {
             Op::Add => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "+".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "+".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "+".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "+".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -111,7 +122,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "+".to_string(),
                             "two numeric values".to_string(),
                             format!("{} and {}", a, b),
@@ -122,10 +133,10 @@ impl Executor {
             }
             Op::Sub => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "-".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "-".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "-".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "-".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -134,7 +145,7 @@ impl Executor {
                     (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x - y)),
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "-".to_string(),
                             "two numeric values".to_string(),
                             format!("{} and {}", a, b),
@@ -145,10 +156,10 @@ impl Executor {
             }
             Op::Mul => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "*".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "*".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "*".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "*".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -157,7 +168,7 @@ impl Executor {
                     (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x * y)),
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "*".to_string(),
                             "two numeric values".to_string(),
                             format!("{} and {}", a, b),
@@ -168,27 +179,27 @@ impl Executor {
             }
             Op::Div => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "/".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "/".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "/".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "/".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         if y == 0 {
-                            return Err(RuntimeError::DivisionByZero(self.get_span()));
+                            return Err(RuntimeError::DivisionByZero(self.get_call_stack_filespan()));
                         }
                         self.stack.push(Value::Int(x.overflowing_div(y).0));
                     }
                     (Value::Float(x), Value::Float(y)) => {
                         if y == 0.0 {
-                            return Err(RuntimeError::DivisionByZero(self.get_span()));
+                            return Err(RuntimeError::DivisionByZero(self.get_call_stack_filespan()));
                         }
                         self.stack.push(Value::Float(x / y));
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "/".to_string(),
                             "two numeric values".to_string(),
                             format!("{} and {}", a, b),
@@ -199,27 +210,27 @@ impl Executor {
             }
             Op::Mod => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "%".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "%".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "%".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "%".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
                         if y == 0 {
-                            return Err(RuntimeError::DivisionByZero(self.get_span()));
+                            return Err(RuntimeError::DivisionByZero(self.get_call_stack_filespan()));
                         }
                         self.stack.push(Value::Int(x % y));
                     }
                     (Value::Float(x), Value::Float(y)) => {
                         if y == 0.0 {
-                            return Err(RuntimeError::DivisionByZero(self.get_span()));
+                            return Err(RuntimeError::DivisionByZero(self.get_call_stack_filespan()));
                         }
                         self.stack.push(Value::Float(x % y));
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "%".to_string(),
                             "two numeric values".to_string(),
                             format!("{} and {}", a, b),
@@ -230,10 +241,10 @@ impl Executor {
             }
             Op::Exp => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "**".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "**".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "**".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "**".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -256,7 +267,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "**".to_string(),
                             "two numeric values".to_string(),
                             format!("{} and {}", a, b),
@@ -267,10 +278,10 @@ impl Executor {
             }
             Op::Gt => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), ">".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), ">".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), ">".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), ">".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -281,7 +292,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             ">".to_string(),
                             "two numeric values".to_string(),
                             format!("{} and {}", a, b),
@@ -292,10 +303,10 @@ impl Executor {
             }
             Op::Lt => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "<".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "<".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "<".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "<".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -306,7 +317,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "<".to_string(),
                             "two numeric values".to_string(),
                             format!("{} and {}", a, b),
@@ -317,10 +328,10 @@ impl Executor {
             }
             Op::Eq => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "=".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "=".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "=".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "=".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -336,7 +347,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "=".to_string(),
                             "two numeric values or strings".to_string(),
                             format!("{} and {}", a, b),
@@ -347,10 +358,10 @@ impl Executor {
             }
             Op::Ge => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), ">=".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), ">=".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), ">=".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), ">=".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -361,7 +372,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             ">=".to_string(),
                             "two numeric values".to_string(),
                             format!("{} and {}", a, b),
@@ -372,10 +383,10 @@ impl Executor {
             }
             Op::Le => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "<=".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "<=".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "<=".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "<=".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -386,7 +397,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "<=".to_string(),
                             "two numeric values".to_string(),
                             format!("{} and {}", a, b),
@@ -397,10 +408,10 @@ impl Executor {
             }
             Op::Ne => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "!=".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "!=".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "!=".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "!=".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -416,7 +427,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "!=".to_string(),
                             "two numeric values or strings".to_string(),
                             format!("{} and {}", a, b),
@@ -427,10 +438,10 @@ impl Executor {
             }
             Op::Shl => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "<<".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "<<".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "<<".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "<<".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -438,7 +449,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "<<".to_string(),
                             "two integers".to_string(),
                             format!("{} and {}", a, b),
@@ -449,10 +460,10 @@ impl Executor {
             }
             Op::Shr => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), ">>".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), ">>".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), ">>".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), ">>".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -460,7 +471,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             ">>".to_string(),
                             "two integers".to_string(),
                             format!("{} and {}", a, b),
@@ -471,10 +482,10 @@ impl Executor {
             }
             Op::Bor => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "|".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "|".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "|".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "|".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -485,7 +496,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "|".to_string(),
                             "two integers or two floats".to_string(),
                             format!("{} and {}", a, b),
@@ -496,10 +507,10 @@ impl Executor {
             }
             Op::Band => {
                 let b = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "&".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "&".to_string(), 2)
                 })?;
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "&".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "&".to_string(), 2)
                 })?;
                 match (a, b) {
                     (Value::Int(x), Value::Int(y)) => {
@@ -510,7 +521,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "&".to_string(),
                             "two integers or two floats".to_string(),
                             format!("{} and {}", a, b),
@@ -521,14 +532,14 @@ impl Executor {
             }
             Op::BNot => {
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "~".to_string(), 1)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "~".to_string(), 1)
                 })?;
                 match a {
                     Value::Int(x) => self.stack.push(Value::Int(!x)),
                     Value::Bool(x) => self.stack.push(Value::Bool(!x)),
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "~".to_string(),
                             "an integer or a float".to_string(),
                             format!("{}", a),
@@ -539,7 +550,7 @@ impl Executor {
             }
             Op::IsNil => {
                 let a = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "?".to_string(), 1)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "?".to_string(), 1)
                 })?;
                 match a {
                     Value::Nil => self.stack.push(Value::Bool(true)),
@@ -549,17 +560,17 @@ impl Executor {
             }
             Op::Trace => {
                 let a = self.stack.last().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "trace".to_string(), 1)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "trace".to_string(), 1)
                 })?;
                 println!("{}", a);
                 Ok(())
             }
             Op::Index => {
                 let index = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "@".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "@".to_string(), 2)
                 })?;
                 let seq = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "@".to_string(), 2)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "@".to_string(), 2)
                 })?;
                 match (seq, index) {
                     (Value::Array(id), Value::Int(i)) => {
@@ -568,7 +579,7 @@ impl Executor {
                             self.stack.push(value.clone());
                         } else {
                             return Err(RuntimeError::ArrayOutOfBounds(
-                                self.get_span(),
+                                self.get_call_stack_filespan(),
                                 i,
                                 array.len(),
                             ));
@@ -580,7 +591,7 @@ impl Executor {
                             self.stack.push(Value::Int(*value as i64));
                         } else {
                             return Err(RuntimeError::StringOutOfBounds(
-                                self.get_span(),
+                                self.get_call_stack_filespan(),
                                 i,
                                 string.len(),
                             ));
@@ -588,7 +599,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "@".to_string(),
                             "array/string and an integer".to_string(),
                             format!("{} and {}", seq, index),
@@ -599,13 +610,13 @@ impl Executor {
             }
             Op::AssignAtIndex => {
                 let value = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "!".to_string(), 3)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "!".to_string(), 3)
                 })?;
                 let index = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "!".to_string(), 3)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "!".to_string(), 3)
                 })?;
                 let seq = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "!".to_string(), 3)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "!".to_string(), 3)
                 })?;
                 match (seq, index, value) {
                     (Value::Array(id), Value::Int(i), value) => {
@@ -613,7 +624,7 @@ impl Executor {
                         let array_len = array.len();
                         if i as usize >= array_len {
                             return Err(RuntimeError::ArrayOutOfBounds(
-                                self.get_span(),
+                                self.get_call_stack_filespan(),
                                 i,
                                 array_len,
                             ));
@@ -625,7 +636,7 @@ impl Executor {
                         let string_len = string.len();
                         if i as usize >= string_len {
                             return Err(RuntimeError::StringOutOfBounds(
-                                self.get_span(),
+                                self.get_call_stack_filespan(),
                                 i,
                                 string_len,
                             ));
@@ -634,7 +645,7 @@ impl Executor {
                     }
                     _ => {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "!".to_string(),
                             "(string, int, int) or (array, int, any)".to_string(),
                             format!("({}, {}, {})", seq, index, value),
@@ -667,7 +678,7 @@ impl Executor {
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(
-                        self.get_span(),
+                        self.get_call_stack_filespan(),
                         "toint".to_string(),
                         1,
                     ));
@@ -692,7 +703,7 @@ impl Executor {
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(
-                        self.get_span(),
+                        self.get_call_stack_filespan(),
                         "tofloat".to_string(),
                         1,
                     ));
@@ -703,7 +714,7 @@ impl Executor {
                     self.push_string(self.display_value(value).as_bytes().to_vec());
                 } else {
                     return Err(RuntimeError::StackUnderflow(
-                        self.get_span(),
+                        self.get_call_stack_filespan(),
                         "tostring".to_string(),
                         1,
                     ));
@@ -726,7 +737,7 @@ impl Executor {
                         }
                         x => {
                             return Err(RuntimeError::UnexpectedType(
-                                self.get_span(),
+                                self.get_call_stack_filespan(),
                                 "tobool".to_string(),
                                 "bool, nil, int, float, string or array".to_string(),
                                 format!("{}", x),
@@ -735,7 +746,7 @@ impl Executor {
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(
-                        self.get_span(),
+                        self.get_call_stack_filespan(),
                         "tobool".to_string(),
                         1,
                     ));
@@ -743,7 +754,7 @@ impl Executor {
             }
             Builtin::typeof_ => {
                 let value = self.stack.pop().ok_or_else(|| {
-                    RuntimeError::StackUnderflow(self.get_span(), "typeof".to_string(), 1)
+                    RuntimeError::StackUnderflow(self.get_call_stack_filespan(), "typeof".to_string(), 1)
                 })?;
                 let type_name = match value {
                     Value::Nil => "nil",
@@ -773,7 +784,7 @@ impl Executor {
                             }
                             x => {
                                 return Err(RuntimeError::Custom(
-                                    self.get_span(),
+                                    self.get_call_stack_filespan(),
                                     format!("invalid file mode: {x}"),
                                 ))
                             }
@@ -791,7 +802,7 @@ impl Executor {
                         }
                     } else {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "open".to_string(),
                             "string".to_string(),
                             format!("{}", path),
@@ -799,7 +810,7 @@ impl Executor {
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(
-                        self.get_span(),
+                        self.get_call_stack_filespan(),
                         "open".to_string(),
                         1,
                     ));
@@ -808,20 +819,20 @@ impl Executor {
             Builtin::write => {
                 if let (Some(buf), Some(file)) = (self.stack.pop(), self.stack.pop()) {
                     if let (Value::Data(file), Value::String(buf)) = (file, buf) {
-                        let span = self.get_span();
+                        let span = self.get_call_stack_filespan();
                         let file = self.datas.get_mut(&file).unwrap();
                         let buf = self.strings.get(&buf).unwrap();
                         if let Data::File(file) = file {
                             match file.write(buf) {
                                 Some(std::io::Result::Err(e)) => {
                                     return Err(RuntimeError::Custom(
-                                        self.get_span(),
+                                        self.get_call_stack_filespan(),
                                         format!("file error: {}", e.to_string()),
                                     ));
                                 }
                                 None => {
                                     return Err(RuntimeError::Custom(
-                                        self.get_span(),
+                                        self.get_call_stack_filespan(),
                                         format!("file error: not able to write"),
                                     ));
                                 }
@@ -837,7 +848,7 @@ impl Executor {
                         }
                     } else {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "write".to_string(),
                             "file and a string".to_string(),
                             format!("{}", file),
@@ -845,7 +856,7 @@ impl Executor {
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(
-                        self.get_span(),
+                        self.get_call_stack_filespan(),
                         "write".to_string(),
                         2,
                     ));
@@ -854,19 +865,19 @@ impl Executor {
             Builtin::read => {
                 if let Some(file) = self.stack.pop() {
                     if let Value::Data(file) = file {
-                        let span = self.get_span();
+                        let span = self.get_call_stack_filespan();
                         let file = self.datas.get_mut(&file).unwrap();
                         if let Data::File(file) = file {
                             match file.read() {
                                 Some((_, std::io::Result::Err(e))) => {
                                     return Err(RuntimeError::Custom(
-                                        self.get_span(),
+                                        self.get_call_stack_filespan(),
                                         format!("file error: {}", e.to_string()),
                                     ));
                                 }
                                 None => {
                                     return Err(RuntimeError::Custom(
-                                        self.get_span(),
+                                        self.get_call_stack_filespan(),
                                         format!("file error: not able to read"),
                                     ));
                                 }
@@ -884,7 +895,7 @@ impl Executor {
                         }
                     } else {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "read".to_string(),
                             "file".to_string(),
                             format!("{}", file),
@@ -892,7 +903,7 @@ impl Executor {
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(
-                        self.get_span(),
+                        self.get_call_stack_filespan(),
                         "read".to_string(),
                         1,
                     ));
@@ -901,19 +912,19 @@ impl Executor {
             Builtin::readline => {
                 if let Some(file) = self.stack.pop() {
                     if let Value::Data(file) = file {
-                        let span = self.get_span();
+                        let span = self.get_call_stack_filespan();
                         let file = self.datas.get_mut(&file).unwrap();
                         if let Data::File(file) = file {
                             match file.readline() {
                                 Some((_, std::io::Result::Err(e))) => {
                                     return Err(RuntimeError::Custom(
-                                        self.get_span(),
+                                        self.get_call_stack_filespan(),
                                         format!("file error: {}", e.to_string()),
                                     ));
                                 }
                                 None => {
                                     return Err(RuntimeError::Custom(
-                                        self.get_span(),
+                                        self.get_call_stack_filespan(),
                                         format!("file error: not able to read line"),
                                     ));
                                 }
@@ -931,7 +942,7 @@ impl Executor {
                         }
                     } else {
                         return Err(RuntimeError::UnexpectedType(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "readline".to_string(),
                             "file".to_string(),
                             format!("{}", file),
@@ -939,7 +950,7 @@ impl Executor {
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(
-                        self.get_span(),
+                        self.get_call_stack_filespan(),
                         "readline".to_string(),
                         1,
                     ));
@@ -951,7 +962,7 @@ impl Executor {
                         Value::Int(x) => std::process::exit(x as i32),
                         other => {
                             return Err(RuntimeError::UnexpectedType(
-                                self.get_span(),
+                                self.get_call_stack_filespan(),
                                 "exit".to_string(),
                                 "an integer".to_string(),
                                 format!("{}", other),
@@ -960,7 +971,7 @@ impl Executor {
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(
-                        self.get_span(),
+                        self.get_call_stack_filespan(),
                         "exit".to_string(),
                         1,
                     ));
@@ -982,7 +993,7 @@ impl Executor {
                         }
                         other => {
                             return Err(RuntimeError::UnexpectedType(
-                                self.get_span(),
+                                self.get_call_stack_filespan(),
                                 "chr".to_string(),
                                 "an integer".to_string(),
                                 format!("{}", other),
@@ -991,7 +1002,7 @@ impl Executor {
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(
-                        self.get_span(),
+                        self.get_call_stack_filespan(),
                         "chr".to_string(),
                         1,
                     ));
@@ -1006,7 +1017,7 @@ impl Executor {
                                 self.stack.push(Value::Int(c as i64));
                             } else {
                                 return Err(RuntimeError::UnexpectedType(
-                                    self.get_span(),
+                                    self.get_call_stack_filespan(),
                                     "ord".to_string(),
                                     "a string with exactly one character".to_string(),
                                     format!("{}", value),
@@ -1015,7 +1026,7 @@ impl Executor {
                         }
                         other => {
                             return Err(RuntimeError::UnexpectedType(
-                                self.get_span(),
+                                self.get_call_stack_filespan(),
                                 "ord".to_string(),
                                 "a string".to_string(),
                                 format!("{}", other),
@@ -1024,7 +1035,7 @@ impl Executor {
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(
-                        self.get_span(),
+                        self.get_call_stack_filespan(),
                         "ord".to_string(),
                         1,
                     ));
@@ -1041,7 +1052,7 @@ impl Executor {
                             .push(Value::Int(self.arrays.get(&id).unwrap().len() as i64)),
                         other => {
                             return Err(RuntimeError::UnexpectedType(
-                                self.get_span(),
+                                self.get_call_stack_filespan(),
                                 "len".to_string(),
                                 "a string or an array".to_string(),
                                 format!("{}", other),
@@ -1050,7 +1061,7 @@ impl Executor {
                     }
                 } else {
                     return Err(RuntimeError::StackUnderflow(
-                        self.get_span(),
+                        self.get_call_stack_filespan(),
                         "len".to_string(),
                         1,
                     ));
@@ -1095,7 +1106,7 @@ impl Executor {
                         }
                     } else {
                         return Err(RuntimeError::StackUnderflow(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "if".to_string(),
                             1,
                         ));
@@ -1107,7 +1118,7 @@ impl Executor {
                 Instr::Drop => {
                     if let None = self.stack.pop() {
                         return Err(RuntimeError::StackUnderflow(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "drop".to_string(),
                             1,
                         ));
@@ -1118,7 +1129,7 @@ impl Executor {
                         self.stack.push(*value);
                     } else {
                         return Err(RuntimeError::StackUnderflow(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "dup".to_string(),
                             1,
                         ));
@@ -1130,7 +1141,7 @@ impl Executor {
                         self.stack.push(b);
                     } else {
                         return Err(RuntimeError::StackUnderflow(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "swap".to_string(),
                             2,
                         ));
@@ -1143,7 +1154,7 @@ impl Executor {
                         self.stack.push(b);
                     } else {
                         return Err(RuntimeError::StackUnderflow(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "over".to_string(),
                             2,
                         ));
@@ -1158,7 +1169,7 @@ impl Executor {
                         self.stack.push(c);
                     } else {
                         return Err(RuntimeError::StackUnderflow(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "rot".to_string(),
                             3,
                         ));
@@ -1174,12 +1185,12 @@ impl Executor {
                     self.namespace.pop().unwrap();
                 }
                 Instr::Call(addr) => {
-                    self.call_stack.push(pc + 1);
+                    self.call_stack.push((pc + 1, self.span));
                     pc = *addr;
                     continue;
                 }
                 Instr::Return => {
-                    if let Some(return_addr) = self.call_stack.pop() {
+                    if let Some((return_addr, _)) = self.call_stack.pop() {
                         pc = return_addr;
                         continue;
                     }
@@ -1190,7 +1201,7 @@ impl Executor {
                         self.definitions.insert(name.clone(), value);
                     } else {
                         return Err(RuntimeError::EmptyDefinition(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             format!("{}", name),
                         ));
                     }
@@ -1201,7 +1212,7 @@ impl Executor {
                             scope.insert(name.clone(), value);
                         } else {
                             return Err(RuntimeError::StackUnderflow(
-                                self.get_span(),
+                                self.get_call_stack_filespan(),
                                 format!("{}", name),
                                 1,
                             ));
@@ -1222,7 +1233,7 @@ impl Executor {
                             }
                         }
                         if !ok {
-                            return Err(RuntimeError::InvalidSymbol(self.get_span(), name.clone()));
+                            return Err(RuntimeError::InvalidSymbol(self.get_call_stack_filespan(), name.clone()));
                         }
                     }
                 }
@@ -1302,7 +1313,7 @@ impl Executor {
                             }
                             other => {
                                 return Err(RuntimeError::UnexpectedType(
-                                    self.get_span(),
+                                    self.get_call_stack_filespan(),
                                     "for".to_string(),
                                     "an iterable sequence (string or array)".to_string(),
                                     format!("{}", other),
@@ -1311,7 +1322,7 @@ impl Executor {
                         }
                     } else {
                         return Err(RuntimeError::StackUnderflow(
-                            self.get_span(),
+                            self.get_call_stack_filespan(),
                             "for".to_string(),
                             1,
                         ));
@@ -1349,7 +1360,7 @@ impl Executor {
         let s = self.strings.get(&id).unwrap();
         match std::str::from_utf8(&s) {
             Ok(s) => Ok(s.to_string()),
-            Err(e) => Err(RuntimeError::Custom(self.get_span(), e.to_string())),
+            Err(e) => Err(RuntimeError::Custom(self.get_call_stack_filespan(), e.to_string())),
         }
     }
 

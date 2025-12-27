@@ -6,60 +6,59 @@ use crate::{
     CLIError,
 };
 
-fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
+const RED: &'static str = "\x1B[1;31m";
+const GREEN: &'static str = "\x1B[1;32m";
+const CYAN: &'static str = "\x1B[1;35m";
+const RESET: &'static str = "\x1B[0m";
+
+fn match_runtime_error(e: &RuntimeError) {
     match e {
         RuntimeError::Custom(span, message) => {
             throw(
                 "runtime error",
                 &format!("{message}"),
-                span.clone(),
+                span,
                 None,
-                call,
             );
         }
         RuntimeError::ArrayOutOfBounds(span, index, len) => {
             throw(
                 "runtime error",
                 &format!("array index out of bounds: tried to index array of size {len} but used index {index}."),
-                span.clone(),
+                span,
                 None,
-                call,
             );
         }
         RuntimeError::StringOutOfBounds(span, index, len) => {
             throw(
                 "runtime error",
                 &format!("string index out of bounds: tried to index string of size {len} but used index {index}."),
-                span.clone(),
+                span,
                 None,
-                call,
             );
         }
         RuntimeError::InvalidSymbol(span, x) => {
             throw(
                 "runtime error",
                 &format!("invalid symbol: `{x}` is not defined."),
-                span.clone(),
+                span,
                 Some("maybe a typo?"),
-                call,
             );
         }
         RuntimeError::EmptyDefinition(span, x) => {
             throw(
                 "runtime error",
                 &format!("found empty definition: the expression inside {x} leads to no value on the stack."),
-                span.clone(),
+                span,
                 None,
-                call,
             );
         }
         RuntimeError::StackUnderflow(span, op, n) => {
             throw(
                 "runtime error",
                 &format!("stack underflow: too few values on the stack to satisfy `{op}` (expected {n})"),
-                span.clone(),
+                span,
                 Some(&format!("use `trace` operation to see the values on the stack without removing them.")),
-                call,
             );
         }
         RuntimeError::UnexpectedType(span, n, x, y) => {
@@ -68,44 +67,24 @@ fn match_runtime_error(e: &RuntimeError, call: Option<FileSpan>) {
                 &format!(
                     "unexpected type: `{n}` expects {x} on the stack to work, but got {y}."
                 ),
-                span.clone(),
+                span,
                 Some("try checking the values before the operation."),
-                call,
             );
         }
         RuntimeError::DivisionByZero(span) => {
             throw(
                 "runtime error",
                 &format!("division by zero."),
-                span.clone(),
+                span,
                 None,
-                call,
             );
         }
-        // RuntimeError::ValueError(span, n, x, y) => {
-        //     throw(
-        //         "runtime error",
-        //         &format!("value error: operation `{n}` expected valid literal value for {x}, but got {y}."),
-        //         span.clone(),
-        //         Some(&format!("likely caused by an invalid conversion to {x}.")),
-        //         call,
-        //     );
-        // }
-        // RuntimeError::UnboundVariable(span, s) => {
-        //     throw(
-        //         "runtime error",
-        //         &format!("unbound variable: variable `{s}` has no value to be bound."),
-        //         span.clone(),
-        //         Some(&format!("push values on the stack before using `{s}`.")),
-        //         call,
-        //     );
-        // }
     }
 }
 
 pub fn runtime_error(e: RuntimeError) {
     match e {
-        x => match_runtime_error(&x, None),
+        x => match_runtime_error(&x),
     }
 }
 
@@ -115,8 +94,7 @@ pub fn parse_error(e: ParseError) {
             throw(
                 "parse error",
                 "unmatched block: termination of block (`end`) provided without a beginning.",
-                span,
-                None,
+                &vec![span],
                 None,
             );
         }
@@ -124,9 +102,8 @@ pub fn parse_error(e: ParseError) {
             throw(
                 "parse error",
                 &format!("unterminated block: termination of block not provided from `{x}` block."),
-                span,
+                &vec![span],
                 Some("perhaps you forgot to write `end`?"),
-                None,
             );
         }
         ParseError::UnexpectedEOF(span, x) => {
@@ -135,8 +112,7 @@ pub fn parse_error(e: ParseError) {
                 &format!(
                     "unexpected end of file: expected {x} but got the end of the file (nothing)."
                 ),
-                span,
-                None,
+                &vec![span],
                 None,
             );
         }
@@ -144,8 +120,7 @@ pub fn parse_error(e: ParseError) {
             throw(
                 "parse error",
                 &format!("unexpected token: expected {y} but got {x}."),
-                span,
-                None,
+                &vec![span],
                 None,
             );
         }
@@ -176,23 +151,20 @@ pub fn fatal(message: &str) -> ! {
 pub fn throw(
     error: &str,
     message: &str,
-    span: FileSpan,
+    call_stack: &[FileSpan],
     help: Option<&str>,
-    call: Option<FileSpan>,
 ) {
-    eprintln!("pile: {}:", error);
-    if let Some(s) = call {
-        eprintln!(" |  {}:{}:{}:", s.filename, s.line, s.col);
-        eprintln!(" |    {}:{}:{}:", span.filename, span.line, span.col);
-    } else {
-        eprintln!(" |  {}:{}:{}:", span.filename, span.line, span.col);
+    eprintln!("pile: {RED}{}{RESET}:", error);
+
+    for span in call_stack {
+        eprintln!(" {CYAN}->{RESET} {}:{}:{}", span.filename, span.line, span.col);
     }
     for line in break_line_at(message.to_string(), 50) {
-        eprintln!(" |      {line}",);
+        eprintln!("      {line}");
     }
     if let Some(h) = help {
         for line in break_line_at(h.to_string(), 50) {
-            eprintln!(" +  {}", line);
+            eprintln!(" {GREEN} +   {}{RESET}", line);
         }
     }
     eprintln!();

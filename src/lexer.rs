@@ -163,13 +163,14 @@ impl<'a> Iterator for Lexer<'a> {
                                     "expected closing quotation mark (\") for string literal \"{}\".",
                                     buffer.clone() + &String::from(d)
                                 ),
-                                FileSpan {
-                                    filename: self.input.name.to_string(),
-                                    line: self.span.line,
-                                    col: self.span.col + 2
-                                },
+                                &vec![
+                                    FileSpan {
+                                        filename: self.input.name.to_string(),
+                                        line: self.span.line,
+                                        col: self.span.col + 2
+                                    }
+                                ],
                                 Some("check if the string was left open unintentionally."),
-                                None,
                             );
                         }
                         match d {
@@ -184,12 +185,13 @@ impl<'a> Iterator for Lexer<'a> {
                                             &format!(
                                                 "invalid escape character `{esc}` in string literal."
                                             ),
-                                            FileSpan {
-                                                filename: self.input.name.to_string(),
-                                                line: self.span.line,
-                                                col: self.span.col + buffer.len() + 1,
-                                            },
-                                            None,
+                                            &vec![
+                                                FileSpan {
+                                                    filename: self.input.name.to_string(),
+                                                    line: self.span.line,
+                                                    col: self.span.col + buffer.len() + 1,
+                                                },
+                                            ],
                                             None,
                                         );
                                     }
@@ -251,12 +253,11 @@ impl<'a> Iterator for Lexer<'a> {
                                     &format!(
                                         "invalid character `{d}` found in integer/float literal."
                                     ),
-                                    FileSpan {
+                                    &vec![FileSpan {
                                         filename: self.input.name.to_string(),
                                         line: self.span.line,
                                         col: self.span.col + buffer.len(),
-                                    },
-                                    None,
+                                    }],
                                     None,
                                 );
                             }
@@ -295,12 +296,11 @@ impl<'a> Iterator for Lexer<'a> {
                                 throw(
                                     "token error",
                                     &format!("invalid character `{d}` found in float literal."),
-                                    FileSpan {
+                                    &vec![FileSpan {
                                         filename: self.input.name.to_string(),
                                         line: self.span.line,
                                         col: self.span.col + buffer.len(),
-                                    },
-                                    None,
+                                    }],
                                     None,
                                 );
                             }
@@ -343,12 +343,11 @@ impl<'a> Iterator for Lexer<'a> {
                     throw(
                         "token error",
                         &format!("illegal character `{c}` found in file."),
-                        FileSpan {
+                        &vec![FileSpan {
                             filename: self.input.name.to_string(),
                             line: self.span.line,
                             col: self.span.col,
-                        },
-                        None,
+                        }],
                         None,
                     );
                 }
