@@ -1328,7 +1328,6 @@ impl Executor {
                         ));
                     }
                 }
-                _ => todo!(),
             }
             pc += 1;
         }
