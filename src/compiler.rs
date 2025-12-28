@@ -1,6 +1,7 @@
 use crate::error::throw;
 use crate::core::{read_file, try_parse};
 use std::collections::HashMap;
+use std::path::Path;
 use std::fs::File;
 use std::io::{Read, Write};
 
@@ -284,16 +285,18 @@ pub struct Compiler {
     instructions: Vec<Instr>,
     procs: HashMap<String, Addr>,
     loop_stack: Vec<(Addr, Vec<Addr>)>,
+    import_search_paths: Vec<String>,
 }
 
 impl Compiler {
-    pub fn new() -> Self {
+    pub fn new(import_search_paths: Vec<String>) -> Self {
         Compiler {
             filename: String::new(),
             procs: HashMap::new(),
             spans: Vec::new(),
             instructions: Vec::new(),
             loop_stack: Vec::new(),
+            import_search_paths,
         }
     }
 
@@ -307,6 +310,18 @@ impl Compiler {
         let id = self.spans.len();
         self.spans.push(fs);
         return id;
+    }
+
+    fn resolve_import_path(&self, path: &str) -> Option<String> {
+        let path = Path::new(path);
+        for i in &self.import_search_paths {
+            let search_path = Path::new(i);
+            let test_path = search_path.join(path);
+            if test_path.exists() {
+                return Some(test_path.canonicalize().ok()?.to_str()?.to_string());
+            }
+        }
+        None
     }
 
     fn compile_block(&mut self, block: Vec<Node>, scoped: bool) {
@@ -325,15 +340,19 @@ impl Compiler {
             match stmt {
                 Node::Import(name, span) => {
                     let prev_filename = self.filename.to_owned();
-                    self.filename = name.clone();
-                    if let Some(content) = read_file(&name) {
-                        self.compile_block(try_parse(&name, content), true);
-                        self.filename = prev_filename;
+                    if let Some(path) = self.resolve_import_path(&name) {
+                        if let Some(content) = read_file(&path) {
+                            self.filename = path;
+                            self.compile_block(try_parse(&name, content), true);
+                            self.filename = prev_filename;
+                        } else {
+                            unreachable!("resolve_import_path should've checked path validity");
+                        }
                     } else {
                         throw(
                             "import error",
                             &format!(
-                                "could not find file to import \"{name}\".",
+                                "could not resolve import path \"{name}\".",
                             ),
                             &vec![
                                 FileSpan {

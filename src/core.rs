@@ -51,13 +51,8 @@ pub fn try_parse(filename: &str, source: String) -> ProgramTree {
     std::process::exit(0);
 }
 
-pub fn try_parse_from_file(filename: &str) -> ProgramTree {
-    let source = try_read_file(filename);
-    try_parse(filename, source)
-}
-
-pub fn disassemble_program(program: ProgramTree, filename: &str) {
-    let c = Compiler::new();
+pub fn disassemble_program(program: ProgramTree, filename: &str, import_search_path: Vec<String>) {
+    let c = Compiler::new(import_search_path);
     let (instructions, spans) = c.compile(program, filename.to_string());
     println!("{}", filename);
     println!("  {:>18} | instruction", "address");
@@ -70,21 +65,21 @@ pub fn disassemble_program(program: ProgramTree, filename: &str) {
     }
 }
 
-pub fn compile_program(program: ProgramTree, filename: String) -> (Vec<Instr>, Vec<FileSpan>) {
-    let c = Compiler::new();
+pub fn compile_program(program: ProgramTree, filename: String, import_search_path: Vec<String>) -> (Vec<Instr>, Vec<FileSpan>) {
+    let c = Compiler::new(import_search_path);
     c.compile(program, filename)
 }
 
-pub fn run_program(program: ProgramTree, filename: &str) -> Result<(), RuntimeError> {
-    let (instructions, spans) = compile_program(program, filename.to_string());
+pub fn run_program(program: ProgramTree, filename: &str, import_search_path: Vec<String>) -> Result<(), RuntimeError> {
+    let (instructions, spans) = compile_program(program, filename.to_string(), import_search_path);
     let r = Executor::new(instructions, spans);
     r.run()
 }
 
-pub fn try_run(filename: &str, source: String) {
+pub fn try_run(filename: &str, source: String, import_search_path: Vec<String>) {
     match parse_program(&filename, source) {
         Ok(p) => {
-            if let Err(e) = run_program(p, filename) {
+            if let Err(e) = run_program(p, filename, import_search_path) {
                 error::runtime_error(e);
             }
         }
