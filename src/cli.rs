@@ -15,31 +15,21 @@ pub struct Arguments {
     pub parse_only: bool,
 }
 
-impl Arguments {
-    fn new(filename: String, show_help: bool, show_version: bool, disassemble: bool, parse_only: bool) -> Self {
-        Self {
-            filename,
-            show_help,
-            show_version,
-            disassemble,
-            parse_only,
-        }
-    }
-}
 
 pub fn show_usage() {
-    eprintln!("pile: usage: pile FILENAME [FLAGS]");
+    eprintln!("\x1B[1;32musage\x1B[0m: pile <program.pile> [OPTIONS]");
 }
 
 pub fn show_help() {
-    println!("pile help:");
+    println!("\x1B[1;32mhelp\x1B[0m:");
     println!("  positional arguments:");
-    println!("    FILENAME          \tFile path of Pile code");
-    println!("  flags:");
-    println!("    -h, --help        \tShow this help message and exit");
-    println!("    -v, --version     \tShow the version information and exit");
-    println!("    -P, --parse-only  \tParse FILENAME and write parser result to stdout");
-    println!("    -D, --disassemble \tDisassemble the compiled program and write to stdout");
+    println!("    <program.pile>        \tFile path to Pile source-code");
+    println!("  optional arguments:");
+    println!("    -h | --help           \tShow this help message and exit");
+    println!("    -v | --version        \tShow the version information and exit");
+    println!("    -P | --parse-only     \tParse FILENAME and write parser result to stdout");
+    println!("    -I | --import <PATH>  \tAdd PATH as an option to import search paths");
+    println!("    -D | --disassemble    \tDisassemble the compiled program and write to stdout");
 }
 
 fn rustc_version() -> String {

@@ -144,7 +144,7 @@ pub fn cli_error(e: CLIError) {
 }
 
 pub fn fatal(message: &str) -> ! {
-    eprintln!("pile: fatal: {message}");
+    eprintln!("pile: {RED}fatal{RESET}: {message}");
     std::process::exit(1);
 }
 
