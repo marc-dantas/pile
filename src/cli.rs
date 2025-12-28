@@ -9,6 +9,7 @@ pub enum CLIError {
 
 pub struct Arguments {
     pub filename: String,
+    pub search_paths: Vec<String>,
     pub show_help: bool,
     pub disassemble: bool,
     pub show_version: bool,
@@ -43,43 +44,61 @@ pub fn show_version(v: &str) {
 }
 
 pub fn parse_arguments() -> Result<Arguments, CLIError> {
-    let args = args().skip(1);
+    let args = args().skip(1).collect::<Vec<String>>();
     let mut filename = None;
+    let mut search_paths = Vec::new();
     let mut show_help = false;
     let mut show_version = false;
     let mut parse_only = false;
     let mut disassemble = false;
 
-    for arg in args.into_iter() {
+    let mut i = 0;
+    while i < args.len() {
+        let arg = &args[i];
         match arg.as_str() {
             flag if arg.starts_with("-") => match flag {
                 "-h" | "--help" => show_help = true,
                 "-v" | "--version" => show_version = true,
                 "-P" | "--parse-only" => parse_only = true,
                 "-D" | "--disassemble" => disassemble = true,
+                "-I" | "--import" => {
+                    if i+1 >= args.len() {
+                        return Err(CLIError::ExpectedArgument(format!("for {flag} flag")))
+                    }
+                    let next = &args[i + 1];
+                    search_paths.push(next.clone());
+                    i += 1;
+                },
                 _ => return Err(CLIError::InvalidFlag(flag.to_string())),
             },
             _ => {
                 if let Some(_) = filename {
-                    return Err(CLIError::UnexpectedArgument(arg));
+                    return Err(CLIError::UnexpectedArgument(arg.clone()));
                 }
-                filename = Some(arg);
+                filename = Some(arg.clone());
             }
         }
+        i += 1;
     }
 
     if let Some(f) = filename {
-        Ok(Arguments::new(f, show_help, show_version, disassemble, parse_only))
-    } else {
-        if show_help || show_version {
-            return Ok(Arguments::new(
-                "".to_string(),
-                show_help,
-                disassemble,
-                show_version,
-                parse_only,
-            ));
-        }
-        Err(CLIError::ExpectedArgument("FILENAME".to_string()))
+        return Ok(Arguments {
+            filename: f,
+            search_paths,
+            show_help,
+            show_version,
+            disassemble,
+            parse_only
+        });
+    } else if show_help || show_version {
+        return Ok(Arguments {
+            filename: "".to_string(),
+            search_paths,
+            show_help,
+            disassemble,
+            show_version,
+            parse_only,
+        });
     }
+    Err(CLIError::ExpectedArgument("FILENAME".to_string()))
 }
