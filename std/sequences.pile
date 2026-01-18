@@ -1,13 +1,23 @@
-# Executes a range starting from `a` to `b` by step `s`
-# ( a b s -- ... )
+# Leaves an array of integers on the stack
+# containing the range starting from `a` to `b`. Step is aways 1
+# ( a b -- ... )
 proc Range
-    let step
-    loop over over >= if break end
-        over
-        step +
-        swap
+    1 RangeBy
+end
+
+# Leaves an array of integers on the stack
+# containing the range starting from `a` to `b` by step `s`
+# ( a b s -- ... )
+proc RangeBy
+    array
+        let step
+        loop over over >= if break end
+            over
+            step +
+            swap
+        end
+        drop drop
     end
-    drop drop
 end
 
 # Pushes `x` by `n` times on the stack
