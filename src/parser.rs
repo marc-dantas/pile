@@ -1,4 +1,4 @@
-use std::iter::Peekable;
+use std::{iter::Peekable, path};
 
 use crate::lexer::{FileSpan, Lexer, Span, Token, TokenKind};
 
@@ -120,6 +120,7 @@ pub enum Node {
     Let(String, Span),
     AsLet(Vec<Token>, Span),
     Import(String, Span),
+    StdImport(String, Span),
     For(Token, Vec<Node>, Span),
     Operation(OpKind, Span),
     Symbol(String, Span),
@@ -459,14 +460,21 @@ impl<'a> Parser<'a> {
                 "valid identifier".to_string(),
             )
         })?;
-        if path_token.kind != TokenKind::String {
-            return Err(ParseError::UnexpectedToken(
-                path_token.span.to_filespan(self.filename.to_string()),
-                path_token.value,
-                "string".to_string(),
-            ));
+        match path_token.kind {
+            TokenKind::String => {
+                return Ok(Node::Import(path_token.value, path_token.span));
+            }
+            TokenKind::Word => {
+                return Ok(Node::StdImport(path_token.value, path_token.span));
+            }
+            _ => {
+                return Err(ParseError::UnexpectedToken(
+                    path_token.span.to_filespan(self.filename.to_string()),
+                    path_token.value,
+                    "string or word".to_string(),
+                ));
+            }
         }
-        return Ok(Node::Import(path_token.value, path_token.span));
     }
 
     fn parse_for(&mut self) -> Result<Node, ParseError> {

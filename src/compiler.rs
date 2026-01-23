@@ -1,5 +1,6 @@
-use crate::error::throw;
+use crate::error::{throw, note};
 use crate::core::{read_file, try_parse};
+use crate::lexer::Span;
 use std::collections::HashMap;
 use std::path::Path;
 use std::fs::File;
@@ -324,6 +325,44 @@ impl Compiler {
         None
     }
 
+    fn resolve_std_import_path(&self, name: &str) -> Option<String> {
+        let path = &format!("std/{name}.pile");
+        self.resolve_import_path(path)
+    }
+
+    fn import(&mut self, span: Span, name: &str, resolved_path: Option<String>) {
+        let prev_filename = self.filename.clone();
+        if let Some(path) = resolved_path {
+            if let Some(content) = read_file(&path) {
+                self.filename = path.clone();
+                self.compile_block(try_parse(&path, content), true);
+                self.filename = prev_filename;
+            } else {
+                unreachable!("Some(resolved_path) should mean it's a valid path");
+            }
+        } else {
+            throw(
+                "import error",
+                &format!(
+                    "could not resolve import path for \"{name}\".",
+                ),
+                &vec![
+                    FileSpan {
+                        filename: prev_filename,
+                        line: span.line,
+                        col: span.col
+                    }
+                ],
+                None,
+                false,
+            );
+            for search_path in self.import_search_paths.iter() {
+                note(&format!("searched in {search_path}"));
+            }
+            std::process::exit(1)
+        }
+    }
+
     fn compile_block(&mut self, block: Vec<Node>, scoped: bool) {
         // IMPORTANT TODO: Add scope for ifs and loops block.
         //                 I removed because it would fuck up the scoping when doing recursion
@@ -338,32 +377,13 @@ impl Compiler {
 
         for stmt in block.into_iter() {
             match stmt {
+                Node::StdImport(name, span) => {
+                    let resolved_path = self.resolve_std_import_path(&name);
+                    self.import(span, &name, resolved_path);
+                }
                 Node::Import(name, span) => {
-                    let prev_filename = self.filename.to_owned();
-                    if let Some(path) = self.resolve_import_path(&name) {
-                        if let Some(content) = read_file(&path) {
-                            self.filename = path;
-                            self.compile_block(try_parse(&name, content), true);
-                            self.filename = prev_filename;
-                        } else {
-                            unreachable!("resolve_import_path should've checked path validity");
-                        }
-                    } else {
-                        throw(
-                            "import error",
-                            &format!(
-                                "could not resolve import path \"{name}\".",
-                            ),
-                            &vec![
-                                FileSpan {
-                                    filename: prev_filename,
-                                    line: span.line,
-                                    col: span.col
-                                }
-                            ],
-                            None
-                        );
-                    }
+                    let resolved_path = self.resolve_import_path(&name);
+                    self.import(span, &name, resolved_path);
                 }
                 Node::Proc(name, block, span) => {
                     let span_id = self.add_span(span.to_filespan(self.filename.clone()));

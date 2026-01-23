@@ -28,7 +28,7 @@ pub fn try_read_file(path: &str) -> String {
     match read_file(path) {
         Some(s) => return s,
         None => {
-            error::fatal(&format!("couldn't read file {}.", path));
+            error::fatal(&format!("could not read file {}", path));
         }
     };
 }

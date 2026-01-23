@@ -19,6 +19,7 @@ fn match_runtime_error(e: &RuntimeError) {
                 &format!("{message}"),
                 span,
                 None,
+                true
             );
         }
         RuntimeError::ArrayOutOfBounds(span, index, len) => {
@@ -27,6 +28,7 @@ fn match_runtime_error(e: &RuntimeError) {
                 &format!("array index out of bounds: tried to index array of size {len} but used index {index}."),
                 span,
                 None,
+                true
             );
         }
         RuntimeError::StringOutOfBounds(span, index, len) => {
@@ -35,6 +37,7 @@ fn match_runtime_error(e: &RuntimeError) {
                 &format!("string index out of bounds: tried to index string of size {len} but used index {index}."),
                 span,
                 None,
+                true
             );
         }
         RuntimeError::InvalidSymbol(span, x) => {
@@ -43,6 +46,7 @@ fn match_runtime_error(e: &RuntimeError) {
                 &format!("invalid symbol: `{x}` is not defined."),
                 span,
                 Some("maybe a typo?"),
+                true
             );
         }
         RuntimeError::EmptyDefinition(span, x) => {
@@ -51,6 +55,7 @@ fn match_runtime_error(e: &RuntimeError) {
                 &format!("found empty definition: the expression inside {x} leads to no value on the stack."),
                 span,
                 None,
+                true
             );
         }
         RuntimeError::StackUnderflow(span, op, n) => {
@@ -59,6 +64,7 @@ fn match_runtime_error(e: &RuntimeError) {
                 &format!("stack underflow: too few values on the stack to satisfy `{op}` (expected {n})"),
                 span,
                 Some(&format!("use `trace` operation to see the values on the stack without removing them.")),
+                true
             );
         }
         RuntimeError::UnexpectedType(span, n, x, y) => {
@@ -69,6 +75,7 @@ fn match_runtime_error(e: &RuntimeError) {
                 ),
                 span,
                 Some("try checking the values before the operation."),
+                true
             );
         }
         RuntimeError::DivisionByZero(span) => {
@@ -77,6 +84,7 @@ fn match_runtime_error(e: &RuntimeError) {
                 &format!("division by zero."),
                 span,
                 None,
+                true
             );
         }
     }
@@ -96,6 +104,7 @@ pub fn parse_error(e: ParseError) {
                 "unmatched block: termination of block (`end`) provided without a beginning.",
                 &vec![span],
                 None,
+                true
             );
         }
         ParseError::UnterminatedBlock(span, x) => {
@@ -104,6 +113,7 @@ pub fn parse_error(e: ParseError) {
                 &format!("unterminated block: termination of block not provided from `{x}` block."),
                 &vec![span],
                 Some("perhaps you forgot to write `end`?"),
+                true
             );
         }
         ParseError::UnexpectedEOF(span, x) => {
@@ -114,6 +124,7 @@ pub fn parse_error(e: ParseError) {
                 ),
                 &vec![span],
                 None,
+                true
             );
         }
         ParseError::UnexpectedToken(span, x, y) => {
@@ -122,6 +133,7 @@ pub fn parse_error(e: ParseError) {
                 &format!("unexpected token: expected {y} but got {x}."),
                 &vec![span],
                 None,
+                true
             );
         }
     };
@@ -148,11 +160,16 @@ pub fn fatal(message: &str) -> ! {
     std::process::exit(1);
 }
 
+pub fn note(message: &str) {
+    eprintln!("pile: {CYAN}note{RESET}: {message}");
+}
+
 pub fn throw(
     error: &str,
     message: &str,
     call_stack: &[FileSpan],
     help: Option<&str>,
+    exit: bool,
 ) {
     eprintln!("pile: {RED}{}{RESET}:", error);
 
@@ -168,7 +185,7 @@ pub fn throw(
         }
     }
     eprintln!();
-    std::process::exit(1);
+    if exit { std::process::exit(1); }
 }
 
 fn break_line_at(value: String, n: usize) -> Vec<String> {

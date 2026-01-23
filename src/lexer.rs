@@ -171,6 +171,7 @@ impl<'a> Iterator for Lexer<'a> {
                                     }
                                 ],
                                 Some("check if the string was left open unintentionally."),
+                                true
                             );
                         }
                         match d {
@@ -193,6 +194,7 @@ impl<'a> Iterator for Lexer<'a> {
                                                 },
                                             ],
                                             None,
+                                            true
                                         );
                                     }
                                 }
@@ -259,6 +261,7 @@ impl<'a> Iterator for Lexer<'a> {
                                         col: self.span.col + buffer.len(),
                                     }],
                                     None,
+                                    true
                                 );
                             }
                             break;
@@ -302,6 +305,7 @@ impl<'a> Iterator for Lexer<'a> {
                                         col: self.span.col + buffer.len(),
                                     }],
                                     None,
+                                    true,
                                 );
                             }
                             break;
@@ -349,6 +353,7 @@ impl<'a> Iterator for Lexer<'a> {
                             col: self.span.col,
                         }],
                         None,
+                        true
                     );
                 }
             }
