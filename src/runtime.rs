@@ -23,6 +23,20 @@ enum IteratorOver {
     Bytes(Id),
 }
 
+enum Object {
+    String(Vec<u8>),
+    Array(Vec<Value>),
+}
+
+impl std::fmt::Display for Object {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Object::String(..) => write!(f, "string"),
+            Object::Array(..) => write!(f, "array"),
+        }
+    }
+}
+
 pub struct Executor {
     pub program: Vec<Instr>,
     spans: Vec<FileSpan>,
@@ -34,19 +48,15 @@ pub struct Executor {
     call_stack: Vec<(Addr, usize)>,
 
     strings_intern_pool: HashMap<String, Id>,
-    strings: HashMap<Id, Vec<u8>>,
-    string_id: Id,
-
     array_stack: Vec<usize>,
     //               ^---- The length of the data stack at the point of BeginArray,
     //                     so i can subtract and get the len of the array and get all the items
-    arrays: HashMap<Id, Vec<Value>>,
-    array_id: Id,
+
+    objects: Vec<Object>,
+
+    datas: Vec<Data>,
 
     iterators: Vec<(IteratorOver, usize)>,
-
-    datas: HashMap<Id, Data>,
-    datas_id: Id,
 
     namespace: Vec<HashMap<String, Value>>,
     definitions: HashMap<String, Value>,
@@ -71,19 +81,87 @@ impl Executor {
             span: 0,
             spans: spans,
             stack: Vec::new(),
-            strings: HashMap::new(),
             strings_intern_pool: HashMap::new(),
-            string_id: 0,
             array_stack: Vec::new(),
-            arrays: HashMap::new(),
+            objects: Vec::new(),
+            datas: Vec::new(),
             iterators: Vec::new(),
-            array_id: 0,
-            datas: HashMap::new(),
-            datas_id: 0,
             namespace: Vec::new(),
             call_stack: Vec::new(),
             definitions: HashMap::new(),
         }
+    }
+
+    fn load_string(&self, id: Id) -> &Vec<u8> {
+        let o = self.objects.get(id);
+        if let Some(Object::String(o)) = o {
+            return o
+        }
+        unreachable!("could not load string with id {id}")
+    }
+
+    fn load_string_mut(&mut self, id: Id) -> &mut Vec<u8> {
+        let o = self.objects.get_mut(id);
+        if let Some(Object::String(o)) = o {
+            return o
+        }
+        unreachable!("could not load string with id {id}")
+    }
+
+    fn load_array(&self, id: Id) -> &Vec<Value> {
+        let o = self.objects.get(id);
+        if let Some(Object::Array(o)) = o {
+            return o
+        }
+        unreachable!("could not load array with id {id}")
+    }
+
+    fn load_array_mut(&mut self, id: Id) -> &mut Vec<Value> {
+        let o = self.objects.get_mut(id);
+        if let Some(Object::Array(o)) = o {
+            return o
+        }
+        unreachable!("could not load array with id {id}")
+    }
+
+    fn load_data_mut(&mut self, id: Id) -> &mut Data {
+        let o = self.datas.get_mut(id);
+        if let Some(o) = o {
+            return o
+        }
+        unreachable!("could not load data with id {id}")
+    }
+
+    fn load_string_as_utf8(&self, id: Id) -> Result<String, RuntimeError> {
+        let s = self.load_string(id);
+        match std::str::from_utf8(&s) {
+            Ok(s) => Ok(s.to_string()),
+            Err(e) => Err(RuntimeError::Custom(self.get_call_stack_filespan(), e.to_string())),
+        }
+    }
+
+    fn push_string(&mut self, string: Vec<u8>) {
+        let id = self.objects.len();
+        self.objects.push(Object::String(string));
+        self.stack.push(Value::String(id));
+    }
+
+    pub fn make_data(&mut self, data: Data) -> Value {
+        let id = self.datas.len();
+        self.datas.push(data);
+        return Value::Data(id);
+    }
+
+    pub fn make_string(&mut self, string: Vec<u8>) -> Value {
+        let id = self.objects.len();
+        self.objects.push(Object::String(string));
+        return Value::String(id);
+    }
+
+    pub fn make_array(&mut self, array: Vec<Value>) -> Value {
+        let id = self.objects.len();
+        self.objects.push(Object::Array(array));
+        return Value::Array(id);
     }
 
     fn get_span(&self, id: usize) -> FileSpan {
@@ -113,8 +191,8 @@ impl Executor {
                     }
                     (Value::Float(x), Value::Float(y)) => self.stack.push(Value::Float(x + y)),
                     (Value::String(x), Value::String(y)) => {
-                        let x = self.strings.get(&x).unwrap();
-                        let y = self.strings.get(&y).unwrap();
+                        let x = self.load_string(x);
+                        let y = self.load_string(y);
                         let mut concat = Vec::new();
                         concat.extend(x);
                         concat.extend(y);
@@ -341,8 +419,8 @@ impl Executor {
                         self.stack.push(Value::Bool(x == y));
                     }
                     (Value::String(x), Value::String(y)) => {
-                        let x = self.strings.get(&x).unwrap();
-                        let y = self.strings.get(&y).unwrap();
+                        let x = self.load_string(x);
+                        let y = self.load_string(y);
                         self.stack.push(Value::Bool(x == y));
                     }
                     _ => {
@@ -421,8 +499,8 @@ impl Executor {
                         self.stack.push(Value::Bool(x != y));
                     }
                     (Value::String(x), Value::String(y)) => {
-                        let x = self.strings.get(&x).unwrap();
-                        let y = self.strings.get(&y).unwrap();
+                        let x = self.load_string(x);
+                        let y = self.load_string(y);
                         self.stack.push(Value::Bool(x != y));
                     }
                     _ => {
@@ -574,7 +652,7 @@ impl Executor {
                 })?;
                 match (seq, index) {
                     (Value::Array(id), Value::Int(i)) => {
-                        let array = self.arrays.get(&id).unwrap();
+                        let array = self.load_array(id);
                         if let Some(value) = array.get(i as usize) {
                             self.stack.push(value.clone());
                         } else {
@@ -586,7 +664,7 @@ impl Executor {
                         }
                     }
                     (Value::String(id), Value::Int(i)) => {
-                        let string = self.strings.get(&id).unwrap();
+                        let string = self.load_string(id);
                         if let Some(value) = string.get(i as usize) {
                             self.stack.push(Value::Int(*value as i64));
                         } else {
@@ -620,7 +698,7 @@ impl Executor {
                 })?;
                 match (seq, index, value) {
                     (Value::Array(id), Value::Int(i), value) => {
-                        let array = self.arrays.get_mut(&id).unwrap();
+                        let array = self.load_array_mut(id);
                         let array_len = array.len();
                         if i as usize >= array_len {
                             return Err(RuntimeError::ArrayOutOfBounds(
@@ -632,7 +710,7 @@ impl Executor {
                         array[i as usize] = value;
                     }
                     (Value::String(id), Value::Int(i), Value::Int(chrcode)) => {
-                        let string = self.strings.get_mut(&id).unwrap();
+                        let string = self.load_string_mut(id);
                         let string_len = string.len();
                         if i as usize >= string_len {
                             return Err(RuntimeError::StringOutOfBounds(
@@ -665,7 +743,7 @@ impl Executor {
                         Value::Int(i) => self.stack.push(Value::Int(i)),
                         Value::Float(f) => self.stack.push(Value::Int(f as i64)),
                         Value::String(id) => {
-                            let s = self.strings.get(&id).unwrap();
+                            let s = self.load_string(id);
                             let s = unsafe { std::str::from_utf8_unchecked(&s) };
                             if let Ok(i) = s.parse::<i64>() {
                                 self.stack.push(Value::Int(i));
@@ -690,8 +768,7 @@ impl Executor {
                         Value::Int(i) => self.stack.push(Value::Float(i as f64)),
                         Value::Float(f) => self.stack.push(Value::Float(f)),
                         Value::String(id) => {
-                            let s = self.strings.get(&id).unwrap();
-                            let s = unsafe { std::str::from_utf8_unchecked(&s) };
+                            let s = self.load_string_as_utf8(id)?;
                             if let Ok(f) = s.parse::<f64>() {
                                 self.stack.push(Value::Float(f));
                             } else {
@@ -728,11 +805,11 @@ impl Executor {
                         Value::Int(i) => self.stack.push(Value::Bool(i != 0)),
                         Value::Float(f) => self.stack.push(Value::Bool(f != 0.0)),
                         Value::String(id) => {
-                            let s = self.strings.get(&id).unwrap();
+                            let s = self.load_string(id);
                             self.stack.push(Value::Bool(!s.is_empty()));
                         }
                         Value::Array(id) => {
-                            let a = self.arrays.get(&id).unwrap();
+                            let a = self.load_array(id);
                             self.stack.push(Value::Bool(!a.is_empty()));
                         }
                         x => {
@@ -770,7 +847,7 @@ impl Executor {
             Builtin::open => {
                 if let (Some(mode), Some(path)) = (self.stack.pop(), self.stack.pop()) {
                     if let Value::String(path) = path {
-                        let path = self.load_string_utf8(path)?;
+                        let path = self.load_string_as_utf8(path)?;
                         let mut open = OpenOptions::new();
                         match mode {
                             Value::Int(FILE_READ) => {
@@ -791,10 +868,8 @@ impl Executor {
                         }
                         match open.open(path) {
                             Ok(f) => {
-                                self.datas
-                                    .insert(self.datas_id, Data::File(FileLike::File(f)));
-                                self.stack.push(Value::Data(self.datas_id));
-                                self.datas_id += 1;
+                                let d = self.make_data(Data::File(FileLike::File(f)));
+                                self.stack.push(d);
                             }
                             Err(_) => {
                                 self.stack.push(Value::Nil);
@@ -820,9 +895,16 @@ impl Executor {
                 if let (Some(buf), Some(file)) = (self.stack.pop(), self.stack.pop()) {
                     if let (Value::Data(file), Value::String(buf)) = (file, buf) {
                         let span = self.get_call_stack_filespan();
-                        let file = self.datas.get_mut(&file).unwrap();
-                        let buf = self.strings.get(&buf).unwrap();
-                        if let Data::File(file) = file {
+                        // This is officially the most ridiculous thing Rust forced me to
+                        // do to SHUT THE FUCKING BORROW CHECKER UP
+                        // I had to separate the datas objects into a separate field in the struct
+                        // which now implies that datas will not be garbage-collected in the future
+                        // and I also had to not use the self.load_string() and self.load_data() helper functions
+                        // or the borrow checker would think i was borrowing the whole Executor structure.
+                        // Fuck you, Rust.
+                        let buf = self.objects.get(buf).unwrap();
+                        let file = self.datas.get_mut(file).unwrap();
+                        if let Data::File(file) = file && let Object::String(buf) = buf {
                             match file.write(buf) {
                                 Some(std::io::Result::Err(e)) => {
                                     return Err(RuntimeError::Custom(
@@ -866,7 +948,7 @@ impl Executor {
                 if let Some(file) = self.stack.pop() {
                     if let Value::Data(file) = file {
                         let span = self.get_call_stack_filespan();
-                        let file = self.datas.get_mut(&file).unwrap();
+                        let file = self.load_data_mut(file);
                         if let Data::File(file) = file {
                             match file.read() {
                                 Some((_, std::io::Result::Err(e))) => {
@@ -913,7 +995,7 @@ impl Executor {
                 if let Some(file) = self.stack.pop() {
                     if let Value::Data(file) = file {
                         let span = self.get_call_stack_filespan();
-                        let file = self.datas.get_mut(&file).unwrap();
+                        let file = self.load_data_mut(file);
                         if let Data::File(file) = file {
                             match file.readline() {
                                 Some((_, std::io::Result::Err(e))) => {
@@ -1012,7 +1094,7 @@ impl Executor {
                 if let Some(value) = self.stack.pop() {
                     match value {
                         Value::String(id) => {
-                            let string = self.load_string_utf8(id)?;
+                            let string = self.load_string_as_utf8(id)?;
                             if let Some(c) = string.chars().next() {
                                 self.stack.push(Value::Int(c as i64));
                             } else {
@@ -1046,10 +1128,10 @@ impl Executor {
                     match value {
                         Value::String(id) => self
                             .stack
-                            .push(Value::Int(self.strings.get(&id).unwrap().len() as i64)),
+                            .push(Value::Int(self.load_string(id).len() as i64)),
                         Value::Array(id) => self
                             .stack
-                            .push(Value::Int(self.arrays.get(&id).unwrap().len() as i64)),
+                            .push(Value::Int(self.load_array(id).len() as i64)),
                         other => {
                             return Err(RuntimeError::UnexpectedType(
                                 self.get_call_stack_filespan(),
@@ -1073,11 +1155,11 @@ impl Executor {
 
     fn header(&mut self) {
         // File-related constants
-        let data = self.new_data(Data::File(FileLike::Stdin(std::io::stdin())));
+        let data = self.make_data(Data::File(FileLike::Stdin(std::io::stdin())));
         self.definitions.insert("STDIN".to_string(), data);
-        let data = self.new_data(Data::File(FileLike::Stdout(std::io::stdout())));
+        let data = self.make_data(Data::File(FileLike::Stdout(std::io::stdout())));
         self.definitions.insert("STDOUT".to_string(), data);
-        let data = self.new_data(Data::File(FileLike::Stderr(std::io::stderr())));
+        let data = self.make_data(Data::File(FileLike::Stderr(std::io::stderr())));
         self.definitions.insert("STDERR".to_string(), data);
         self.definitions
             .insert("FILE_READ".to_string(), Value::Int(FILE_READ));
@@ -1247,11 +1329,10 @@ impl Executor {
                         self.stack.push(Value::String(*id));
                     } else {
                         let value = value.clone();
-                        let id = self.string_id;
-                        self.strings_intern_pool.insert(value.clone(), id);
-                        self.strings.insert(id, value.as_bytes().to_vec());
-                        self.stack.push(Value::String(id));
-                        self.string_id += 1;
+                        let id = self.objects.len();
+                        let s = self.make_string(value.as_bytes().to_vec());
+                        self.strings_intern_pool.insert(value, id);
+                        self.stack.push(s);
                     }
                 }
                 Instr::ExecBuiltin(builtin) => {
@@ -1273,9 +1354,8 @@ impl Executor {
                         unreachable!()
                     }
                     array.reverse();
-                    self.arrays.insert(self.array_id, array);
-                    self.stack.push(Value::Array(self.array_id));
-                    self.array_id += 1;
+                    let a = self.make_array(array);
+                    self.stack.push(a);
                 }
                 Instr::EndIter => {
                     self.iterators.pop();
@@ -1284,23 +1364,28 @@ impl Executor {
                     let (it, point) = self.iterators.last_mut().unwrap();
                     match it {
                         IteratorOver::Values(vs) => {
-                            let vs = self.arrays.get(&vs).unwrap();
-                            if let Some(next) = vs.get(*point) {
+                            let vs = *vs;
+                            let p = *point;
+                            *point += 1;
+                            let vs = self.load_array(vs);
+                            if let Some(next) = vs.get(p) {
                                 self.stack.push(*next);
                             } else {
                                 self.stack.push(Value::Nil);
                             }
                         }
                         IteratorOver::Bytes(bs) => {
-                            let bs = self.strings.get(&bs).unwrap();
-                            if let Some(next) = bs.get(*point) {
+                            let bs = *bs;
+                            let p = *point;
+                            *point += 1;
+                            let bs = self.load_string(bs);
+                            if let Some(next) = bs.get(p) {
                                 self.stack.push(Value::Int(*next as i64));
                             } else {
                                 self.stack.push(Value::Nil);
                             }
                         }
                     }
-                    *point += 1;
                 }
                 Instr::BeginIter => {
                     if let Some(it) = self.stack.pop() {
@@ -1341,7 +1426,7 @@ impl Executor {
             Value::Float(f) => format!("{f}"),
             Value::Nil => String::from("nil"),
             Value::Array(a) => {
-                let a = self.arrays.get(&a).unwrap();
+                let a = self.load_array(a);
                 let mut s = String::from("array ");
                 for i in a {
                     s.push_str(&self.display_value(*i));
@@ -1350,30 +1435,8 @@ impl Executor {
                 s.push_str("end");
                 s
             }
-            Value::String(s) => self.load_string_utf8(s).unwrap(),
+            Value::String(s) => self.load_string_as_utf8(s).unwrap(),
             other => format!("{other}"),
         }
-    }
-
-    fn load_string_utf8(&self, id: Id) -> Result<String, RuntimeError> {
-        let s = self.strings.get(&id).unwrap();
-        match std::str::from_utf8(&s) {
-            Ok(s) => Ok(s.to_string()),
-            Err(e) => Err(RuntimeError::Custom(self.get_call_stack_filespan(), e.to_string())),
-        }
-    }
-
-    fn push_string(&mut self, string: Vec<u8>) {
-        let id = self.string_id;
-        self.strings.insert(id, string);
-        self.stack.push(Value::String(id));
-        self.string_id += 1;
-    }
-
-    pub fn new_data(&mut self, data: Data) -> Value {
-        let id = self.datas_id;
-        self.datas.insert(id, data);
-        self.datas_id += 1;
-        return Value::Data(id);
     }
 }
