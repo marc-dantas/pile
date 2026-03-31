@@ -21,7 +21,7 @@ $ ./target/release/pile # or pile.exe on Windows
 ```
 
 ## Learning resources
-Pile's full documentation and website can be visited at [pile-online.vercel.app](https://pile-lang.vercel.app).
+Pile's full documentation is in development.
 
 ## Code examples
 Explore the [`./examples`](./examples) folder for code examples.
