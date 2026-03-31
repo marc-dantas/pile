@@ -40,8 +40,8 @@ proc Max
     end
 end
 
-# Ensures that the returned value `y` is not less than the specified minimum `a` 
-# and not greater than the specified maximum `b`. If the value is within the 
+# Ensures that the returned value `y` is not less than the specified minimum `a`
+# and not greater than the specified maximum `b`. If the value is within the
 # range, it is returned unchanged (`x`).
 # ( x a b -- y )
 proc Clamp

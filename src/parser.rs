@@ -1,4 +1,4 @@
-use std::{iter::Peekable, path};
+use std::iter::Peekable;
 
 use crate::lexer::{FileSpan, Lexer, Span, Token, TokenKind};
 

@@ -171,7 +171,7 @@ impl FileLike {
             FileLike::File(f) => {
                 value = Some(f.write(buf));
             }
-            FileLike::Stdin(f) => {}
+            FileLike::Stdin(_f) => {}
             FileLike::Stdout(f) => {
                 value = Some(f.write(buf));
             }
