@@ -13,3 +13,4 @@ This series of documents is meant to document the Pile Programming Language in g
 1. [Variables and scoping](./variables.md)
 1. [Variables vs. Stack](./variables_vs_stack.md)
 1. [Modules](./modules.md)
+1. [Examples showcase](./examples.md)
