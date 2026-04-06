@@ -21,7 +21,7 @@ $ ./target/release/pile # or pile.exe on Windows
 ```
 
 ## Learning resources
-Pile's full documentation is in development.
+Pile's full documentation/reference can be read [here](./docs).
 
 ## Code examples
 Explore the [`./examples`](./examples) folder for code examples.
