@@ -13,4 +13,6 @@ This model shows up more often than people expect:
 
 The rest of this documentation references Pile programming language, a stack-based scripting programming language.
 
+---
+
 > [**Next**](./structure.md)

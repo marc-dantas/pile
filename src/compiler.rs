@@ -47,7 +47,7 @@ pub enum Op {
     Le,
     Ne,
 
-    // Logic
+    // Bitwise
     Shl,
     Shr,
     Bor,
