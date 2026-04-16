@@ -12,7 +12,6 @@
 | Divide    | `/`       | `( a b -- a/b )`     | Pops A and B from the stack and pushes their quotient.        |
 | Modulo    | `%`       | `( a b -- a%b )`     | Pops A and B from the stack and pushes their division modulo. |
 
-
 ## Relational
 | Name          | Operation | Forth stack notation | Description                                                                            |
 |---------------|-----------|----------------------|----------------------------------------------------------------------------------------|
@@ -24,8 +23,6 @@
 | Not Equal     | `!=`      | `( a b -- a!=b )`    | Pops A and B from the stack and pushes the result of comparison not equal.             |
 
 ## Bitwise
-
-
 | Name        | Operation | Forth stack notation | Description                                                                     |
 |-------------|-----------|----------------------|---------------------------------------------------------------------------------|
 | B-Or        | `|`       | `( a b -- a|b )`     | Pops A and B from the stack and pushes the result of Bitwise Or to them.        |
@@ -37,14 +34,12 @@
 > **NOTE**: The B-Or, B-And and B-Not operations also work with the `bool` type in Pile, so these are also logic operators.
 
 ## Sequence operations
-
 | Name           | Operation | Forth stack notation | Description                                                                             |
 |----------------|-----------|----------------------|-----------------------------------------------------------------------------------------|
 | Read at index  | `@`       | `( s i -- s[i] )`    | Pushes the read value at the index I of the sequence S, being it an array or string.    |
 | Write at index | `!`       | `( s i x -- )`       | Replaces the value at I in the sequence S, being it an array or string, by the value X. |
 
 ## Misc
-
 | Name   | Operation | Forth stack notation | Description                                         |
 |--------|-----------|----------------------|-----------------------------------------------------|
 | Is Nil | `?`       | `( x -- x==nil )`    | Pops X from the stack and pushes if it is `nil`.    |
